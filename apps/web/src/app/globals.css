@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Paleta 60-30-10 de DESIGN_SYSTEM.md */
+  --background: #FAFAF9;
+  /* Soft Stone */
+  --primary: #1C1917;
+  /* Deep Stone */
+  --accent: #D4D4D8;
+  /* Champagne */
+}
+
+/* Aplicamos las fuentes globales */
+body {
+  @apply bg-[var(--background)] text-[var(--primary)] font-sans antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  @apply font-serif;
+}
