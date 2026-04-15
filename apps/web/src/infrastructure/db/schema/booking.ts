@@ -9,6 +9,7 @@ import {
   date,
   timestamp,
   unique,
+  index,
 } from 'drizzle-orm/pg-core';
 import {
   discountTypeEnum,
@@ -109,7 +110,11 @@ export const appointments = pgTable('appointments', {
   reviewRequestSentAt: timestamp('review_request_sent_at', { withTimezone: true }),
   createdAt:           timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:           timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index('idx_appointments_org_id').on(t.organizationId),
+  index('idx_appointments_customer_id').on(t.customerId),
+  index('idx_appointments_start_at').on(t.startAt),
+]);
 
 // ── temporary_slots ───────────────────────────────────────────
 // 5-minute lock to prevent double booking during checkout (anti race-condition)
@@ -149,7 +154,9 @@ export const payments = pgTable('payments', {
   paidAt:                 timestamp('paid_at', { withTimezone: true }),
   createdAt:              timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:              timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index('idx_payments_org_id').on(t.organizationId),
+]);
 
 // ── booking_custom_fields ─────────────────────────────────────
 export const bookingCustomFields = pgTable('booking_custom_fields', {
