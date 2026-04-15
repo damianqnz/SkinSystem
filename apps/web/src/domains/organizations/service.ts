@@ -7,24 +7,110 @@ import type { Result } from '@/shared/types/result';
 
 export type OrgSummary = { id: string; name: string; slug: string; locale: string };
 
-const COLS = {
+export type OrgSettings = OrgSummary & {
+  stripeAccountId:  string | null;
+  stripeOnboarded:  boolean;
+  defaultCurrency:  string;
+  primaryEmail:     string | null;
+  logoUrl:          string | null;
+};
+
+const SLUG_COLS = {
   id:     organizations.id,
   name:   organizations.name,
   slug:   organizations.slug,
   locale: organizations.locale,
 };
 
-/** Resolves a subdomain slug ("lourdes") to its org UUID + metadata. */
+const SETTINGS_COLS = {
+  id:               organizations.id,
+  name:             organizations.name,
+  slug:             organizations.slug,
+  locale:           organizations.locale,
+  stripeAccountId:  organizations.stripeAccountId,
+  stripeOnboarded:  organizations.stripeOnboarded,
+  defaultCurrency:  organizations.defaultCurrency,
+  primaryEmail:     organizations.primaryEmail,
+  logoUrl:          organizations.logoUrl,
+};
+
+// ── Resolvers ─────────────────────────────────────────────────
+
+/** Resolves a subdomain slug to org UUID + minimal metadata. */
 export async function getOrganizationBySlug(slug: string): Promise<Result<OrgSummary>> {
   try {
     const rows = await db
-      .select(COLS)
+      .select(SLUG_COLS)
       .from(organizations)
       .where(eq(organizations.slug, slug))
       .limit(1);
     if (!rows[0]) return { data: null, error: { message: 'Organization not found', code: 'NOT_FOUND' } };
-    return { data: rows[0] as OrgSummary, error: null };
+    return { data: rows[0], error: null };
   } catch {
     return { data: null, error: { message: 'Failed to fetch organization', code: 'DB_ERROR' } };
+  }
+}
+
+/** Org settings including Stripe state — for the Settings page. */
+export async function getOrganizationSettings(id: string): Promise<Result<OrgSettings>> {
+  try {
+    const rows = await db
+      .select(SETTINGS_COLS)
+      .from(organizations)
+      .where(eq(organizations.id, id))
+      .limit(1);
+    if (!rows[0]) return { data: null, error: { message: 'Organization not found', code: 'NOT_FOUND' } };
+    return { data: rows[0] as OrgSettings, error: null };
+  } catch {
+    return { data: null, error: { message: 'Failed to fetch organization settings', code: 'DB_ERROR' } };
+  }
+}
+
+/** Org by ID — used in webhook handlers that receive orgId from metadata. */
+export async function getOrganizationById(id: string): Promise<Result<OrgSettings>> {
+  return getOrganizationSettings(id);
+}
+
+// ── Stripe updates ────────────────────────────────────────────
+
+/**
+ * Persist the Stripe account ID after `accounts.create`.
+ * Called once when the specialist initiates onboarding.
+ */
+export async function setStripeAccountId(
+  orgId:           string,
+  stripeAccountId: string,
+): Promise<Result<{ id: string }>> {
+  try {
+    const rows = await db
+      .update(organizations)
+      .set({ stripeAccountId, updatedAt: new Date() })
+      .where(eq(organizations.id, orgId))
+      .returning({ id: organizations.id });
+    if (!rows[0]) return { data: null, error: { message: 'Org not found', code: 'NOT_FOUND' } };
+    return { data: { id: rows[0].id }, error: null };
+  } catch {
+    return { data: null, error: { message: 'Failed to save Stripe account', code: 'DB_ERROR' } };
+  }
+}
+
+/**
+ * Mark org as Stripe-onboarded.
+ * Called from the `account.updated` webhook when `details_submitted = true`.
+ */
+export async function markStripeOnboarded(
+  orgId:   string,
+  onboarded: boolean = true,
+): Promise<Result<{ id: string }>> {
+  try {
+    const rows = await db
+      .update(organizations)
+      .set({ stripeOnboarded: onboarded, updatedAt: new Date() })
+      .where(eq(organizations.id, orgId))
+      .returning({ id: organizations.id });
+    if (!rows[0]) return { data: null, error: { message: 'Org not found', code: 'NOT_FOUND' } };
+    return { data: { id: rows[0].id }, error: null };
+  } catch {
+    return { data: null, error: { message: 'Failed to update onboarding status', code: 'DB_ERROR' } };
   }
 }

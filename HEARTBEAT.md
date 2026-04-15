@@ -308,3 +308,18 @@
 - [NEXT] Vincular catálogo con Stripe Connect: `priceCents` → Stripe PaymentIntent `amount`, `depositPercent` → `application_fee_amount` calculation, `currency` → `currency` field.
 - [NEXT] Subida de imagen de portada (coverImageUrl) via Supabase Storage.
 - [NEXT] Reordenamiento drag-and-drop de servicios y categorías (dnd-kit sortOrder).
+
+### 🗓️ 2026-04-15: Stripe Connect Infrastructure — Pagos
+- [DONE] stripe@17 instalado. `shared/lib/stripe.ts` — singleton `getStripe()`, `calcDepositAmount(priceCents, depositPercent)`, `calcApplicationFee(amountCents, feeBps=1000)`.
+- [DONE] domains/billing/service.ts — `createBookingSession(input)`: Valida stripeAccountId antes de crear cualquier objeto Stripe. `transfer_data.destination` = cuenta del especialista. `application_fee_amount` = plataforma 10%. Metadata: organizationId, appointmentId, serviceId. `createPaymentRecord`, `markPaymentSucceeded`, `markPaymentFailed`.
+- [DONE] domains/organizations/service.ts — Extendido: `getOrganizationSettings` (stripeAccountId, stripeOnboarded, defaultCurrency, primaryEmail), `setStripeAccountId`, `markStripeOnboarded`.
+- [DONE] app/api/webhooks/stripe/route.ts — Seguridad: `req.text()` (raw body) ANTES de cualquier parsing. `constructEvent()` con STRIPE_WEBHOOK_SECRET verifica firma antes de cualquier lógica. Eventos: `checkout.session.completed` (createPaymentRecord → markPaymentSucceeded → confirm appointment → unlockSlot Redis), `payment_intent.payment_failed` (markPaymentFailed), `account.updated` (markStripeOnboarded si details_submitted=true).
+- [DONE] dashboard/settings/actions.ts — `createStripeConnectAccount`: idempotente (no crea cuenta duplicada), persiste stripeAccountId ANTES de crear el link. `refreshStripeOnboardingLink`: regenera link expirado. OrgId SIEMPRE de user.user_metadata (no spoofable).
+- [DONE] dashboard/settings/_components/StripeConnectCard.tsx — Card premium 3 estados: ConnectedState (grid info + link Stripe Dashboard), PendingState (continuar verificación), DisconnectedState (CTA conectar). SVG wordmark de Stripe inline (sin CDN externo). Badges: emerald(conectado) / amber(pendiente) / stone(no conectado). useActionState para connect + refresh. router.push() para redireccion Stripe.
+- [DONE] dashboard/settings/page.tsx — Settings page con sección Pagos (StripeConnectCard) + placeholders Perfil del negocio + Notificaciones.
+- [DONE] .env.local — STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_PLATFORM_FEE_BPS=1000 añadidos.
+- [DONE] tsc --noEmit: 0 errores.
+- [NOTE] Aislamiento fiscal garantizado: cada `createBookingSession` valida que org.stripeAccountId exista. Fondos siempre a transfer_data.destination (cuenta del especialista). Plataforma cobra vía application_fee_amount.
+- [NEXT] Rellenar credenciales reales de Stripe en .env.local para habilitar el webhook en local.
+- [NEXT] Completar flujo booking público: NewAppointmentFAB form → createAppointment → createBookingSession → redirect Stripe Checkout.
+- [NEXT] Integración WhatsApp (Evolution API): envío rutina PDF tras generación.
