@@ -256,3 +256,17 @@
 - [DONE] tsc --noEmit: 0 errores. GET /dashboard/customers/[id]/routine → 200.
 - [NEXT] Integración WhatsApp (Evolution API): envío de rutina PDF a la clienta vía WhatsApp tras generación.
 - [NEXT] Crear página /dashboard (Overview) con datos reales: citas de hoy, próximas, resumen de ingresos usando los domain services.
+### 🗓️ 2026-04-15: Calendario de Gestión — /dashboard/agenda
+- [DONE] domains/booking/calendar-service.ts — `getCalendarWeek(orgId, anchorDate)`: JOIN appointments ↔ customers ↔ catalog_services. Devuelve CalendarEvent[] con bufferBefore/AfterMinutes + serviceName JSONB. `getWeekStart` (Monday) + `getWeekEnd` helpers.
+- [DONE] AppointmentSlot.tsx — Stitches atomic component. `SlotCard` con variants: pending(amber) | confirmed(sky) | in_progress(gold) | completed(green) | cancelled(slate) | no_show(red). `BufferBlock` (diagonal stripe). `EventCard` con layout multi-columna para overlapping events. Constantes PX_PER_MIN=2, GRID_START_HOUR=8.
+- [DONE] CalendarHeader.tsx (Client) — toolbar: Hoy/semana-anterior/semana-siguiente con URLSearchParams(?week=YYYY-MM-DD). Day labels row (desktop, sticky top-0). fmtWeekRange ES/PT/EN. isToday highlight (amber dot).
+- [DONE] WeekGrid.tsx (Client) — desktop hidden md:flex. 7 columnas, horas 08:00–21:00, PX_PER_MIN=2 (60min=120px). resolveColumns() sweep-line para overlapping. NowLine (rojo, solo columna de hoy). Buffer blocks posicionados.
+- [DONE] AgendaList.tsx (Client) — mobile md:hidden. Grupos por día, sticky day headers, isToday highlight. EventRow: timeStart/End, color bar por status, status badge i18n, duración, precio. Empty state per-week.
+- [DONE] CalendarSkeleton.tsx — shimmer grid desktop + list mobile.
+- [DONE] CalendarEvents.tsx (async Server Component) — wrapper suspendable. Llama getCalendarWeek, serializa Dates, renderiza WeekGrid + AgendaList.
+- [DONE] agenda/page.tsx — PPR: CalendarHeader estático + Suspense(CalendarEvents). Parámetro ?week=ISO-date. notFound() si org no existe.
+- [DONE] tsconfig.json: declaration:false añadido para resolver TS2742 de @stitches/react (Stitches styled exports + declaration:true de base config).
+- [DONE] tsc --noEmit: 0 errores.
+- [NEXT] Acción de crear cita manual desde el calendario (modal + Server Action).
+- [NEXT] Integración WhatsApp (Evolution API): envío de rutina PDF vía WhatsApp.
+- [NEXT] Upstash Redis slot lock para el flujo de reserva pública (WF-01).
