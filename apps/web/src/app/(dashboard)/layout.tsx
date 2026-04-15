@@ -1,5 +1,6 @@
 import { Suspense, type ReactNode } from 'react';
 import { headers } from 'next/headers';
+import { Toaster } from 'sonner';
 import { TenantProvider } from '@/shared/providers/TenantProvider';
 import { Sidebar } from '@/shared/components/dashboard/Sidebar';
 import { BottomBar } from '@/shared/components/dashboard/BottomBar';
@@ -38,6 +39,20 @@ export default async function DashboardLayout({ children }: { children: ReactNod
 
       {/* Mobile bottom navigation (Thumb Zone) */}
       <BottomBar />
+
+      {/* Global toast notifications (Sonner) */}
+      <Toaster
+        position="bottom-right"
+        toastOptions={{
+          style: {
+            fontFamily: "'Outfit', ui-sans-serif, sans-serif",
+            fontSize:   '13px',
+            borderRadius: '10px',
+            border: '1px solid #E7E5E4',
+          },
+        }}
+        richColors
+      />
     </TenantProvider>
   );
 }

@@ -289,3 +289,22 @@
 - [NOTE] Redis renders locked slots visually LIVE: getLockedSlotKeys SCAN + checkSlotLocks MGET batch se ejecutan en AvailabilityEngine (cada render streaming). Los slots con TTL activo se muestran con `locked` variant (amber pulse). Cuando el TTL expira, Redis libera el slot y en el siguiente render aparece `available`.
 - [NEXT] Conectar NewAppointmentFAB form al Server Action createAppointment (booking flow completo).
 - [NEXT] Integración WhatsApp (Evolution API) para envío de rutina PDF.
+
+### 🗓️ 2026-04-15: Catálogo de Servicios — /catalog
+- [DONE] domains/catalog/service.ts — Reescrito con CRUD completo: `getCategoriesWithServices` (Promise.all cats+svcs, agrupados en JS), `getActiveServices`, `getServiceById`, `createCategory`, `updateCategory`, `createService`, `updateService`, `toggleServiceStatus`. Tenant isolation en todos los queries. SVC_COLS incluye slug.
+- [DONE] catalog/actions.ts — Server Actions: createCategoryAction, updateCategoryAction, createServiceAction, updateServiceAction, toggleServiceStatusAction. Auth: `user.user_metadata.organization_id` de Supabase. `revalidatePath('/catalog')` en éxito.
+- [DONE] ServiceDrawer.tsx — Radix Dialog (slide-in derecha). Form fields: nameI18n + descriptionI18n (tabs ES/EN/PT), precio (€), duración (min), depositPercent (Radix Slider 0-100%), bufferBefore/After, categoría select, color palette (8 swatches), status Switch. useActionState + Sonner toast.
+- [DONE] CategoryDrawer.tsx — Radix Dialog. Form: nameI18n + descriptionI18n (tabs), status Switch. useActionState.
+- [DONE] ServiceRow.tsx — Framer Motion stagger. Columnas: dot+Nombre(Cormorant), Precio(Outfit tabular), Duración(Outfit), Depósito, Badge Activo/Inactivo. useOptimistic para toggle instantáneo. Acciones hover: ON/OFF + Pencil.
+- [DONE] CatalogIsland.tsx — Collapsible (AnimatePresence height). Header: catName(Cormorant), service count, Pencil editar categoría, gold gradient separator. ServiceTable dentro. "+ Añadir servicio" FAB dentro de cada isla.
+- [DONE] CatalogClient.tsx — Client orchestrator. Header con contadores. EmptyState con CTA. Orphans island (servicios sin categoría). CategoryDrawer para crear/editar.
+- [DONE] CatalogSkeleton.tsx — Shimmer islands con rows.
+- [DONE] catalog/page.tsx — PPR: Suspense → CatalogContent (async Server Component). notFound() si org inexistente.
+- [DONE] globals.css — .field-label, .font-cormorant, .font-outfit, .no-scrollbar añadidos.
+- [DONE] layout.tsx — <Toaster richColors position="bottom-right" /> añadido (Sonner).
+- [DONE] nav-items.ts — href /dashboard/services → /catalog. CalendarCheck2 para Disponibilidad.
+- [DONE] sonner, @radix-ui/react-dialog, @radix-ui/react-select, @radix-ui/react-switch, @radix-ui/react-slider instalados.
+- [DONE] tsc --noEmit: 0 errores.
+- [NEXT] Vincular catálogo con Stripe Connect: `priceCents` → Stripe PaymentIntent `amount`, `depositPercent` → `application_fee_amount` calculation, `currency` → `currency` field.
+- [NEXT] Subida de imagen de portada (coverImageUrl) via Supabase Storage.
+- [NEXT] Reordenamiento drag-and-drop de servicios y categorías (dnd-kit sortOrder).
