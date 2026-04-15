@@ -20,7 +20,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/dashboard/agenda',   label: 'Agenda',       icon: CalendarDays    },
   { href: '/calendar',           label: 'Disponibilidad', icon: CalendarCheck2 },
   { href: '/dashboard/clients',  label: 'Clientes',     icon: Users           },
-  { href: '/dashboard/services', label: 'Catálogo',     icon: Sparkles        },
+  { href: '/catalog',            label: 'Catálogo',     icon: Sparkles        },
   { href: '/dashboard/billing',  label: 'Facturación',  icon: CreditCard      },
   { href: '/dashboard/settings', label: 'Ajustes',      icon: Settings2       },
 ];
