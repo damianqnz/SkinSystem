@@ -78,6 +78,31 @@ body {
   animation: shimmer 0.65s ease forwards;
 }
 
+/* ── Skeleton shimmer (brand-gold tint, AppointmentsSkeleton) ───────── */
+@keyframes skeleton-sweep {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%);  }
+}
+
+.skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--border);
+}
+
+.skeleton-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 175, 55, 0.10) 50%,
+    transparent 100%
+  );
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+}
+
 /* ── Editorial input (bottom-border only) ────────────────────────── */
 .input-editorial {
   width: 100%;
