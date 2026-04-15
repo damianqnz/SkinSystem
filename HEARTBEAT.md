@@ -242,5 +242,17 @@
 - [DONE] PatientSkeleton.tsx — Shimmer 3-block (header + timeline + gallery).
 - [DONE] page.tsx — Async params (Next.js 16). generateSignedUrls(appointments) → Supabase Storage signed URLs. Single Suspense fallback → PatientSkeleton. notFound() si org o cliente no existen.
 - [DONE] tsc --noEmit: 0 errores. GET /dashboard/customers/[id] → 200, 1083ms.
-- [NEXT] Generación de Rutina Home Care en PDF: domains/customers/pdf-routine.ts + /customers/[id]/routine/page.tsx.
+- [DONE] Generación de Rutina Home Care en PDF — ver entrada 2026-04-15 HomeCare PDF.
+
+### 🗓️ 2026-04-15: HomeCare PDF Generator
+- [DONE] infrastructure/db/schema/routines.ts — tabla `customer_routines`: JSONB steps (morning/afternoon/night), locale, specialist_notes, pdf_storage_path, RLS 3 políticas.
+- [DONE] Migration `phase_7_home_care_routines` aplicada a Supabase (oyjkbkjnyytrgabjeffw). 44 tablas totales, RLS activo.
+- [DONE] domains/customers/service-routines.ts — `saveCustomerRoutine` (INSERT + RETURNING id), `getCustomerRoutines` (ORDER BY created_at DESC, límite 20). Zod: routineStepSchema + saveRoutineSchema.
+- [DONE] routine/actions.ts — Server Action `saveRoutineAction(prev, raw)`. Auth: `supabase.auth.getUser()` server-side (no spoofable). Zod validation pre-DB.
+- [DONE] public/fonts/ — CormorantGaramond-Regular.woff2, CormorantGaramond-Light.woff2, Outfit-Regular.woff2 (copiados de @fontsource).
+- [DONE] domains/customers/components/pdf/RoutinePDFTemplate.tsx — react-pdf Document. Tokens: Cream #FAFAF9, Stone #1C1917, Gold #D4AF37. Font.register WOFF2. Secciones Morning/Afternoon/Night. Footer fijo. I18n ES/PT/EN.
+- [DONE] domains/customers/components/HomeCareGenerator.tsx (Client) — Form: 3 périodos × max 8 pasos. LangSelector Thumb Zone (60px botones + flag). PDFDownloadLink (dynamic, ssr:false). Sticky action bar bottom:4 en mobile. useActionState para Server Action.
+- [DONE] customers/[id]/routine/page.tsx — Server Component. Reads org + customer. Specialist name from auth session metadata.
+- [DONE] tsc --noEmit: 0 errores. GET /dashboard/customers/[id]/routine → 200.
+- [NEXT] Integración WhatsApp (Evolution API): envío de rutina PDF a la clienta vía WhatsApp tras generación.
 - [NEXT] Crear página /dashboard (Overview) con datos reales: citas de hoy, próximas, resumen de ingresos usando los domain services.
