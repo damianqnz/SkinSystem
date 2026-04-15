@@ -161,3 +161,14 @@
 - [DONE] src/shared/components/ui/magic-card.tsx: MagicCard con radial gradient mouse-tracking (framer-motion).
 - [DONE] Login page rediseñada: panel editorial oscuro (desktop) + dot-grid pattern + heading tipográfico en Cormorant Garamond + inputs bottom-border + ShinyButton con shimmer + eye toggle contraseña + AnimatePresence para errores + MagicCard wrapping el form.
 - [NEXT] Dashboard layout: sidebar + header + tenant context (Server Component leyendo x-tenant-slug header).
+
+### 🗓️ 2026-04-15: Architecture Refactor — Subdomain-based Routing
+- [DONE] ELIMINADO: src/app/[tenant]/[locale]/ (rutas dinámicas por URL).
+- [DONE] ELIMINADO: src/proxy.ts (reemplazado por middleware.ts estándar Next.js).
+- [DONE] CREADO: src/middleware.ts — extrae subdominio, inyecta `x-tenant-slug` + `x-locale` headers, protege /dashboard y /admin sin reescritura de URL.
+- [DONE] CREADO: src/app/(public)/layout.tsx — layout raíz para páginas de cliente (Cormorant + Outfit).
+- [DONE] CREADO: src/app/(public)/page.tsx — landing pública, lee tenant/locale desde headers del servidor.
+- [DONE] CREADO: src/app/(dashboard)/layout.tsx — shell de dashboard, lee x-tenant-slug sin params de URL.
+- [DONE] CREADO: src/shared/providers/TenantProvider.tsx — Client Component Context; hidratado por el Server Layout con datos del header.
+- [NOTE] tsc --noEmit: 0 errores tras la refactorización.
+- [NEXT] Conectar TenantProvider al (dashboard)/layout.tsx e implementar sidebar real.
