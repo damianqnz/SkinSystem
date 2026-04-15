@@ -8,6 +8,7 @@ import {
   timestamp,
   jsonb,
   unique,
+  index,
 } from 'drizzle-orm/pg-core';
 import {
   skinTypeEnum,
@@ -27,7 +28,9 @@ export const customers = pgTable('customers', {
   isGuest:        boolean('is_guest').notNull().default(false),
   notes:          text('notes'),
   createdAt:      timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index('idx_customers_org_id').on(t.organizationId),
+]);
 
 // ── customer_onboarding ───────────────────────────────────────
 // 1:1 with customers. Sensitive fields MUST be AES-256 encrypted at app layer.

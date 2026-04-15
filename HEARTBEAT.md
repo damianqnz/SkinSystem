@@ -172,3 +172,24 @@
 - [DONE] CREADO: src/shared/providers/TenantProvider.tsx — Client Component Context; hidratado por el Server Layout con datos del header.
 - [NOTE] tsc --noEmit: 0 errores tras la refactorización.
 - [NEXT] Conectar TenantProvider al (dashboard)/layout.tsx e implementar sidebar real.
+
+### 🗓️ 2026-04-15: proxy.ts Restore + Domain Schemas (Persistence Layer)
+- [DONE] CORREGIDO: middleware.ts → proxy.ts (Next.js 16.2 usa `export function proxy()` en Node.js runtime, no Edge).
+- [DONE] ÍNDICES: Añadidos index() en organization_id en infrastructure/db/schema/customers.ts, catalog.ts, booking.ts (appointments + payments).
+- [DONE] src/domains/customers/schema.ts — re-exports customers/customerOnboarding/customerSkinProfile + Zod: createCustomerSchema, updateCustomerSchema.
+- [DONE] src/domains/catalog/schema.ts — re-exports catalogCategories/catalogServices/serviceStaff + Zod: createCategorySchema, createServiceSchema, updateServiceSchema. Tipo I18nField para JSONB.
+- [DONE] src/domains/booking/schema.ts — re-exports appointments/temporarySlots/bookingSettings/coupons + ENUM APPOINTMENT_STATUS + Zod: createAppointmentSchema (con refine startAt < endAt), updateAppointmentStatusSchema, lockSlotSchema.
+- [DONE] src/domains/billing/schema.ts — payments re-exportado como Invoice (mismo registro DB). Zod: createInvoiceSchema, updateInvoiceStatusSchema. Aislamiento fiscal: un Stripe account por org.
+- [NOTE] Los schemas de dominio son capas de re-exportación. La SSOT sigue siendo infrastructure/db/schema/. drizzle.config.ts no cambia.
+- [NOTE] tsc --noEmit: 0 errores.
+- [NEXT] Implementar domain services (repository pattern) en src/domains/*/service.ts.
+
+### 🗓️ 2026-04-15: Domain Services — Persistence Layer
+- [DONE] src/shared/types/result.ts — AppError + Result<T> (discriminated union). Todos los servicios retornan este patrón.
+- [DONE] src/domains/customers/service.ts (50 líneas) — getCustomersList + getCustomerById. Doble filtro: organizationId + customerId. Columnas explícitas (LIST / DETAIL).
+- [DONE] src/domains/booking/service.ts (50 líneas) — getUpcomingAppointments (status in [pending, confirmed], startAt >= now) + getSlotsByDate (between UTC day bounds).
+- [DONE] src/domains/catalog/service.ts (43 líneas) — getActiveServices (isActive=true, ordenado por sortOrder).
+- [SECURITY] PROHIBIDO SELECT sin filtro organizationId — aplicado vía eq()+and() en todos los where.
+- [SECURITY] 'server-only' importado en cada servicio — no ejecutables en Client Components.
+- [NOTE] tsc --noEmit: 0 errores. Todos los archivos ≤ 50 líneas.
+- [NEXT] Dashboard layout: (dashboard)/layout.tsx con TenantProvider + sidebar + header.

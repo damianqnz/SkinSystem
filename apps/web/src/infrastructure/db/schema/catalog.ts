@@ -7,6 +7,7 @@ import {
   smallint,
   jsonb,
   timestamp,
+  index,
 } from 'drizzle-orm/pg-core';
 import { invasivenessLevelEnum } from './enums';
 import { organizations } from './organizations';
@@ -23,7 +24,9 @@ export const catalogCategories = pgTable('catalog_categories', {
   isActive:        boolean('is_active').notNull().default(true),
   createdAt:       timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:       timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index('idx_catalog_categories_org_id').on(t.organizationId),
+]);
 
 // ── catalog_services ─────────────────────────────────────────
 export const catalogServices = pgTable('catalog_services', {
@@ -51,7 +54,9 @@ export const catalogServices = pgTable('catalog_services', {
   depositPercent:       smallint('deposit_percent').notNull().default(100),
   createdAt:            timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:            timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => [
+  index('idx_catalog_services_org_id').on(t.organizationId),
+]);
 
 // ── service_staff ─────────────────────────────────────────────
 // Many-to-many: which professionals offer which service
