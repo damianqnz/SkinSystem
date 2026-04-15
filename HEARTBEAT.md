@@ -230,5 +230,17 @@
 - [DONE] customers/page.tsx — Server Component. Suspense wrapper. Serialize Date→ISO. getOrganizationBySlug + getCustomersWithStats.
 - [DONE] tsc --noEmit: 0 errores. GET /dashboard/customers → 200.
 - [NOTE] Warning "Route '/'" por (public)/page.tsx llamando headers() fuera de Suspense — pre-existente, no introducido por este módulo.
-- [NEXT] Ficha Clínica Detallada: src/app/(dashboard)/dashboard/customers/[id]/page.tsx — historial de citas, skin profile, notas clínicas.
+- [DONE] Ficha Clínica Detallada — ver entrada 2026-04-15 Clinical Record.
+
+### 🗓️ 2026-04-15: Clinical Record — Ficha Clínica Detallada
+- [DONE] domains/customers/full-history.ts — `getCustomerFullHistory(id, orgId)`: Promise.all(customer+onboarding, appointments+sessions+serviceName). Fotos en query separada por sessionIds. Tenant isolation en todos los JOINs.
+- [DONE] PatientHeader.tsx (Server) — Avatar hash, contacto, fecha de alta. RevealField para alergias/medicación/condiciones (variant=danger). Sección protegida con label "Datos de Salud Protegidos".
+- [DONE] RevealField.tsx (Client) — Click-to-reveal. Auto-re-lock a los 60s. Placeholder •••••••••. Variants: default / danger (rojo).
+- [DONE] AutoLockOverlay.tsx (Client) — 10min inactivity blur (GDPR/STANDARDS §11). Triggers: visibilitychange + mousemove + keydown + touchstart. Overlay con ícono Lock + Cormorant heading. Click para desbloquear.
+- [DONE] TreatmentTimeline.tsx (Client) — Framer Motion staggered (container/item variants, EASE typed [n,n,n,n]). Timeline vertical con dot coloreado por status. RevealField para notas clínicas dentro de cada card.
+- [DONE] PhotoGallery.tsx (Client) — BeforeAfterSlider (clip-path + draggable handle). Grid 3/4 aspect-ratio para CLS < 0.05. Signed URLs (60min) pasadas como props desde Server. Fallback ImageOff si URL null.
+- [DONE] PatientSkeleton.tsx — Shimmer 3-block (header + timeline + gallery).
+- [DONE] page.tsx — Async params (Next.js 16). generateSignedUrls(appointments) → Supabase Storage signed URLs. Single Suspense fallback → PatientSkeleton. notFound() si org o cliente no existen.
+- [DONE] tsc --noEmit: 0 errores. GET /dashboard/customers/[id] → 200, 1083ms.
+- [NEXT] Generación de Rutina Home Care en PDF: domains/customers/pdf-routine.ts + /customers/[id]/routine/page.tsx.
 - [NEXT] Crear página /dashboard (Overview) con datos reales: citas de hoy, próximas, resumen de ingresos usando los domain services.
