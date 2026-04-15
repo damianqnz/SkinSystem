@@ -204,4 +204,19 @@
 - [DONE] (dashboard)/layout.tsx (43L) — PPR shell: Sidebar/Header estáticos, children en <Suspense>. TenantProvider hidratado desde x-tenant-slug.
 - [DONE] TenantProvider.tsx (47L) — Context actualizado, wrapper limpio.
 - [NOTE] tsc --noEmit: 0 errores. Todos los archivos ≤ 50 líneas.
+
+### 🗓️ 2026-04-15: Dashboard Overview Page
+- [DONE] src/domains/organizations/service.ts — `getOrganizationBySlug(slug)` resuelve subdomain slug → OrgSummary (id, name, slug, locale).
+- [DONE] src/app/(dashboard)/_components/StatsCard.tsx — Client Component. framer-motion `whileHover scale(0.98)`. Glassmorphism + gold icon transition.
+- [DONE] src/app/(dashboard)/_components/AppointmentsSkeleton.tsx — Shimmer skeleton, brand-gold tint via `.skeleton-shimmer` CSS class.
+- [DONE] src/app/(dashboard)/_components/EmptyState.tsx — Editorial: Cormorant heading + gold dot + shimmer CTA → /settings/calendar.
+- [DONE] src/app/(dashboard)/_components/AppointmentsList.tsx — async Server Component. Promise.all(upcoming + customers + services). Cross-reference IDs, i18n service names, per-locale status badges, EmptyState fallback.
+- [DONE] src/app/(dashboard)/page.tsx — Server Component. Reads x-tenant-slug + x-locale from headers. Promise.all stats (today slots, customers, services). <Suspense> wraps AppointmentsList. Cormorant headings + Outfit tabular-nums.
+- [DONE] globals.css: .skeleton-shimmer + @keyframes skeleton-sweep.
+- [DONE] tsc --noEmit: 0 errores.
+- [DONE] next.config.js: ppr:true → cacheComponents:true (nivel raíz, Next.js 16.2.0 API).
+- [DONE] Resuelto conflicto de rutas: (dashboard)/page.tsx movido a (dashboard)/dashboard/page.tsx → URL /dashboard.
+- [DONE] _components/ movido a dashboard/_components/ (imports relativos intactos).
+- [DONE] tsc --noEmit: 0 errores. Servidor corriendo en localhost:3000 sin warnings.
+- [NEXT] Gestión de Clientes (CRM): src/app/(dashboard)/dashboard/customers/page.tsx — lista, búsqueda y vista de detalle.
 - [NEXT] Crear página /dashboard (Overview) con datos reales: citas de hoy, próximas, resumen de ingresos usando los domain services.
