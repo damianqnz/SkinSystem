@@ -270,3 +270,22 @@
 - [NEXT] Acción de crear cita manual desde el calendario (modal + Server Action).
 - [NEXT] Integración WhatsApp (Evolution API): envío de rutina PDF vía WhatsApp.
 - [NEXT] Upstash Redis slot lock para el flujo de reserva pública (WF-01).
+
+### 🗓️ 2026-04-15: Motor de Disponibilidad + Calendario /calendar
+- [DONE] @upstash/redis instalado.
+- [DONE] shared/lib/redis-lock.ts — `lockSlot` (SET NX EX, atómico), `unlockSlot` (Lua compare-and-delete), `getSlotOwner`, `getSlotTTL`, `getLockedSlotKeys` (SCAN cursor), `checkSlotLocks` (MGET batch), `renewSlotLock`. buildSlotKey: `slot:{orgId}:{YYYY-MM-DD}:{startISO}:{serviceId}`.
+- [DONE] domains/booking/service.ts — `calculateAvailableSlots(orgId, serviceId, date)`: Fetch paralelo (availabilityRules + appointments + blockedIntervals + Redis keys). Genera grid de slots openTime→closeTime. Clasifica: available | booked | locked | buffer | blocked | break | outside_hours. Tenant isolation en todos los queries.
+- [DONE] calendar/_components/SlotCell.tsx (Stitches) — 7 variantes status: available(cream+gold-hover), booked(sky), locked(amber+pulse-animation), buffer(diagonal-stripe), blocked(slate), break(muted), outside_hours(transparent). LockBadge "En proceso" cuando locked.
+- [DONE] calendar/_components/DayTimeGrid.tsx (Client) — AnimatePresence slide/fade al cambiar día. Grupos por hora. HourSection con gold hour-label. ClosedDayState si sin slots.
+- [DONE] calendar/_components/CalendarDayNav.tsx (Client) — Navegación día anterior/siguiente via ?date=YYYY-MM-DD. Service selector tabs (chip pills). Hoy button. isToday highlight amber.
+- [DONE] calendar/_components/AvailabilityEngine.tsx (async Server) — Llama calculateAvailableSlots. StatsPill: disponibles / reservados / en proceso. Serializa Dates → RSC boundary.
+- [DONE] calendar/_components/NewAppointmentFAB.tsx (Client) — FAB fixed bottom-24 right-4 z-40 (Thumb Zone). AnimatePresence slide-up modal. Form stub: cliente, servicio, hora, nota.
+- [DONE] calendar/_components/CalendarSkeleton.tsx — Shimmer stats + legend + slot rows.
+- [DONE] calendar/page.tsx — PPR: static CalendarDayNav + Suspense key="${date}-${serviceId}" → AvailabilityEngine. NoServicesState si catálogo vacío.
+- [DONE] calendar/actions/lock-slot.ts — Server Actions: `lockSlotAction` (SET NX, session de Supabase auth no spoofable), `unlockSlotAction` (Lua). Estados: idle | success | conflict | error.
+- [DONE] nav-items.ts — CalendarCheck2 icon añadido, ruta /calendar (Disponibilidad).
+- [DONE] .env.local — UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN placeholders añadidos.
+- [DONE] tsc --noEmit: 0 errores.
+- [NOTE] Redis renders locked slots visually LIVE: getLockedSlotKeys SCAN + checkSlotLocks MGET batch se ejecutan en AvailabilityEngine (cada render streaming). Los slots con TTL activo se muestran con `locked` variant (amber pulse). Cuando el TTL expira, Redis libera el slot y en el siguiente render aparece `available`.
+- [NEXT] Conectar NewAppointmentFAB form al Server Action createAppointment (booking flow completo).
+- [NEXT] Integración WhatsApp (Evolution API) para envío de rutina PDF.
