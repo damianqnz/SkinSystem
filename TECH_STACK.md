@@ -6,7 +6,7 @@ This file defines the technologies, libraries, and design resources approved for
 
 ## 1. Core Stack (The Engine)
 - **Framework:** Next.js 16.x (App Router, PPR, Server Actions).
-- **Runtime:** Node.js 22.x LTS.
+- **Runtime:** Node.js 25.x LTS.
 - **Language:** TypeScript 5.x (Strict Mode).
 - **Package Manager:** pnpm.
 
