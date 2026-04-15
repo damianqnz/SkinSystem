@@ -218,5 +218,17 @@
 - [DONE] Resuelto conflicto de rutas: (dashboard)/page.tsx movido a (dashboard)/dashboard/page.tsx → URL /dashboard.
 - [DONE] _components/ movido a dashboard/_components/ (imports relativos intactos).
 - [DONE] tsc --noEmit: 0 errores. Servidor corriendo en localhost:3000 sin warnings.
-- [NEXT] Gestión de Clientes (CRM): src/app/(dashboard)/dashboard/customers/page.tsx — lista, búsqueda y vista de detalle.
+- [DONE] Gestión de Clientes (CRM) — ver entrada 2026-04-15 CRM Customers.
+
+### 🗓️ 2026-04-15: CRM — Módulo de Clientes
+- [DONE] domains/customers/service.ts: añadido `getCustomersWithStats` — LEFT JOIN appointments (completed|confirmed), MAX(start_at) lastVisitAt, COUNT(id)::int visitCount. Tenant isolation: eq(appointments.organizationId, customers.organizationId).
+- [DONE] CustomersTable.tsx (Client) — grid editorial 4-col (md). Avatar con hash de nombre → 6 paletas. fmtDate helper (hoy/Nd/día mes). Badge Nuevo (amber) | Recurrente (emerald). Glassmorphism hover: bg-white/80 backdrop-blur-sm.
+- [DONE] CustomerEmptyState.tsx — dos variantes: !isFiltered (con CTA "Añadir Primer Cliente") | isFiltered (sin resultados).
+- [DONE] AddCustomerModal.tsx (Client) — overlay glassmorphism, form stub (Name/Email/Phone), ESC+backdrop para cerrar, focus trap al abrir.
+- [DONE] CustomerSearch.tsx (Client) — useState query + useMemo filter (nombre|email|teléfono). FAB fixed bottom-20 right-4 z-40 en mobile (Thumb Zone). Botón desktop en toolbar. Re-exporta CustomersTableSkeleton.
+- [DONE] CustomersTableSkeleton.tsx — shimmer 6 filas + fake search bar usando .skeleton-shimmer.
+- [DONE] customers/page.tsx — Server Component. Suspense wrapper. Serialize Date→ISO. getOrganizationBySlug + getCustomersWithStats.
+- [DONE] tsc --noEmit: 0 errores. GET /dashboard/customers → 200.
+- [NOTE] Warning "Route '/'" por (public)/page.tsx llamando headers() fuera de Suspense — pre-existente, no introducido por este módulo.
+- [NEXT] Ficha Clínica Detallada: src/app/(dashboard)/dashboard/customers/[id]/page.tsx — historial de citas, skin profile, notas clínicas.
 - [NEXT] Crear página /dashboard (Overview) con datos reales: citas de hoy, próximas, resumen de ingresos usando los domain services.
