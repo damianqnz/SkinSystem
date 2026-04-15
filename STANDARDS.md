@@ -1,111 +1,75 @@
-# STANDARDS.md: El Manual de Calidad (SkinSystem)
+# 📏 STANDARDS.md: Technical Charter & Quality Manual
 
-This document is the SkinSystem Technical Charter. Its purpose is to coordinate the tools defined in `TECH_STACK.md` within the framework of `ARCHITECTURE.md`, ensuring compliance with the processes outlined in `WORKFLOWS.md`.
+This document is the SkinSystem Technical Charter. It coordinates the tools in `TECH_STACK.md` within the `ARCHITECTURE.md` framework, ensuring compliance with `WORKFLOWS.md`.
 
 ---
 
 ## 1. Naming Jurisdictions
-*Note: See `ARCHITECTURE.md` for the location of each file type.*
-- **PascalCase**: React Components (`ServiceCard.tsx`), TypeScript Interfaces and Types.
-- **camelCase**: Functions (`getBooking`), variables, hooks, and properties of JavaScript objects.
+- **PascalCase**: React Components (`ServiceCard.tsx`), TypeScript Interfaces, and Types.
+- **camelCase**: Functions (`getBooking`), variables, hooks, and object properties.
 - **snake_case**: Database (PostgreSQL/Drizzle). Tables (`beauty_services`) and columns (`organization_id`).
-- **kebab-case**: File system and URLs. Folders and slugs.
+- **kebab-case**: File system folders and URL slugs.
 
-## 2. Coding Rules
-- **Modularity**: Functions < 50 lines.
-- **Thin Controllers**: API and Server Actions routes only validate and delegate. The business logic resides exclusively in the domains defined in `ARCHITECTURE.md`.
-- **Hooks**: Reusable UI logic in `src/shared/hooks`.
+## 2. Coding Rules & Validation
+- **Modularity**: Functions must be < 50 lines.
+- **Thin Controllers**: Server Actions and API routes only validate and delegate. Business logic stays in `src/domains/`.
+- **Result Pattern**: All functions MUST return `{ data: T | null; error: AppError | null }`.
+- **Zod Law**: Mandatory validation for all data inputs and Server Action payloads.
 
-## 3. Error Prevention and Status Codes
-*Reference: See `WORKFLOWS.md` to define business conflict states.*
-- **Format**: Always return `{ data: T | null; error: AppError | null }`.
-- **409 Conflict**: Mandatory when a rule in `WORKFLOWS.md` is breached (e.g. appointment overlap).
-- **Zod First**: Mandatory validation using the libraries in `TECH_STACK.md`.
+## 3. UI & Styling (The 90/10 Boundary Rule)
+- **Tailwind CSS v4 (90%)**: Used for Layout, Spacing, Typography, and Responsive utilities.
+- **Stitches (10%)**: Reserved EXCLUSIVELY for **Complex Atomic Components** with state-driven variants (e.g., Slot Selectors, Clinical Charts).
+- **Thumb-Zone**: Critical interactive elements must be in the lower 30% of the mobile screen.
+- **Feedback**: Every server action must trigger a `Sonner` toast notification.
 
-## 4. Documentation Standards
-- **JSDoc**: Mandatory for domain functions.
-- **Mermaid**: Complex workflows from `WORKFLOWS.md` (e.g. Payment and Booking) must be visually documented in the code.
+## 4. Internationalization (I18n Hybrid Model)
+- **Static Labels**: Managed via `next-intl` in `src/messages/*.json` (Buttons, headers, errors).
+- **Dynamic Content**: Service names and medical notes are stored in the DB (e.g., `name_pt`, `name_es`).
+- **Locale Derivation**: Derived from `TenantProvider` or URL subdomain.
 
-## 5. "Screaming" Architecture
-*Reference: See detailed folder map in `ARCHITECTURE.md`.*
-- `src/domains/booking`: Booking engine.
-- `src/domains/catalog`: Independent data islands (Lourdes/Gloria).
-- `src/domains/customers`: CRM and technical sheets.
-- `src/domains/billing`: Fiscal management and Stripe integration.
+## 5. Tenant State & Persistence
+- **Authority**: The `middleware.ts` is the source of truth, injecting `organization_id` into headers.
+- **Client Side**: `TenantProvider` (Context) is mandatory to persist brand tokens (colors, logos) across the session.
 
-## 6. Security and Database (Drizzle Policy)
-*Reference: See Supabase/Drizzle configuration in `TECH_STACK.md`.*
-- **Row Level Security (RLS)**: No query bypasses the `organization_id` filter.
-- **Zero SELECT ***: Explicitly define columns to avoid data leaks between tenants.
-- **Audit Logs**: Mandatory logging of Super Admin actions (See `IDENTITY.md` for access levels).
+## 6. Security & Database Rigor
+- **RLS (Row Level Security)**: No query bypasses the `organization_id` filter.
+- **Zero SELECT ***: Explicitly define columns in Drizzle to prevent data leaks.
+- **Audit Logs**: Mandatory logging for Super Admin actions.
 
-## 7. Modern APIs Implementation (Next.js 15)
-*Reference: See framework versions in `TECH_STACK.md`.*
-- **Async APIs**: Mandatory use for `cookies()`, `headers()`, and `params`.
-- **Streaming**: Use of `Suspense` and Skeletons to maintain the editorial aesthetic of `DESIGN_SYSTEM.md`.
+## 7. Modern APIs (Next.js 16)
+- **Async APIs**: Mandatory for `cookies()`, `headers()`, and `params`.
+- **Streaming**: Use `Suspense` and Skeletons to maintain the editorial aesthetic.
 
-## 8. Asset and Multimedia Management
-*Reference: See storage limits in `TECH_STACK.md`.*
-- **Design**: `.webp` or `.avif`.
-- **Tracking (Specialists)**: PNG/JPG/JPEG accepted; automatic optimization to `.webp`.
-- **Privacy**: Signed URLs (60 min) to protect client photos.
+## 8. Asset & Multimedia Management
+- **Formats**: `.webp` or `.avif` mandatory.
+- **Privacy**: Signed URLs (60 min) for client photos.
 
-## 9. i18n Rigor (ES, PT, EN)
-*Reference: See locale context in `IDENTITY.md`.*
-- **Internationalization**: All visible text must use translation keys.
-- **Formats**: Use of `Intl API` for currency and dates according to the tenant.
-- **Timezones**: Store in UTC, display in the timezone defined in the specialist's profile.
+## 9. Performance & Accessibility (Elite Level)
+- **Vitals**: LCP < 1.2s, CLS < 0.05.
+- **Inclusivity**: WCAG 3.0 "Silver" target. Touch targets min 44x44px.
 
-## 10. Cross-Platform Sync (Mac/Windows)
-- **Git**: Configuration `autocrlf input` (LF).
-- **Sync**: Initial `git pull` and final `git push` in each session (Mac M4 / Asus TUF).
-- **Env**: Manual synchronization of `.env.local`.
+## 10. GDPR & Data Privacy
+- **At-Rest Encryption**: Medical notes and allergies encrypted via AES-256.
+- **In-Transit**: Mandatory TLS 1.3.
+- **Right to be Forgotten**: System must allow full client deletion without breaking financial integrity.
 
-## 11. Performance & Accessibility Targets
+## 11. Clinical Data & No-Show Policy
+- **Auto-Lock**: Medical views expire after 10 minutes of inactivity.
+- **Re-Auth**: Accessing sensitive photos requires WebAuthn (FaceID/Biometrics).
+- **No-Show**: Flag clients marked as `status: NO_SHOW` in future booking attempts.
 
-### 1. Core Web Vitals (Elite Level)
-- **LCP (Largest Contentful Paint)**: < 1.2s.
-- **CLS (Cumulative Layout Shift)**: < 0.05.
-- **TBT (Total Blocking Time)**: < 100ms.
+## 12. Multilingual Logic (PDF & WhatsApp)
+- **WhatsApp**: Based strictly on the client's booking `locale`.
+- **Clinical PDF**: Specialist has manual override (ES | PT | EN) before generation.
 
-### 2. Inclusivity (WCAG 3.0)
-- **Level**: Target "Silver" (Plata) as baseline.
-- **Touch Targets**: Minimum 44x44px for all interactive elements.
-- **Contrast**: Minimum 4.5:1 for body text (16px+).
-- **Keyboard**: 100% of workflows must be executable via keyboard (Tab/Focus management).
+## 13. Financial Policies
+- **Refund Logic**: `Appointment_Value - Stripe_Commission`.
+- **Transparency**: UI must show the breakdown of non-refundable fees before processing.
 
-## 12. Seguridad y Privacidad de Datos (GDPR-Ready)
+## 14. Automatic Appointment Lifecycle
+- **Transitions**: `Confirmed` ➔ `In Progress` ➔ `Completed` happens automatically via Cron jobs.
+- **Manual Override**: Specialists can force status changes from the Dashboard.
 
-### Encriptación de Datos Sensibles
-- **At-Rest**: The fields of "Medical Notes" or "Allergies" must be encrypted in the DB using AES-256.
-- **In-Transit**: Mandatory TLS 1.3 for all communication with the API.
-
-### Aislamiento de Integraciones
-- The API Keys of Meta, Google and Mailchimp of Lourdes **never** must be accessible from the context of Gloria. They are stored securely in the `organization_configs` table.
-
-### Derecho al Olvido (Cleanup)
-- The system must allow the total deletion of a client's record (including assets in Supabase Storage) without affecting the integrity of the organization's financial reports.
-
-## 13. Clinical Data Integrity and No-Show Policy
-- **Auto-Lock**: Medical record views (`/customers/[id]`) expire after 10 minutes of inactivity.
-- **Re-Auth**: Access to photos and sensitive notes requires re-authentication (Biometrics via WebAuthn or quick PIN).
-- **No-Show Policy**: If a client does not attend, they are marked as `status: NO_SHOW`. The system must alert the specialist in future bookings of this client.
-
-## 14. Multilingual Logic (PDF & WhatsApp)
-- **WhatsApp**: The language is strictly based on the `locale` selected by the client when booking (ES/PT/EN).
-- **Clinical PDF**: 
-  - Automatic pre-selection according to the client's `locale`.
-  - **Specialist Control**: Interface with 3 buttons (ES | PT | EN) so Lourdes/Gloria can force the document language before generating it.
-
-## 15. Refund and Commission Policy
-- **Refund Logic**: Refunds are processed as `Appointment_Value - Stripe_Commission`. 
-- **Transparency**: The system must show a clear breakdown before confirming the refund: "[X]€ will be returned (Non-refundable bank commission of [Y]€)".
-
-## 16. Automatic Appointment Lifecycle
-- **Confirmed ➔ In Progress**: Automatic when the appointment time arrives (if there is no `NO_SHOW`).
-- **In Progress ➔ Completed**: Aautomatically at the end of the scheduled service period.
-- **Manual Override**: The specialist can always force a status change in the Dashboard.
-
-## 17. Documentation Versioning
-- **PDF naming**: `report_[ID]_[TIMESTAMP]_v[N].pdf`.
-- **Persistence**: All historical versions are kept for legal traceability.
+## 15. Documentation & Sync
+- **PDF Naming**: `report_[ID]_[TIMESTAMP]_v[N].pdf`.
+- **Cross-Platform**: Git `autocrlf input`. Manual `.env.local` sync between Mac M4 and Asus TUF.

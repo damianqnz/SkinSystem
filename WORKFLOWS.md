@@ -1,107 +1,96 @@
-# WORKFLOWS.md: El Guion Operativo (SkinSystem)
+# WORKFLOWS.md: Operational Orchestration (SkinSystem)
 
-This document coordinates the interaction between the user, the specialist and the system. It defines the sequential logic to be implemented in the service layer, in accordance with the infrastructure outlined in `ARCHITECTURE.md` and the tools listed in `TECH_STACK.md`.
+This document coordinates the interaction between the user, the specialist, and the system. It defines the sequential logic to be implemented in the service layer, in accordance with `ARCHITECTURE.md` and `TECH_STACK.md`.
 
 ---
 
-## WF-01: The Booking, Payment and Conversion Journey
-*Objective: To maximise sales and ensure marketing tracking without concurrency errors.*
+## WF-01: The Booking, Payment, and Conversion Journey
+*Objective: Maximize sales and ensure tracking without concurrency errors.*
 
-1.  **Availability Check**: The system checks the specialist’s calendar, taking into account `Lead Time` (notice period), `Scheduling Window` (monthly window) and `Buffer Times` (clearing time).
+1.  **Availability Check**: The system checks the specialist’s calendar, considering `Lead Time` (notice period), `Scheduling Window` (monthly window), and `Buffer Times` (cleanup time).
 2.  **Temporary Lock (Race Condition Protection)**:
-    - When ‘Pay’ is clicked, a lock is activated in **Upstash Redis** for **5 minutes**.
-    - The slot disappears from the public calendar. If the client does not complete payment within the time limit, the Redis TTL automatically releases the slot. (Ref: `ARCHITECTURE.md` - Section 7).
+    - Upon clicking 'Pay', a lock is activated in **Upstash Redis** for **5 minutes (TTL)**.
+    - The slot is hidden from the public calendar. If payment is not completed, the Redis TTL automatically releases the slot.
 3.  **Checkout (Stripe Connect Standard)**:
-    - Direct payment to the specialist’s account (Total, Fixed or Percentage).
-    - The system acts as an orchestrator without holding funds.
-4.  **Tracking and Redirection**:
-    - Following a successful Stripe transaction ➔ Trigger Meta Pixel / GTM / GA4 events.
-    - **Redirect Logic**: If `auto_redirect` is ON ➔ Redirect to `custom_redirect_url`; otherwise, display a themed internal page. (Ref: `DESIGN_SYSTEM.md`).
+    - Direct payment to the specialist’s linked account.
+    - System acts as an orchestrator; no funds are held by the platform.
+4.  **Tracking & Redirection**:
+    - Post-success: Trigger Meta Pixel / GTM / GA4 events.
+    - **Redirect Logic**: If `auto_redirect` is ON ➔ Redirect to `custom_redirect_url`; else, display a themed internal success page (Ref: `DESIGN_SYSTEM.md`).
 
 ---
 
-## WF-02: Communications and Automation (Evolution API)
-*Objective: To eliminate no-shows through constant and personalised communication.*
+## WF-02: Communications & Automation (Evolution API)
+*Objective: Eliminate no-shows through personalized, cost-free WhatsApp communication.*
 
-1.  **Linking**: Each specialist scans their WhatsApp QR code from the Dashboard to connect their own number (Ref: `TECH_STACK.md`).
-2.  **Automatic Sequence (Based on client locale)**:
-    - **T-48h (Email)**: Preventive reminder.
+1.  **Linking**: Specialists scan the WhatsApp QR code from the Dashboard to connect their instance (Ref: `TECH_STACK.md`).
+2.  **Automatic Sequence (Locale-based)**:
+    - **T-48h (Email)**: Preventive reminder via Resend.
     - **T-24h (WhatsApp)**: Automatic message announcing the end of the free cancellation window.
-    - **T-1h (WhatsApp)**: Welcome, Google Maps location (direct link) and punctuality reminder.
-3.  **Language**: Messages are sent strictly in the language selected by the client when booking (ES/PT/EN). (Ref: `STANDARDS.md` - Section 16).
+    - **T-1h (WhatsApp)**: Welcome message with Google Maps direct link and punctuality reminder.
+3.  **Language**: Messages are strictly governed by the client's booking `locale` (ES/PT/EN).
 
 ---
 
-## WF-03: Cancellations, Refunds and No-Shows
-*Objective: To protect the specialist’s profitability and time.*
+## WF-03: Cancellations, Refunds, and No-Shows
+*Objective: Protect specialist profitability and time.*
 
-1.  **Deadline Validation**: The system compares the current time with the specialist’s policy (2h to 1 week).
-2.  **Refund Logic (Financial)**:
-    - Refunds deduct the bank commission: `Amount to refund = Original Payment - Stripe Fee`.
-    - The specialist confirms the action after seeing the commission loss notice. (Ref: `STANDARDS.md` - Section 17).
+1.  **Deadline Validation**: System compares current time vs. specialist policy (e.g., 24h notice).
+2.  **Refund Logic**:
+    - Refunds are processed as: `Original Payment - Stripe Fee`.
+    - Specialist must confirm the action after viewing the commission loss notice.
 3.  **No-Show (Inasistencia)**:
-    - Manual registration by the specialist in the dashboard.
-    - Stops the automatic transition to `IN_PROGRESS` and flags the client’s profile with an internal penalty. (Ref: `STANDARDS.md` - Section 15).
+    - Manual registration by the specialist.
+    - This action stops the automatic status transition and flags the client profile for future bookings.
 
 ---
 
-## WF-04: Clinical Session, Routines and PDF (iPad/Mobile)
-*Objective: Security of sensitive data and immediate value delivery to the client.*
+## WF-04: Clinical Session, Routines, and PDF (iPad/Mobile)
+*Objective: Secure handling of sensitive health data and immediate value delivery.*
 
-1.  **Access and Security**:
-    - Biometric re-authentication (**WebAuthn**) to open medical records.
-    - **Auto-Lock**: Session closure after 10 min of inactivity.
-2.  **Automatic Statuses (Cron Job)**:
-    - `CONFIRMADA` ➔ `IN_PROGRESS`: Automatic when the appointment time arrives (if not marked as No-Show).
-    - `IN_PROGRESS` ➔ `COMPLETED`: Automatic at the end of the scheduled service period.
+1.  **Access Security**:
+    - Biometric re-authentication (**WebAuthn/FaceID**) required to open medical records.
+    - **Auto-Lock**: Session expires after 10 minutes of inactivity.
+2.  **Automatic Status Transitions (Cron Job)**:
+    - `CONFIRMED` ➔ `IN_PROGRESS`: Triggered at appointment start time.
+    - `IN_PROGRESS` ➔ `COMPLETED`: Triggered at appointment end time.
 3.  **Dynamic Documentation (react-pdf)**:
-    - **Record and Routine**: Lourdes/Gloria generate post-treatment recommendations.
-    - **Language Selector**: Selector in the **Thumb-Zone** (ES | PT | EN) for the PDF before generating.
-    - **Versionado**: Each change generates a new file (`v1`, `v2`) in the history; it is never overwritten. (Ref: `STANDARDS.md` - Section 19).
+    - **Record and Routine**: Specialist generates post-treatment recommendations.
+    - **Language Selector**: UI selector in the **Thumb-Zone** (ES | PT | EN) before generation.
+    - **Versioning**: Every update creates a new version (`v1`, `v2`) in Supabase Storage; files are never overwritten.
 
 ---
 
 ## WF-05: Monthly Reports and Integrations
-*Objective: To automate administrative management and marketing.*
-
-1.  **Management Report**:
-    - **Trigger**: Scheduled task (Cron job) on the 1st of each month at 00:00.
-    - **Action**: Generation of a summary PDF of income, services performed and conversion metrics.
-    - **Storage**: Saved in Supabase Storage (Private for Owner role).
-2.  **Marketing**: Option to link Mailchimp per organization for mass email marketing.
-3.  **Billing**: Hook prepared for future implementation with **Monoli Software**.
+1.  **Management Report**: Cron job triggers on the 1st of each month. Generates a summary PDF of income and conversion metrics (Stored in Private Storage).
+2.  **Marketing**: Optional Mailchimp sync per organization.
+3.  **Billing**: Integration hook ready for future **Monoli Software** implementation.
 
 ---
 
 ## WF-06: Session Strategy and Cookies
-*Objective: Smooth experience and brand persistence.*
-
-1.  **Storage**: Use of asynchronous `cookieStore` (Next.js 16) to persist:
-    - `tenant_id`: Identification of the organization (Lourdes/Gloria).
+1.  **Storage**: Use of Next.js 16 `cookies()` (async) to persist:
+    - `tenant_id`: Organization identification.
     - `locale`: User's preferred language.
-    - `user_preferences`: Dark mode/light mode and accessibility.
-2.  **Security**: Cookies configured as `SameSite: Lax` to ensure context loading from external links (WhatsApp/Email).
+    - `user_preferences`: Theme (Dark/Light) and accessibility settings.
+2.  **Security**: Cookies set to `SameSite: Lax` to ensure context loading from external WhatsApp/Email links.
 
 ---
 
 ## WF-07: External Calendar Synchronization
-*Objective: To avoid overlaps with the specialist's personal life.*
-
-1.  **Sync Bidirectional**: Integration with Google Calendar API.
-2.  **Preventive Block**: If the specialist adds a personal event to their Google Calendar, SkinSystem automatically blocks that space in the public calendar.
-3.  **Resilience**: If the external API fails, the system prioritizes local blocking and retries synchronization every 15 min.
+1.  **Bidirectional Sync**: Integration with Google Calendar API.
+2.  **Preventive Block**: Personal events in the specialist's Google Calendar automatically block availability in SkinSystem.
+3.  **Resilience**: If the API fails, local blocking is prioritized, with retry attempts every 15 minutes.
 
 ---
 
-## WF-08: Role Management and Privacy
-*Reference: See IDENTITY.md.*
-
-1.  **Owner (Lourdes/Gloria)**: Full access to Stripe, Monthly Reports, Marketing Configuration and Integrations.
-2.  **Staff**: Operational access to calendar, client records and routine generation. Total block of financial data, Stripe balances and API keys.
+## WF-08: Role-Based Operational Access
+1.  **Owner**: Full access to Financials, Stripe, Reports, and Marketing.
+2.  **Staff**: Access to Calendar, Clinical Records, and Routine generation. Blocked from viewing income, balances, and API keys.
 
 ---
 
-## Error Handling and Edge Cases
-- **Payment Failure**: If the bank denies the card, the user can retry the payment immediately without losing the 5-minute lock.
-- **Media Sync Error**: The system uses an **Upload Queue**; if the connection fails on the Asus or Mac, the photo upload resumes automatically when the signal is restored.
-- **Time Reference**: All reminders and status changes are strictly governed by the physical clinic's timezone.
+## Error Handling & Edge Cases
+- **Payment Failure**: Users can retry payment immediately without losing the 5-minute Redis lock.
+- **Media Sync Error**: Background **Upload Queue** for photos. Resumes automatically if connection is lost on Mac/Asus devices.
+- **Time Reference**: All events are governed by the physical clinic's local timezone, stored in UTC.

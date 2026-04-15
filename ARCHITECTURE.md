@@ -19,70 +19,79 @@ This document defines the physical and logical structure of SkinSystem. It is ba
 
 ```bash
 src/
-├── app/                  # NEXT.JS 16 ROUTING (App Router)
-│   ├── [tenant]/         # Rutas dinámicas por subdominio (lourdes/gloria)
-│   │   ├── (public)/     # Landing, catálogo y reserva para clientas
-│   │   └── (dashboard)/  # Panel de gestión unificado (estilo Setmore)
-│   └── api/              # Webhooks de Stripe y tareas programadas
-├── domains/              # EL CORAZÓN: Lógica de Negocio (Domain-Driven)
-│   ├── booking/          # Motor de citas, validación de tiempos y solapamientos
-│   ├── catalog/          # Gestión de servicios e "Islas de Datos" de categorías
-│   ├── customers/        # CRM, fichas técnicas y seguimiento de fotos (Assets)
-│   └── billing/          # Lógica fiscal (NIF/VAT), facturación y Stripe
-├── shared/               # RECURSOS REUTILIZABLES (Themed)
-│   ├── components/       # UI de lujo (Theme-able) que cambia por CSS Variables
-│   ├── hooks/            # useTenantContext, useAppTheme, etc.
-│   ├── lib/              # Inicialización de Drizzle, Supabase y Redis
-│   └── utils/            # Formateadores (Intl API) y validadores comunes
-├── middleware.ts         # Detección de subdominio y protección de rutas
-└── instrumentation.ts    # Observabilidad y telemetría (Mac M4 / Asus TUF)
+├── app/                  # NEXT.JS 16 ROUTING
+│   ├── (auth)/           # Centralized Login (auth.skinsystem.pt)
+│   ├── (dashboard)/      # Specialist/Admin views (/admin)
+│   ├── (public)/         # Client-facing booking and landing pages
+│   └── api/              # Stripe Webhooks & Cron Jobs
+├── domains/              # THE CORE: Domain-Driven Business Logic
+│   ├── booking/          # Slot validation, locks, and scheduling
+│   ├── catalog/          # Service management & "Data Islands"
+│   ├── customers/        # CRM, clinical records, and asset tracking
+│   └── billing/          # Fiscal logic (VAT/NIF) & Stripe Connect
+├── shared/               # REUSABLE RESOURCES
+│   ├── components/       # Atomic UI (Tailwind v4 / Stitches)
+│   ├── providers/        # TenantProvider, AuthProvider, I18nProvider
+│   ├── hooks/            # useTenantContext, useAppTheme
+│   ├── lib/              # Drizzle, Supabase, Redis clients
+│   └── utils/            # Intl formatters & common validators
+├── messages/             # I18n Static JSON (ES/PT/EN)
+├── middleware.ts         # Subdomain detection & tenant_id injection
+└── instrumentation.ts    # Observability (Mac M4 / Asus TUF telemetry)
 ```
 
 ## 3. Multi-tenant Implementation (Island Strategy)
-*Reference: Ver WORKFLOWS.md para el proceso de validación de identidad y reserva.*
+*Reference: See WORKFLOWS.md for identity validation flow.*
 
-### Detection and Context
-- **The middleware.ts:** resolves the tenant from the hostname.
+## 3. Multi-tenant Implementation (Island Strategy)
+*Reference: See WORKFLOWS.md for the identity and booking validation process.*
 
-- The existence is validated in the organizations table.
+### 3.1 Detection & Context (Middleware)
+- **Subdomain Resolution**: The `middleware.ts` extracts the `tenant_id` from the incoming hostname (e.g., `lourdes.skinsystem.pt`).
+- **Header Injection**: It injects the `organization_id` into the request headers to be consumed by Server Components and Actions without client-side manipulation.
+- **Validation**: The middleware performs a pre-flight check against the `organizations` table to ensure the tenant exists before allowing the request to proceed.
 
-- **The organization_id:** is propagated through the asynchronous context of Next.js 16.
+### 3.2 State Persistence (TenantProvider)
+- **Single Source of Truth**: The Subdomain always overrides any local state.
+- **Client-Side Hydration**: A `TenantProvider` (React Context) wraps the application. It hydrates once with the organization's settings (Logo, Colors, Branding Name) fetched from the DB via the header-injected ID.
+- **Dynamic Theming**: UI components consume this context to apply specialist-specific branding tokens.
 
-### Data Security (RLS)
+---
 
-- **Strict Isolation:** All key tables include organization_id.
+## 4. Themed Shared UI (Hybrid Strategy)
+*Reference: See DESIGN_SYSTEM.md for color tokens and premium typography.*
 
-- **Enforcement:** Postgres policies are applied to ensure that a specialist NEVER sees another's data, even if there is a failure in the application layer.
+To scale without duplicating code, the interface uses a 90/10 CSS Boundary:
 
-## 4. Themed Shared UI
-*Reference: See DESIGN_SYSTEM.md for colour tokens and premium typography.*
+1.  **CSS Variables**: The root Layout injects tokens (e.g., `--accent-spa`, `--brand-gold`, `--font-heading`) into the `:root` DOM element based on the Tenant data.
+2.  **Tailwind CSS v4 (90%)**: Components use utility classes that reference these CSS variables, instantly changing the "look & feel" from Lourdes to Gloria.
+3.  **Stitches (10%)**: Used EXCLUSIVELY for **Complex Atomic Components** with multiple logic-driven variants (e.g., "Slot Selector" states: `available`, `locked`, `occupied`, `selected`).
 
-To scale without duplicating code, the interface is dynamic:
+---
 
-1. **Theme Injection:** The root Layout reads the visual configuration of the Specialist from the DB.
+## 5. Security & Data Isolation (RLS)
+*Reference: See Section 17 of STANDARDS.md for database rigor.*
 
-2. **CSS Variables:** Inject tokens like --accent-spa or --font-heading into the DOM.
+1.  **Strict Isolation**: Every key table (appointments, medical_records, services) includes an `organization_id` column.
+2.  **Postgres RLS**: Row Level Security policies are applied at the database level (Supabase) to ensure that a specialist NEVER sees another's data, even if the application layer fails.
+3.  **App Guardrail**: As defined in `CLAUDE.md`, all Drizzle queries must explicitly include the `tenant_id` filter.
 
-3. **Reactive Components:** Components in src/shared/components use Tailwind classes that point to these variables, instantly changing the "look & feel" from Lourdes to Gloria.
+---
 
-## 5. Data Flow and Rigor Layers
-**Reference:** See Section 2 of STANDARDS.md for the Result pattern.
+## 6. Race Condition Protection (Slot Locking)
+*Reference: See TECH_STACK.md for Upstash Redis configuration.*
 
-To ensure system rigidity, each request follows this flow:
+1.  **Temporary Lock**: When starting a checkout, the system creates a lock in `Upstash Redis` with a TTL of **5 minutes**.
+2.  **Validation**: No other client can see or select this specific slot while the lock is active.
+3.  **Resolution**: 
+    - **Success**: If the Stripe webhook confirms payment, the lock is promoted to a permanent `appointment`.
+    - **Failure/Expiry**: If the timer hits zero without confirmation, the slot is automatically released.
 
-1. **UI (Presentation):** Captures the user's action.
+---
 
-2. **Server Action (Customs):** Strict validation with Zod.
+## 7. Environment & Development Sync
+*Reference: See Section 13 of STANDARDS.md for Git and Sync rules.*
 
-3. **Service (Domain):** Execution of business rules (e.g., Does this client have a pending follow-up session?).
-
-- **Drizzle (Persistence):** Atomic transaction in the single-schema database.
-
-## 6. Environment Synchronization (Mac/Windows)
-**Reference:** See Section 13 of STANDARDS.md for Git and Sync rules.
-
-## 7. Race Condition Protection (Slot Locking)
-To avoid double booking during the payment process:
-- **Temporary Lock**: When starting the checkout, the system creates a lock in `temporary_slots` (Redis/DB) with a TTL of **5 minutes**.
-- **Validation**: No other client can see or select this slot while the lock is active.
-- **Resolution**: If the Stripe webhook confirms success, the lock becomes an `appointment`. If it expires, the slot is automatically released.
+- **Cross-Platform Readiness**: Optimization for high-performance rendering on **Mac mini M4** and robust testing on **Asus TUF**.
+- **Observability**: `instrumentation.ts` is configured to track performance metrics across different hardware environments.
+- **Secrets Management**: Strict use of `.env.local` to manage Supabase and Stripe keys independently for each developer machine.

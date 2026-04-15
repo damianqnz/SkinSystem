@@ -1,37 +1,52 @@
-# Design System: Minimalist Luxury
+# DESIGN_SYSTEM.md: Minimalist Luxury (New Internet Aesthetic)
 
-## Typography (Fontsource)
-- **Headings:** `Cormorant Garamond` (Elegante, Serif).
-- **Body:** `Outfit` (Moderno, Minimalista, Sans-serif).
+This document defines the visual soul and user experience of SkinSystem. Every component must evoke exclusivity, health, and premium care.
 
-## Visual Tokens
-- **Background:** `--bg-spa` (#FAFAF9).
-- **Primary:** `--text-main` (#1C1917).
-- **Accent:** `--accent-spa` (#D4D4D8).
-- **Borders:** `rounded-none` o `rounded-sm` (Editorial aesthetic).
+---
 
-## Components (Logic)
-- **Mobile-First:** All design is validated in 375px before scaling.
-- **Interactive:** MagicUI for Hero components and visual feedback.
-- **Icons:** `icono.co` (Minimalist).
+## 1. Visual Tokens & Color Theory (60-30-10 Rule)
+To ensure brand consistency across tenants (Lourdes/Gloria), we follow the 60-30-10 distribution:
 
-## Adaptive UX & Ergonomics
+- **60% Primary (Background/Base)**: `--bg-spa` (#FAFAF9) - A soft, high-end bone white.
+- **30% Secondary (Text/Layout)**: `--text-main` (#1C1917) - Deep charcoal, almost black, for readability.
+- **10% Accent (Action/Status)**: `--accent-spa` (#D4AF37) - Gold or brand-specific color for critical CTAs and active states.
 
-### 1. Thumb-Driven Design (Thumb Zone)
-- Critical elements (Confirm appointment, Save record) must be located in the lower arc of the device.
-- Main navigation via persistent **Bottom Bar** on mobile.
+## 2. Typography (Self-hosted via Fontsource)
+- **Headings (H1, H2, H3)**: `Cormorant Garamond` (Elegant Serif). Used for titles to convey clinical authority and luxury.
+- **Body & UI**: `Outfit` (Modern Sans-serif). Clean, high legibility for technical and medical data.
 
-### 2. Modern Layouts
-- **Container Queries**: Components adapt to their container, not just the viewport.
-- **Fluid Typography**: Scaling using `font-size: clamp(1rem, 2vw + 1rem, 1.5rem)`.
-- **Aspect Ratio**: Native use of `aspect-ratio` to avoid content shifts (Layout Shift) in treatment photos.
+## 3. Visual Language & Shapes
+- **Borders**: `rounded-none` or `rounded-sm`. Sharp or slightly softened corners to mimic high-end editorial layouts (Vogue/Architecture Digest style).
+- **Icons**: `Lucide React` (Minimalist set). Thin strokes (1.5px weight).
+- **Depth**: Subtle "Glassmorphism" for cards and modals using `backdrop-blur`.
 
-### 3. Feedback Táctil y Visual
-- **Microinteractions**: Immediate feedback when touching a button (light vibration or 0.98x scale).
-- **Adaptive Mode**: Native support for Dark/Light mode synchronized with the system.
+---
 
-## Critical Control Components
-### PDF Language Selector
-- **Location**: Bottom zone of the screen (Thumb-Zone).
-- **Design**: Segmented selector of 3 large buttons (44x44px min) for quick change of clinical report language.
-- **Feedback**: Haptic vibration when changing language before generation.
+## 4. Adaptive UX & Ergonomics (Mobile-First)
+
+### 4.1 Thumb-Driven Design (The Thumb Zone)
+- **Law**: All critical actions (Confirm Appointment, Save Record, Language Switch) must be located in the lower 30% of the screen.
+- **Navigation**: Persistent **Bottom Bar** for mobile/iPad; Sidebar for desktop.
+
+
+
+### 4.2 Modern Layouts
+- **Container Queries**: Components must adapt to their container context, not just the global viewport.
+- **Aspect Ratio**: Mandatory use of `aspect-ratio` for "Before & After" photos to prevent Layout Shift (CLS).
+
+### 4.3 Tactile & Visual Feedback
+- **Micro-interactions**: Use **GSAP** or **Framer Motion** for 0.98x scale-down on press.
+- **Haptic Simulation**: Visual pulses or suttle color shifts when interacting with medical data.
+
+---
+
+## 5. Critical UI Components
+
+### 5.1 PDF & Routine Generator
+- **Location**: Thumb-Zone (Bottom of screen).
+- **Interface**: Large segmented buttons (min 44x44px) for Language Selection (ES | PT | EN).
+- **Aesthetic**: Minimalist preview of the document before generation.
+
+### 5.2 The "Wait" Experience
+- **Skeletons**: Use custom-themed Shimmer effects that match the brand accent color.
+- **MagicUI**: Use `RetroGrid` or `Beam` effects for background depth in Auth pages.
