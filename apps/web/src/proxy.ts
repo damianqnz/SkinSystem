@@ -1,15 +1,13 @@
 /**
- * @file middleware.ts
- * @description Standard Next.js middleware for SkinSystem.
+ * @file proxy.ts
+ * @description Next.js 16.2+ Node.js request proxy for SkinSystem.
+ *              Runs in Node.js runtime (not Edge) — do NOT add `export const runtime`.
  *
  * Responsibilities (in order):
  *   1. Refresh Supabase auth session on every request.
  *   2. Extract tenant slug from the subdomain.
  *   3. Inject `x-tenant-slug` and `x-locale` headers for Server Components.
  *   4. Guard dashboard routes — redirect to auth portal if unauthenticated.
- *
- * NOTE: No URL rewriting to [tenant]/[locale] segments.
- * Routing is handled by Next.js route groups: (public) and (dashboard).
  */
 
 import { NextResponse } from 'next/server';
@@ -74,13 +72,12 @@ function detectLocale(request: NextRequest): SupportedLocale {
     : DEFAULT_LOCALE;
 }
 
-// ── Middleware ────────────────────────────────────────────────
+// ── Proxy ─────────────────────────────────────────────────────
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const hostname = request.headers.get('host') ?? '';
 
-  // Mutable response — may be replaced on redirect.
   let response = NextResponse.next({ request });
 
   // ── 1. Session refresh (required by @supabase/ssr on every request) ──
