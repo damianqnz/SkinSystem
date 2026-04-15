@@ -193,3 +193,15 @@
 - [SECURITY] 'server-only' importado en cada servicio — no ejecutables en Client Components.
 - [NOTE] tsc --noEmit: 0 errores. Todos los archivos ≤ 50 líneas.
 - [NEXT] Dashboard layout: (dashboard)/layout.tsx con TenantProvider + sidebar + header.
+
+### 🗓️ 2026-04-15: Dashboard Shell — Layout Base
+- [DONE] next.config.js: experimental.ppr = true habilitado.
+- [DONE] src/shared/components/dashboard/nav-items.ts — 6 items (Overview, Agenda, Clientes, Catálogo, Facturación, Ajustes). BOTTOM_NAV_ITEMS = slice(0,5) para mobile.
+- [DONE] Sidebar.tsx (48L) — Client Component. Desktop fixed 240px. Cormorant para brand name, active state con bg-stone. Gold dot en footer.
+- [DONE] BottomBar.tsx (49L) — Client Component. Mobile bottom bar glassmorphism. Thumb Zone ≥44px touch targets. Icono activo en #D4AF37.
+- [DONE] DashboardHeader.tsx (36L) — Server Component. Glassmorphism backdrop-blur-md. Recibe tenantName como prop (no llama headers()). <UserMenu> en Suspense.
+- [DONE] UserMenu.tsx (42L) — Async Server Component. Lee sesión Supabase, genera iniciales. Skeleton animado para fallback.
+- [DONE] (dashboard)/layout.tsx (43L) — PPR shell: Sidebar/Header estáticos, children en <Suspense>. TenantProvider hidratado desde x-tenant-slug.
+- [DONE] TenantProvider.tsx (47L) — Context actualizado, wrapper limpio.
+- [NOTE] tsc --noEmit: 0 errores. Todos los archivos ≤ 50 líneas.
+- [NEXT] Crear página /dashboard (Overview) con datos reales: citas de hoy, próximas, resumen de ingresos usando los domain services.

@@ -1,26 +1,43 @@
-import type { ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { headers } from 'next/headers';
+import { TenantProvider } from '@/shared/providers/TenantProvider';
+import { Sidebar } from '@/shared/components/dashboard/Sidebar';
+import { BottomBar } from '@/shared/components/dashboard/BottomBar';
+import { DashboardHeader } from '@/shared/components/dashboard/DashboardHeader';
 
-/**
- * Dashboard shell layout — specialist/admin views.
- * Reads `x-tenant-slug` injected by middleware.ts to scope
- * the session without relying on URL params.
- *
- * @note TenantProvider and sidebar will be added in the dashboard phase.
- */
-export default async function DashboardLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+/** PPR shell: Sidebar/Header are static; UserMenu + page content stream via Suspense. */
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const headersList = await headers();
   const tenantSlug = headersList.get('x-tenant-slug') ?? '';
+  const locale     = headersList.get('x-locale') ?? 'es';
+
+  // Capitalize slug for display: "lourdes" → "Lourdes"
+  const tenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);
 
   return (
-    <div data-tenant={tenantSlug} className="flex min-h-screen">
-      {/* Sidebar placeholder — will be replaced in dashboard phase */}
-      <aside className="w-64 border-r border-stone-200 bg-white" />
-      <main className="flex-1 bg-[#FAFAF9]">{children}</main>
-    </div>
+    <TenantProvider tenantSlug={tenantSlug} locale={locale}>
+      {/* Desktop sidebar */}
+      <Sidebar tenantName={tenantName} />
+
+      {/* Main column — offset by sidebar width on md+ */}
+      <div className="flex flex-col min-h-screen md:pl-60">
+        <DashboardHeader tenantName={tenantName} />
+
+        <main className="flex-1 p-6 pb-20 md:pb-6 bg-[var(--color-spa-bg)]">
+          <Suspense
+            fallback={
+              <div className="flex items-center justify-center h-40">
+                <span className="w-5 h-5 rounded-full border-2 border-[#D4AF37] border-t-transparent animate-spin" />
+              </div>
+            }
+          >
+            {children}
+          </Suspense>
+        </main>
+      </div>
+
+      {/* Mobile bottom navigation (Thumb Zone) */}
+      <BottomBar />
+    </TenantProvider>
   );
 }
