@@ -24,3 +24,6 @@ export * from './notifications';
 
 // ── Settings & Integrations ───────────────────────────────────
 export * from './settings';
+
+// ── Home Care Routines ────────────────────────────────────────
+export * from './routines';
