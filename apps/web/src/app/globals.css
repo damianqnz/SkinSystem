@@ -1,25 +1,108 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ── Tailwind v4 ─────────────────────────────────────────────────── */
+@import "tailwindcss";
 
+/* Tell Tailwind where to scan for class names (monorepo) */
+@source "../../../src/**/*.{ts,tsx}";
+@source "../../../../../packages/ui/src/**/*.{ts,tsx}";
+
+/* ── Design Tokens (DESIGN_SYSTEM.md — 60-30-10) ────────────────── */
+@theme {
+  /* Fonts */
+  --font-sans:  'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Cormorant Garamond', Georgia, ui-serif, serif;
+
+  /* Palette */
+  --color-spa-bg:      #FAFAF9;
+  --color-spa-stone:   #1C1917;
+  --color-spa-accent:  #D4D4D8;
+  --color-spa-border:  #E7E5E4;
+  --color-spa-muted:   #78716C;
+
+  /* Aliases for backwards compat */
+  --color-background: var(--color-spa-bg);
+  --color-primary:    var(--color-spa-stone);
+  --color-accent:     var(--color-spa-accent);
+}
+
+/* ── CSS Custom Properties (used in plain CSS / non-Tailwind code) ─ */
 :root {
-  /* Paleta 60-30-10 de DESIGN_SYSTEM.md */
-  --background: #FAFAF9;
-  /* Soft Stone */
-  --primary: #1C1917;
-  /* Deep Stone */
-  --accent: #D4D4D8;
-  /* Champagne */
+  --bg-spa:     #FAFAF9;
+  --text-main:  #1C1917;
+  --accent-spa: #D4D4D8;
+  --border:     #E7E5E4;
+  --muted:      #78716C;
 }
 
-/* Aplicamos las fuentes globales */
+/* ── Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  @apply bg-[var(--background)] text-[var(--primary)] font-sans antialiased;
+  background-color: var(--bg-spa);
+  color: var(--text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2,
-h3,
-h4 {
-  @apply font-serif;
+/* ── ShinyButton shimmer ──────────────────────────────────────────── */
+@keyframes shimmer {
+  from { transform: translateX(-130%); }
+  to   { transform: translateX(130%);  }
+}
+
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.13) 50%,
+    transparent 100%
+  );
+  transform: translateX(-130%);
+}
+
+.shimmer-btn:hover::after,
+.shimmer-btn:focus-visible::after {
+  animation: shimmer 0.65s ease forwards;
+}
+
+/* ── Editorial input (bottom-border only) ────────────────────────── */
+.input-editorial {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 0;
+  font-family: var(--font-sans, 'Outfit', sans-serif);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-main);
+  outline: none;
+  transition: border-color 0.2s ease;
+  border-radius: 0;
+}
+
+.input-editorial::placeholder {
+  color: var(--muted);
+}
+
+.input-editorial:focus {
+  border-bottom-color: var(--text-main);
+}
+
+.input-editorial:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
