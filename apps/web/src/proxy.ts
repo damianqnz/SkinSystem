@@ -103,14 +103,21 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
 
   if (isDashboardRoute && !user) {
-    const baseDomain =
-      process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'skinsystem.pt';
-    const authUrl = new URL(`https://auth.${baseDomain}/login`);
-    authUrl.searchParams.set(
-      'next',
-      `${request.nextUrl.protocol}//${hostname}${pathname}`,
-    );
-    return NextResponse.redirect(authUrl);
+    const isLocal = hostname.includes('lvh.me') || hostname.includes('localhost');
+
+    let loginUrl: URL;
+    if (isLocal) {
+      // Dev: serve /login on the SAME tenant domain — no cross-subdomain cookie issues
+      loginUrl = new URL(`http://${hostname}/login`);
+      loginUrl.searchParams.set('next', `http://${hostname}${pathname}`);
+    } else {
+      // Production: centralised auth portal on its own subdomain
+      const base = process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'skinsystem.pt';
+      loginUrl = new URL(`https://auth.${base}/login`);
+      loginUrl.searchParams.set('next', `https://${hostname}${pathname}`);
+    }
+
+    return NextResponse.redirect(loginUrl);
   }
 
   // ── 5. Persist locale cookie if not yet set ───────────────────
