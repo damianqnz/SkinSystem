@@ -320,6 +320,26 @@
 - [DONE] .env.local — STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_PLATFORM_FEE_BPS=1000 añadidos.
 - [DONE] tsc --noEmit: 0 errores.
 - [NOTE] Aislamiento fiscal garantizado: cada `createBookingSession` valida que org.stripeAccountId exista. Fondos siempre a transfer_data.destination (cuenta del especialista). Plataforma cobra vía application_fee_amount.
+- [DONE] Flujo de reserva pública completo — ver entrada 2026-04-15 Public Booking.
 - [NEXT] Rellenar credenciales reales de Stripe en .env.local para habilitar el webhook en local.
-- [NEXT] Completar flujo booking público: NewAppointmentFAB form → createAppointment → createBookingSession → redirect Stripe Checkout.
 - [NEXT] Integración WhatsApp (Evolution API): envío rutina PDF tras generación.
+
+### 🗓️ 2026-04-15: Public Booking Experience — /book + Landing
+- [DONE] domains/booking/service.ts — Añadido `createAppointment(input: CreateAppointmentInput)`. Persiste appointment status=pending + policyAcceptedAt=now.
+- [DONE] domains/billing/service.ts — BookingSessionInput extendido con `slotStartISO?` + `lockedBySession?` → propagados a Stripe metadata para que el webhook libere el lock Redis.
+- [DONE] (public)/page.tsx — Landing ultra-luxury reescrita. generateMetadata dinámica (título = org.name). Hero: fondo stone-950, dot-grid pattern, Cormorant Garamond 9xl, gold CTA. Services section: PPR Suspense → ServicesSection async. Footer minimalista.
+- [DONE] (public)/_components/ServicesSection.tsx — Async Server Component. Lee org por slug → getActiveServices. Grid 1/2/3-col. Cards con color bar, i18n name/description, precio, duración. Link directo a /book?service=<id>.
+- [DONE] (public)/layout.tsx — Toaster añadido (position bottom-center, richColors).
+- [DONE] (public)/book/page.tsx — Server Component. generateMetadata. getActiveServices para Step 1. PPR-compatible. Detecta ?cancelled=1 → notice amber.
+- [DONE] (public)/book/_components/BookingFunnel.tsx — Client orchestrator. 3 pasos: Step1→Step2→Step3. AnimatePresence slide direction-aware (dir 1|-1). Back button.
+- [DONE] (public)/book/_components/StepIndicator.tsx — Progreso visual: nodos numerados + conectores. done=amber, active=stone-900 ring, pending=stone-100.
+- [DONE] (public)/book/_components/Step1Service.tsx — Grid de servicios seleccionables. Hover → CTA inline. depositPercent mostrado si <100%.
+- [DONE] (public)/book/_components/Step2Calendar.tsx — Strip horizontal 14 días. Cambio de fecha → Server Action getAvailableSlotsAction (useTransition). SlotGrid: available=seleccionable, locked=amber deshabilitado. Solo muestra available + locked (interno se filtra).
+- [DONE] (public)/book/_components/Step3Confirm.tsx — Summary card (servicio + slot + desglose precio). Form: nombre, teléfono, email, nota. useActionState(createBookingAction). router.push en redirect, toast.error en error/conflict.
+- [DONE] (public)/book/actions.ts — getAvailableSlotsAction: llama calculateAvailableSlots, filtra a public-visible (available|locked), serializa Dates. createBookingAction: (1) lockSlot Redis best-effort, (2) getServiceById, (3) find staff profile, (4) upsert guest customer, (5) createAppointment, (6) createBookingSession → Stripe URL.
+- [DONE] (public)/book/success/page.tsx — Server Component. Lee appointmentId de searchParams → JOIN appointments+catalog_services → muestra detalles. CTA volver al inicio.
+- [DONE] tsc --noEmit: 0 errores.
+- [NOTE] Flujo completo: Landing → /book → Step1 (servicio) → Step2 (horario, slots desde Redis+DB) → Step3 (form guest) → Stripe Checkout → webhook confirma → /book/success.
+- [NEXT] Rellenar credenciales reales de Stripe + Upstash Redis en .env.local para prueba end-to-end.
+- [NEXT] Implementar WhatsApp (Evolution API) post-confirmación.
+- [NEXT] NewAppointmentFAB en /calendar: conectar al mismo createBookingAction para reservas desde el panel.

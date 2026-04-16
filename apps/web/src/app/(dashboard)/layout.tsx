@@ -1,30 +1,54 @@
-import { Suspense, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 import { headers } from 'next/headers';
+import { Cormorant_Garamond, Outfit } from 'next/font/google';
 import { Toaster } from 'sonner';
-import { TenantProvider } from '@/shared/providers/TenantProvider';
-import { Sidebar } from '@/shared/components/dashboard/Sidebar';
-import { BottomBar } from '@/shared/components/dashboard/BottomBar';
-import { DashboardHeader } from '@/shared/components/dashboard/DashboardHeader';
+import { TenantProvider }    from '@/shared/providers/TenantProvider';
+import { Sidebar }           from '@/shared/components/dashboard/Sidebar';
+import { BottomBar }         from '@/shared/components/dashboard/BottomBar';
+import { DashboardHeader }   from '@/shared/components/dashboard/DashboardHeader';
+import '../globals.css';
 
-/** PPR shell: Sidebar/Header are static; UserMenu + page content stream via Suspense. */
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
+// ── Fonts (self-hosted by Next.js, zero layout shift) ─────────────────────
+const cormorant = Cormorant_Garamond({
+  subsets:  ['latin'],
+  weight:   ['400', '600', '700'],
+  style:    ['normal', 'italic'],
+  variable: '--font-serif',
+  display:  'swap',
+});
+
+const outfit = Outfit({
+  subsets:  ['latin'],
+  weight:   ['300', '400', '500'],
+  variable: '--font-sans',
+  display:  'swap',
+});
+
+// ── Dynamic shell ─────────────────────────────────────────────────────────
+// Reads request headers (set by middleware) — must live inside <Suspense>
+// so PPR can statically cache the outer html/body while streaming this part.
+async function DashboardShell({ children }: { children: ReactNode }) {
   const headersList = await headers();
-  const tenantSlug = headersList.get('x-tenant-slug') ?? '';
-  const locale     = headersList.get('x-locale') ?? 'es';
+  const tenantSlug  = headersList.get('x-tenant-slug') ?? 'lourdes';
+  const locale      = headersList.get('x-locale') ?? 'pt';
 
-  // Capitalize slug for display: "lourdes" → "Lourdes"
-  const tenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);
+  // Capitalise each word so "lourdes estetica" → "Lourdes Estetica"
+  const tenantName = tenantSlug
+    .split(/[-_ ]+/)
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
 
   return (
     <TenantProvider tenantSlug={tenantSlug} locale={locale}>
-      {/* Desktop sidebar */}
+      {/* ── Fixed Desktop sidebar ────────────────────────────── */}
       <Sidebar tenantName={tenantName} />
 
-      {/* Main column — offset by sidebar width on md+ */}
-      <div className="flex flex-col min-h-screen md:pl-60">
+      {/* ── Main column — pushed right by sidebar width on md+ ─ */}
+      <div className="flex flex-col min-h-screen md:pl-64">
         <DashboardHeader tenantName={tenantName} />
 
-        <main className="flex-1 p-6 pb-20 md:pb-6 bg-[var(--color-spa-bg)]">
+        <main className="flex-1 p-6 pb-20 md:pb-6 bg-[#FAFAF9]">
           <Suspense
             fallback={
               <div className="flex items-center justify-center h-40">
@@ -37,22 +61,44 @@ export default async function DashboardLayout({ children }: { children: ReactNod
         </main>
       </div>
 
-      {/* Mobile bottom navigation (Thumb Zone) */}
+      {/* ── Mobile bottom navigation ─────────────────────────── */}
       <BottomBar />
-
-      {/* Global toast notifications (Sonner) */}
-      <Toaster
-        position="bottom-right"
-        toastOptions={{
-          style: {
-            fontFamily: "'Outfit', ui-sans-serif, sans-serif",
-            fontSize:   '13px',
-            borderRadius: '10px',
-            border: '1px solid #E7E5E4',
-          },
-        }}
-        richColors
-      />
     </TenantProvider>
+  );
+}
+
+// ── Root layout for the dashboard shell ───────────────────────────────────
+export default function DashboardLayout({ children }: { children: ReactNode }) {
+  return (
+    <html
+      lang="pt"
+      className={`${cormorant.variable} ${outfit.variable}`}
+    >
+      <body className="bg-[#F5F3EF] text-[#1C1917] antialiased">
+        <Suspense
+          fallback={
+            <div className="flex min-h-screen items-center justify-center bg-[#FAFAF9]">
+              <span className="w-6 h-6 rounded-full border-2 border-[#D4AF37] border-t-transparent animate-spin" />
+            </div>
+          }
+        >
+          <DashboardShell>{children}</DashboardShell>
+        </Suspense>
+
+        {/* Global toasts — outside Suspense so always mounted */}
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            style: {
+              fontFamily:   "'Outfit', ui-sans-serif, sans-serif",
+              fontSize:     '13px',
+              borderRadius: '10px',
+              border:       '1px solid #E7E5E4',
+            },
+          }}
+          richColors
+        />
+      </body>
+    </html>
   );
 }

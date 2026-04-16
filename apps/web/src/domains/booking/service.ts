@@ -5,7 +5,7 @@ import { db } from '@/infrastructure/db';
 import { appointments }      from './schema';
 import { catalogServices }   from '@/domains/catalog/schema';
 import { availabilityRules, blockedIntervals } from '@/infrastructure/db/schema/calendar';
-import type { SelectAppointment, AppointmentStatus } from './schema';
+import type { SelectAppointment, AppointmentStatus, CreateAppointmentInput } from './schema';
 import type { Result } from '@/shared/types/result';
 import { buildSlotKey, getLockedSlotKeys, checkSlotLocks } from '@/shared/lib/redis-lock';
 
@@ -13,6 +13,38 @@ import { buildSlotKey, getLockedSlotKeys, checkSlotLocks } from '@/shared/lib/re
 
 const dbErr = (msg: string) =>
   ({ data: null, error: { message: msg, code: 'DB_ERROR' } }) as Result<never>;
+
+// ── createAppointment ─────────────────────────────────────────
+
+export async function createAppointment(
+  input: CreateAppointmentInput,
+): Promise<Result<{ id: string }>> {
+  try {
+    const rows = await db
+      .insert(appointments)
+      .values({
+        organizationId:   input.organizationId,
+        customerId:       input.customerId,
+        serviceId:        input.serviceId,
+        staffProfileId:   input.staffProfileId,
+        startAt:          input.startAt,
+        endAt:            input.endAt,
+        status:           'pending',
+        priceCents:       input.priceCents,
+        discountCents:    input.discountCents ?? 0,
+        surchargesCents:  input.surchargesCents ?? 0,
+        totalCents:       input.totalCents,
+        couponId:         input.couponId ?? null,
+        guestComment:     input.guestComment ?? null,
+        policyAcceptedAt: new Date(),
+      })
+      .returning({ id: appointments.id });
+    if (!rows[0]) return dbErr('Insert returned empty');
+    return { data: { id: rows[0].id }, error: null };
+  } catch {
+    return dbErr('Failed to create appointment');
+  }
+}
 
 const APPT_COLS = {
   id:             appointments.id,
