@@ -1,10 +1,10 @@
 import {
-  LayoutDashboard,
   CalendarDays,
-  CalendarCheck2,
-  Users,
   Sparkles,
+  Link2,
+  Users,
   CreditCard,
+  Network,
   Settings2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -16,13 +16,13 @@ export type NavItem = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard',          label: 'Overview',     icon: LayoutDashboard },
-  { href: '/dashboard/agenda',   label: 'Agenda',       icon: CalendarDays    },
-  { href: '/calendar',           label: 'Disponibilidad', icon: CalendarCheck2 },
-  { href: '/dashboard/clients',  label: 'Clientes',     icon: Users           },
-  { href: '/catalog',            label: 'Catálogo',     icon: Sparkles        },
-  { href: '/dashboard/billing',  label: 'Facturación',  icon: CreditCard      },
-  { href: '/dashboard/settings', label: 'Ajustes',      icon: Settings2       },
+  { href: '/dashboard/agenda',   label: 'Calendário',   icon: CalendarDays },
+  { href: '/catalog',            label: 'Serviços',     icon: Sparkles     },
+  { href: '/calendar',           label: 'Conectar',     icon: Link2        },
+  { href: '/dashboard/customers',label: 'Clientes',     icon: Users        },
+  { href: '/dashboard/billing',  label: 'Pagamentos',   icon: CreditCard   },
+  { href: '/dashboard/settings', label: 'Integrações',  icon: Network      },
+  { href: '/dashboard/settings', label: 'Definições',   icon: Settings2    },
 ];
 
 /** Items visible in the mobile bottom bar (max 5). */

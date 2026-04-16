@@ -16,15 +16,18 @@ import type { Result } from '@/shared/types/result';
 // ── Types ─────────────────────────────────────────────────────
 
 export type BookingSessionInput = {
-  organizationId: string;
-  appointmentId:  string;
-  serviceId:      string;
-  customerEmail?: string;
-  customerName?:  string;
+  organizationId:    string;
+  appointmentId:     string;
+  serviceId:         string;
+  customerEmail?:    string;
+  customerName?:     string;
   /** Locale for Stripe's hosted page — "es", "pt", "en" */
-  locale?:        string;
-  successUrl:     string;
-  cancelUrl:      string;
+  locale?:           string;
+  successUrl:        string;
+  cancelUrl:         string;
+  /** Passed into Stripe metadata so webhook can release the Redis slot lock */
+  slotStartISO?:     string;
+  lockedBySession?:  string;
 };
 
 export type BookingSessionResult = {
@@ -138,9 +141,11 @@ export async function createBookingSession(
       customer_email: input.customerEmail,
 
       metadata: {
-        organizationId: input.organizationId,
-        appointmentId:  input.appointmentId,
-        serviceId:      input.serviceId,
+        organizationId:  input.organizationId,
+        appointmentId:   input.appointmentId,
+        serviceId:       input.serviceId,
+        ...(input.slotStartISO    ? { slotStartISO:    input.slotStartISO    } : {}),
+        ...(input.lockedBySession ? { lockedBySession: input.lockedBySession } : {}),
       },
 
       success_url: input.successUrl,
