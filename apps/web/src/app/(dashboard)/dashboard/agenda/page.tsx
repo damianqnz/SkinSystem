@@ -1,61 +1,92 @@
 import { Suspense } from 'react';
 import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+
 import { getOrganizationBySlug } from '@/domains/organizations/service';
-import { getWeekStart } from '@/domains/booking/calendar-service';
+import { getMonthStart } from '@/domains/booking/calendar-service';
+
 import { CalendarHeader } from './_components/CalendarHeader';
-import { CalendarEvents } from './_components/CalendarEvents';
-import { CalendarSkeleton } from './_components/CalendarSkeleton';
+import { MonthEvents }    from './_components/MonthEvents';
+import { AgendaSkeleton } from './_components/AgendaSkeleton';
+import type { CalendarView } from './_components/ViewSwitcher';
 
 interface AgendaPageProps {
-  searchParams: Promise<{ week?: string }>;
+  searchParams: Promise<{ month?: string; view?: string }>;
 }
 
+const VALID_VIEWS: CalendarView[] = ['day', 'week', 'month', 'team'];
+
 /**
- * /dashboard/agenda — Calendar Management page.
+ * /dashboard/agenda — management calendar (Setmore-style).
  *
  * PPR pattern:
- *   - Static shell: CalendarHeader (week nav, day labels)
- *   - Streamed:     CalendarEvents (appointments from DB)
+ *   - Static shell: CalendarHeader (view dropdown + month nav)
+ *   - Streamed:     MonthEvents   (DB query → MonthView client grid)
  *
- * `?week=2026-04-14` (ISO date) controls which week to display.
- * Defaults to current week when absent.
+ * URL search-params:
+ *   ?month=YYYY-MM-DD  — first day of the displayed month (defaults to today)
+ *   ?view=month|week|day|team  — defaults to 'month'
  */
 export default async function AgendaPage({ searchParams }: AgendaPageProps) {
-  const hdrs        = await headers();
-  const slug        = hdrs.get('x-tenant-slug') ?? '';
-  const locale      = hdrs.get('x-locale') ?? 'es';
+  const hdrs   = await headers();
+  const slug   = hdrs.get('x-tenant-slug') ?? '';
+  const locale = hdrs.get('x-locale') ?? 'es';
 
-  const { week: weekParam } = await searchParams;
+  const { month: monthParam, view: viewParam } = await searchParams;
 
-  // Resolve organization
-  const orgResult = await getOrganizationBySlug(slug);
-  if (orgResult.error || !orgResult.data) notFound();
-  const org = orgResult.data;
+  const orgRes = await getOrganizationBySlug(slug);
+  if (orgRes.error || !orgRes.data) notFound();
+  const org = orgRes.data;
 
-  // Determine anchor date
-  const anchorDate = weekParam
-    ? new Date(weekParam + 'T00:00:00Z')
-    : new Date();
+  // Anchor date = first of the requested month (or today)
+  const anchor    = monthParam ? new Date(monthParam + 'T00:00:00Z') : new Date();
+  const monthStart = getMonthStart(anchor);
 
-  const weekStart = getWeekStart(anchorDate);
+  const view: CalendarView = (VALID_VIEWS as string[]).includes(viewParam ?? '')
+    ? (viewParam as CalendarView)
+    : 'month';
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      {/* ── Static shell: Calendar Header ──── */}
-      <CalendarHeader
-        weekStart={weekStart}
-        locale={locale}
-      />
+    <>
+      {/* Static header — instantly painted */}
+      <CalendarHeader monthStart={monthStart} locale={locale} view={view} />
 
-      {/* ── Streamed: Calendar Events ─────── */}
-      <Suspense fallback={<CalendarSkeleton />}>
-        <CalendarEvents
-          organizationId={org.id}
-          anchorDate={anchorDate}
-          locale={locale}
-        />
-      </Suspense>
+      {/* Streamed body */}
+      {view === 'month' ? (
+        <Suspense
+          key={`${monthStart.toISOString()}-month`}
+          fallback={<AgendaSkeleton />}
+        >
+          <MonthEvents organizationId={org.id} anchorDate={monthStart} locale={locale} />
+        </Suspense>
+      ) : (
+        <ComingSoon view={view} locale={locale} />
+      )}
+    </>
+  );
+}
+
+// ── Coming-soon placeholder for non-month views (Phase 2) ──────────
+
+function ComingSoon({ view, locale }: { view: CalendarView; locale: string }) {
+  const label = { day: 'Dia', week: 'Semana', team: 'Equipa' }[view as 'day' | 'week' | 'team'] ?? '';
+  const copy =
+    locale === 'pt' ? `A vista «${label}» chega em breve.` :
+    locale === 'en' ? `The “${label}” view is coming soon.` :
+                      `La vista «${label}» llega pronto.`;
+  return (
+    <div className="flex-1 flex items-center justify-center bg-(--color-spa-bg)">
+      <div className="text-center space-y-2 max-w-xs">
+        <p
+          className="text-2xl font-light text-(--color-spa-stone)"
+          style={{ fontFamily: 'var(--font-serif)' }}
+        >
+          {label}
+        </p>
+        <p className="text-[12px] text-spa-muted" style={{ fontFamily: 'var(--font-sans)' }}>
+          {copy}
+        </p>
+      </div>
     </div>
   );
 }
