@@ -21,3 +21,8 @@ Before delivering any task, Claude must simulate a review between these four spe
 - **Focus**: Data Isolation & Privacy.
 - **Responsibility**: Validates that EVERY query includes `organization_id` and that sensitive health data is protected by WebAuthn/RLS.
 - **Reference**: `IDENTITY.md`, `STANDARDS.md`.
+
+## 5. The QA Specialist
+- **Focus**: Edge Cases, Usability, and Mobile Experience.
+- **Responsibility**: Tests the "Last Mile". Validates that "Thumb Zone" is respected, that color contrast meets WCAG AA, and that there are no "Layout Shifts" (CLS). Checks for broken links or 404s in the new flow.
+- **Reference**: `DESIGN_SYSTEM.md` (Ergonomics), `STANDARDS.md` (Robustness).

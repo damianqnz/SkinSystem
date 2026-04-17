@@ -1,140 +1,108 @@
 'use client';
 
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { getWeekStart } from '@/domains/booking/calendar-service';
+import Link from 'next/link';
+import { useSearchParams, usePathname } from 'next/navigation';
+import { ChevronLeft, ChevronRight, MoreHorizontal, Plus } from 'lucide-react';
+import { ViewSwitcher, type CalendarView } from './ViewSwitcher';
 
 interface CalendarHeaderProps {
-  weekStart:   Date;
-  locale:      string;
+  /** First day of the displayed month (UTC) */
+  monthStart: Date;
+  locale:     string;
+  view:       CalendarView;
 }
-
-const DAY_LABELS: Record<string, string[]> = {
-  es: ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'],
-  pt: ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'],
-  en: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-};
 
 const MONTH_LABELS: Record<string, string[]> = {
-  es: ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'],
-  pt: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
-  en: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  es: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
+  pt: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
 };
 
-function fmtWeekRange(weekStart: Date, locale: string): string {
-  const months = MONTH_LABELS[locale] ?? MONTH_LABELS['es']!;
-  const end    = new Date(weekStart);
-  end.setUTCDate(end.getUTCDate() + 6);
+const TODAY_LABEL: Record<string, string> = { es: 'Hoy', pt: 'Hoje', en: 'Today' };
 
-  const d1 = weekStart.getUTCDate();
-  const d2 = end.getUTCDate();
-  const m1 = months[weekStart.getUTCMonth()]!;
-  const m2 = months[end.getUTCMonth()]!;
-
-  if (m1 === m2) return `${d1}–${d2} ${m1} ${end.getUTCFullYear()}`;
-  return `${d1} ${m1} – ${d2} ${m2} ${end.getUTCFullYear()}`;
+function shiftMonthIso(monthStart: Date, delta: number): string {
+  const d = new Date(monthStart);
+  d.setUTCMonth(d.getUTCMonth() + delta);
+  return d.toISOString().slice(0, 10);
 }
 
-export function CalendarHeader({ weekStart, locale }: CalendarHeaderProps) {
-  const router     = useRouter();
-  const pathname   = usePathname();
-  const params     = useSearchParams();
-  const days       = DAY_LABELS[locale] ?? DAY_LABELS['es']!;
+export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps) {
+  const pathname = usePathname();
+  const params   = useSearchParams();
 
-  function navigate(deltaWeeks: number) {
-    const d = new Date(weekStart);
-    d.setUTCDate(d.getUTCDate() + deltaWeeks * 7);
-    const iso = d.toISOString().slice(0, 10);
-    const sp  = new URLSearchParams(params.toString());
-    sp.set('week', iso);
-    router.push(`${pathname}?${sp.toString()}`);
-  }
+  const buildHref = (monthIso?: string) => {
+    const sp = new URLSearchParams(Array.from(params.entries()));
+    if (monthIso) sp.set('month', monthIso);
+    else          sp.delete('month');
+    return `${pathname}${sp.toString() ? `?${sp.toString()}` : ''}`;
+  };
 
-  function goToday() {
-    const sp = new URLSearchParams(params.toString());
-    sp.delete('week');
-    router.push(`${pathname}?${sp.toString()}`);
-  }
-
-  // Day headers with date numbers
-  const dayHeaders = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(weekStart);
-    d.setUTCDate(d.getUTCDate() + i);
-    return { label: days[i]!, date: d.getUTCDate(), isToday: isToday(d) };
-  });
+  const months   = MONTH_LABELS[locale] ?? MONTH_LABELS.es!;
+  const monthLbl = months[monthStart.getUTCMonth()];
+  const yearLbl  = monthStart.getUTCFullYear();
 
   return (
-    <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-stone-200/60">
-      {/* Toolbar row */}
-      <div className="flex items-center justify-between px-4 py-3 gap-3">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={goToday}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-stone-600 border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
-          >
-            <Calendar size={13} />
-            Hoy
-          </button>
-        </div>
+    <header className="h-14 px-5 flex items-center gap-3 border-b border-spa-border bg-white/85 backdrop-blur-md shrink-0">
+      {/* Left — view dropdown */}
+      <ViewSwitcher current={view} />
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => navigate(-1)}
-            aria-label="Semana anterior"
-            className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors text-stone-500"
-          >
-            <ChevronLeft size={16} />
-          </button>
+      {/* Center — month navigation */}
+      <div className="flex-1 flex items-center justify-center gap-3">
+        <Link
+          href={buildHref(shiftMonthIso(monthStart, -1))}
+          aria-label="Mês anterior"
+          className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors"
+          scroll={false}
+        >
+          <ChevronLeft size={14} strokeWidth={1.5} />
+        </Link>
 
-          <span className="text-sm font-medium text-stone-700 min-w-[160px] text-center tabular-nums">
-            {fmtWeekRange(weekStart, locale)}
-          </span>
+        <h1
+          className="text-[15px] tracking-wide text-(--color-spa-stone) tabular-nums"
+          style={{ fontFamily: 'var(--font-serif)' }}
+          aria-live="polite"
+        >
+          {monthLbl} {yearLbl}
+        </h1>
 
-          <button
-            onClick={() => navigate(1)}
-            aria-label="Semana siguiente"
-            className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors text-stone-500"
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
+        <Link
+          href={buildHref(shiftMonthIso(monthStart, 1))}
+          aria-label="Próximo mês"
+          className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors"
+          scroll={false}
+        >
+          <ChevronRight size={14} strokeWidth={1.5} />
+        </Link>
 
-        {/* Placeholder: add appointment button */}
-        <div className="w-[60px]" />
+        <Link
+          href={buildHref()}
+          className="ml-2 px-3 py-1 rounded-full text-[11px] tracking-wide
+                     border border-spa-border text-(--color-spa-stone)
+                     hover:border-stone-400 hover:bg-stone-50 transition-colors"
+          style={{ fontFamily: 'var(--font-sans)' }}
+          scroll={false}
+        >
+          {TODAY_LABEL[locale] ?? TODAY_LABEL.es}
+        </Link>
       </div>
 
-      {/* Day labels row — desktop only */}
-      <div className="hidden md:grid grid-cols-[56px_repeat(7,1fr)] border-t border-stone-100">
-        <div />
-        {dayHeaders.map((d, i) => (
-          <div
-            key={i}
-            className={[
-              'py-2 text-center border-l border-stone-100',
-              d.isToday ? 'bg-amber-50/60' : '',
-            ].join(' ')}
-          >
-            <p className={['text-[10px] uppercase tracking-widest', d.isToday ? 'text-amber-600' : 'text-stone-400'].join(' ')}>
-              {d.label}
-            </p>
-            <p className={[
-              'text-sm font-semibold mt-0.5',
-              d.isToday
-                ? 'w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center mx-auto'
-                : 'text-stone-700',
-            ].join(' ')}>
-              {d.date}
-            </p>
-          </div>
-        ))}
+      {/* Right — quick actions (placeholders for Phase 2) */}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          aria-label="Nova marcação"
+          className="p-1.5 rounded-md text-spa-muted hover:text-[#D4AF37] hover:bg-stone-50 transition-colors"
+        >
+          <Plus size={14} strokeWidth={1.5} />
+        </button>
+        <button
+          type="button"
+          aria-label="Mais opções"
+          className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors"
+        >
+          <MoreHorizontal size={14} strokeWidth={1.5} />
+        </button>
       </div>
-    </div>
+    </header>
   );
-}
-
-function isToday(d: Date): boolean {
-  const now = new Date();
-  return d.getUTCFullYear() === now.getFullYear() &&
-         d.getUTCMonth()    === now.getMonth()    &&
-         d.getUTCDate()     === now.getDate();
 }
