@@ -8,7 +8,7 @@ interface EventChipProps {
   serviceColor: string | null;
   status:       string;        // 'pending' | 'confirmed' | 'cancelled' | …
   locale:       string;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 function formatTime(date: Date, locale: string): string {

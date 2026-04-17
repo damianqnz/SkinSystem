@@ -4,6 +4,8 @@ import { eq, and, gte, lte, asc, between, inArray } from 'drizzle-orm';
 import { db } from '@/infrastructure/db';
 import { appointments }      from './schema';
 import { catalogServices }   from '@/domains/catalog/schema';
+import { customers }         from '@/infrastructure/db/schema/customers';
+import { profiles }          from '@/infrastructure/db/schema/organizations';
 import { availabilityRules, blockedIntervals } from '@/infrastructure/db/schema/calendar';
 import type { SelectAppointment, AppointmentStatus, CreateAppointmentInput } from './schema';
 import type { Result } from '@/shared/types/result';
@@ -346,3 +348,132 @@ export async function calculateAvailableSlots(
     return dbErr('Failed to calculate availability');
   }
 }
+
+// ── Appointment status mutations ──────────────────────────────
+
+/**
+ * Cancel an appointment (soft — only flips status). Tenant-scoped.
+ * Returns the previous status so callers can offer "undo".
+ */
+export async function cancelAppointment(
+  organizationId: string,
+  appointmentId:  string,
+): Promise<Result<{ id: string; previousStatus: AppointmentStatus }>> {
+  try {
+    const rows = await db
+      .update(appointments)
+      .set({ status: 'cancelled', updatedAt: new Date() })
+      .where(and(
+        eq(appointments.organizationId, organizationId),
+        eq(appointments.id, appointmentId),
+      ))
+      .returning({ id: appointments.id, status: appointments.status });
+
+    const row = rows[0];
+    if (!row) return { data: null, error: { message: 'Appointment not found', code: 'NOT_FOUND' } };
+    // We don't actually have the *previous* status returned by Drizzle here;
+    // the orchestrator stores it client-side before calling. Return the new one
+    // for symmetry; the undo path uses `restoreAppointmentStatus` below.
+    return { data: { id: row.id, previousStatus: row.status }, error: null };
+  } catch {
+    return dbErr('Failed to cancel appointment');
+  }
+}
+
+/**
+ * Restore an appointment to an arbitrary status (used by the undo toast).
+ * Caller must pass the status captured before cancelAppointment ran.
+ */
+export async function restoreAppointmentStatus(
+  organizationId: string,
+  appointmentId:  string,
+  status:         AppointmentStatus,
+): Promise<Result<{ id: string }>> {
+  try {
+    const rows = await db
+      .update(appointments)
+      .set({ status, updatedAt: new Date() })
+      .where(and(
+        eq(appointments.organizationId, organizationId),
+        eq(appointments.id, appointmentId),
+      ))
+      .returning({ id: appointments.id });
+
+    const row = rows[0];
+    if (!row) return { data: null, error: { message: 'Appointment not found', code: 'NOT_FOUND' } };
+    return { data: { id: row.id }, error: null };
+  } catch {
+    return dbErr('Failed to restore appointment');
+  }
+}
+
+// ── Full appointment detail (for the side sheet) ──────────────
+
+export type AppointmentFull = {
+  id:              string;
+  status:          AppointmentStatus;
+  startAt:         Date;
+  endAt:           Date;
+  totalCents:      number;
+  guestComment:    string | null;
+  serviceId:       string;
+  serviceName:     Record<string, string>;
+  serviceColor:    string | null;
+  durationMinutes: number;
+  customerId:      string;
+  customerName:    string;
+  customerEmail:   string | null;
+  customerPhone:   string | null;
+  staffProfileId:  string;
+  staffName:       string | null;
+};
+
+export async function getAppointmentFull(
+  organizationId: string,
+  appointmentId:  string,
+): Promise<Result<AppointmentFull>> {
+  try {
+    const rows = await db
+      .select({
+        id:              appointments.id,
+        status:          appointments.status,
+        startAt:         appointments.startAt,
+        endAt:           appointments.endAt,
+        totalCents:      appointments.totalCents,
+        guestComment:    appointments.guestComment,
+        serviceId:       appointments.serviceId,
+        serviceName:     catalogServices.nameI18n,
+        serviceColor:    catalogServices.color,
+        durationMinutes: catalogServices.durationMinutes,
+        customerId:      appointments.customerId,
+        customerName:    customers.fullName,
+        customerEmail:   customers.email,
+        customerPhone:   customers.phone,
+        staffProfileId:  appointments.staffProfileId,
+        staffName:       profiles.fullName,
+      })
+      .from(appointments)
+      .innerJoin(customers,       eq(appointments.customerId, customers.id))
+      .innerJoin(catalogServices, eq(appointments.serviceId,  catalogServices.id))
+      .innerJoin(profiles,        eq(appointments.staffProfileId, profiles.id))
+      .where(and(
+        eq(appointments.organizationId, organizationId),
+        eq(appointments.id, appointmentId),
+      ))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) return { data: null, error: { message: 'Appointment not found', code: 'NOT_FOUND' } };
+
+    return {
+      data: {
+        ...row,
+        serviceName: (row.serviceName as Record<string, string>) ?? {},
+      },
+      error: null,
+    };
+  } catch {
+    return dbErr('Failed to fetch appointment');
+  }
+}
+

@@ -5,7 +5,12 @@ import { db } from '@/infrastructure/db';
 import { appointments } from './schema';
 import { catalogServices } from '@/domains/catalog/schema';
 import { customers } from '@/infrastructure/db/schema/customers';
+import { blockedIntervals } from '@/infrastructure/db/schema/calendar';
 import type { Result } from '@/shared/types/result';
+
+// ── Block-reason enum (mirrored locally for safe Zod validation) ──
+export const BLOCK_REASONS = ['vacation', 'illness', 'training', 'other'] as const;
+export type BlockReason = (typeof BLOCK_REASONS)[number];
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -210,5 +215,45 @@ export async function getCalendarMonth(
     return { data: { events, gridStart, gridEnd, monthStart }, error: null };
   } catch {
     return dbErr('Failed to fetch calendar month');
+  }
+}
+
+// ── Blocked intervals ─────────────────────────────────────────
+
+export type CreateBlockedIntervalInput = {
+  organizationId: string;
+  profileId:      string;
+  startAt:        Date;
+  endAt:          Date;
+  reason:         BlockReason;
+  title?:         string | null;
+};
+
+export async function createBlockedInterval(
+  input: CreateBlockedIntervalInput,
+): Promise<Result<{ id: string }>> {
+  if (input.endAt <= input.startAt) {
+    return { data: null, error: { message: 'A data final deve ser depois da inicial', code: 'VALIDATION' } };
+  }
+  try {
+    const rows = await db
+      .insert(blockedIntervals)
+      .values({
+        organizationId:   input.organizationId,
+        profileId:        input.profileId,
+        startAt:          input.startAt,
+        endAt:            input.endAt,
+        reason:           input.reason,
+        title:            input.title ?? null,
+        recurrenceType:   'none',
+        recurrenceConfig: {},
+        isActive:         true,
+      })
+      .returning({ id: blockedIntervals.id });
+
+    if (!rows[0]) return dbErr('Insert returned empty');
+    return { data: { id: rows[0].id }, error: null };
+  } catch {
+    return dbErr('Failed to create blocked interval');
   }
 }
