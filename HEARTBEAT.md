@@ -361,3 +361,50 @@
 - [NEXT] AppointmentsList: añadir variante de query `getUpcomingAppointmentsAll` que incluya cancelled para mostrar el badge gris en el panel.
 - [NEXT] Añadir avatar/logo real del tenant (Supabase Storage) en lugar del círculo de iniciales del Sidebar.
 - [NEXT] Conectar el botón "Reservar" del header al flujo de creación interna (modal con createBookingAction existente).
+
+### 🗓️ 2026-04-17: Agenda Setmore-style — Fase 1 (Layout + Vista Mes)
+- [DECISION] Target = `/dashboard/agenda` (NO `/calendar`). El motor de disponibilidad pública en `/calendar` se mantiene intacto para preservar el funnel `/book`. Sustituido el `WeekGrid`/`AgendaList` previo por un calendario mensual al estilo Setmore.
+- [DECISION] Stack: `date-fns` + Framer Motion + Radix Popover/Dialog/Tabs. Descartados `react-big-calendar` (moment.js + ~70KB) y `@fullcalendar/react` (poco editorial).
+- [DONE] `pnpm add @radix-ui/react-popover` (1.1.15).
+- [DONE] domains/booking/calendar-service.ts — añadidos `getMonthStart`, `getMonthGridBounds` (siempre 42 días = 6 semanas Mon→Sun), `getCalendarMonth(orgId, anchorDate)` con JOIN apps + customers + services y filtro `between(startAt, gridStart, gridEnd)`.
+- [DONE] agenda/layout.tsx — sidebar secundaria a la derecha de la principal. `await headers()` envuelto en `<Suspense>` para satisfacer cacheComponents.
+- [DONE] agenda/_components/CalendarsSidebar.tsx — Client. Collapsible 288↔36px con animación Framer 240ms cubic-bezier. Estado persistido en `localStorage('agenda.sidebar.open')`. Items con checkbox + dot color (oro local, azul Google) + label truncado. Footer "+ Conectar o calendário".
+- [DONE] agenda/_components/ViewSwitcher.tsx — Client. Radix Popover. Push `?view=…` vía `useTransition`. Opciones Dia/Semana/Mês/Equipa con ✓ en activo.
+- [DONE] agenda/_components/CalendarHeader.tsx — Client. ViewSwitcher (izq) + `‹ Abril 2026 › Hoje` (centro, links que mutan `?month=YYYY-MM-DD`) + `+`/`⋯` (der, placeholders Fase 2).
+- [DONE] agenda/_components/MonthView.tsx — Client. Grid 7×6 (42 cells), día UTC, hoy = círculo `bg-stone-900 text-white`. Out-of-month en gris atenuado. Cap 3 chips/celda + footer "+N mais".
+- [DONE] agenda/_components/EventChip.tsx — Client. ● HH:MM Cliente. Color del dot = `serviceColor` del seed. Cancelled = opacity 50% + line-through.
+- [DONE] agenda/_components/MonthEvents.tsx — async Server. Wrapper que serializa Dates → ISO antes del boundary RSC.
+- [DONE] agenda/_components/AgendaSkeleton.tsx — shimmer 7×6 que matchea el layout exacto del grid.
+- [DONE] agenda/page.tsx — PPR: CalendarHeader estático + Suspense `key={monthIso-month}` → MonthEvents. Vistas Day/Week/Team renderizan placeholder "Em breve".
+- [DELETED] AgendaList.tsx · AppointmentSlot.tsx · CalendarEvents.tsx · WeekGrid.tsx · CalendarSkeleton.tsx (~800 LOC del WeekGrid anterior).
+- [DONE] tsc --noEmit: 0 errores.
+
+### 🗓️ 2026-04-17: Agenda Setmore-style — Fase 2 (Interactividad)
+- [DECISION] Pickers editorial-custom (Radix Popover) en lugar de `<input type="datetime-local">` nativo. Cliente combo + "+ Novo cliente" inline. Cancelación = soft (status='cancelled') con toast `Desfazer`. Reagendar/Pagar = stubs con toast "em breve".
+- [DONE] `pnpm add @radix-ui/react-tabs` (para las tabs Detalhes/Histórico del sheet).
+- [DONE] domains/booking/service.ts — añadidos `cancelAppointment(orgId, id)`, `restoreAppointmentStatus(orgId, id, status)`, `getAppointmentFull(orgId, id)` (JOIN customers + services + profiles) + tipo `AppointmentFull`.
+- [DONE] domains/booking/calendar-service.ts — añadido `createBlockedInterval(input)` con validación `endAt > startAt`. Constante `BLOCK_REASONS = ['vacation','illness','training','other']`.
+- [DONE] agenda/actions.ts — 6 Server Actions:
+    · `createBlockedIntervalAction` — Zod + tenant + staffProfileId.
+    · `createInternalAppointmentAction` — calcula endAt desde `service.duration`, persiste como `pending` y promueve a `confirmed` (no hay payment gate interno).
+    · `cancelAppointmentAction` — devuelve `previousStatus` para que el cliente pueda ofrecer Desfazer exacto.
+    · `restoreAppointmentAction` — vuelve al status previo.
+    · `getAppointmentDetailAction` — lazy fetch para el sheet (data fresca).
+    · `quickCreateCustomerAction` — inline desde el combo.
+- [DONE] agenda/_components/EditorialDatePicker.tsx — Radix Popover + grid 6×7 mes navegable, semana arranca en lunes (PT/ES), día hoy con borde oro, día seleccionado bg stone-900.
+- [DONE] agenda/_components/EditorialTimePicker.tsx — Radix Popover + lista vertical 15-min, auto-scroll al valor actual al abrir, popover 120px.
+- [DONE] agenda/_components/CustomerCombobox.tsx — Radix Popover. Modo `list` (search + items) ↔ modo `create` (3 inputs editorial: nome/telefone/email). `quickCreateCustomerAction` + `useTransition`. Nuevo cliente se inyecta optimista al combo.
+- [DONE] agenda/_components/ChooseActionDialog.tsx — Radix Dialog centrado 460px. 2 ChoiceTile grandes con ícono + título Cormorant + descripción Outfit. Hover → borde oro.
+- [DONE] agenda/_components/BlockDateForm.tsx — Radix Dialog 480px. Desde+Até con `EditorialDatePicker` × 2 + `EditorialTimePicker` × 2. Motivo = radio pills (Férias/Doença/Formação/Outro).
+- [DONE] agenda/_components/NewAppointmentForm.tsx — Radix Dialog 480px. Tabs (Serviço activa, Aula/Evento/Lembrete stubbed). ServiceSelect custom (no Radix Select para evitar conflicto con nested Popovers) con dot color + duración + precio. Date+time pickers con cálculo automático de hora final. CustomerCombobox + textarea editorial para notas.
+- [DONE] agenda/_components/EventDetailSheet.tsx — Radix Dialog posicionado fixed-right (420px) con animación slide-in 240ms. Header service en Cormorant 2xl + €precio · duración. Radix Tabs (Detalhes activa / Histórico stub). Secciones: Quando, Cliente (avatar iniciales + email + teléfono con íconos), Equipa, Notas, Status badge semantic. Footer: Reagendar (stub) · Cancelar (con Desfazer toast 60s) · Aceitar pagamento → (stub).
+- [DONE] agenda/_components/AgendaInteractive.tsx — Client orchestrator. Discriminated union `Active = null | choose | block | appoint | detail`. Hostea los 4 surfaces, gestiona transiciones (back desde block/appoint vuelve a choose), `router.refresh()` post-mutation.
+- [DONE] MonthView.tsx — celdas con `role="gridcell"` + `tabIndex=0` + Enter/Space activan onCellClick. Focus ring oro. Chips usan `e.stopPropagation()` para no disparar la celda.
+- [DONE] MonthEvents.tsx — Promise.all paralelo: `getCalendarMonth` + `getActiveServices` + `getCustomersList`. Pasa todo serializado a `<AgendaInteractive>`.
+- [SECURITY] Toda Server Action resuelve orgId vía `user.user_metadata.organization_id` (no spoofable). `staffProfileId` siempre del usuario logueado o fallback a cualquier profile del org. Zod en cada action. Tenant isolation en todas las queries del dominio.
+- [DONE] tsc --noEmit: 0 errores. `pnpm check-types` pasa limpio. 14 archivos nuevos · ~1 800 LOC.
+- [NEXT] Fase 3: Reagendar real (drag-drop sobre el grid o picker de nueva fecha desde el sheet).
+- [NEXT] Fase 3: Pagar — registrar pago manual o lanzar Stripe terminal session.
+- [NEXT] Fase 3: Implementar vistas Day/Week/Team (actualmente placeholders "Em breve").
+- [NEXT] Mostrar `blocked_intervals` y `external_calendar_events` superpuestos en el grid mensual (chips con patrón rayado o color secundario).
+- [NEXT] Histórico tab del sheet: query a `appointments` del mismo customer con paginación.

@@ -23,6 +23,10 @@ interface MonthViewProps {
   monthStartIso: string;
   events:        SerializedEvent[];
   locale:        string;
+  /** Cell click → opens the "Nova entrada" dialog */
+  onCellClick?:  (dateIso: string) => void;
+  /** Chip click → opens the side sheet */
+  onChipClick?:  (eventId: string, preview: { customerName: string; serviceColor: string | null }) => void;
 }
 
 // ── Day labels ─────────────────────────────────────────────────────
@@ -54,7 +58,14 @@ function todayUtcMidnight(): Date {
 
 const MAX_EVENTS_PER_CELL = 3;
 
-export function MonthView({ gridStartIso, monthStartIso, events, locale }: MonthViewProps) {
+export function MonthView({
+  gridStartIso,
+  monthStartIso,
+  events,
+  locale,
+  onCellClick,
+  onChipClick,
+}: MonthViewProps) {
   const gridStart  = useMemo(() => new Date(gridStartIso  + 'T00:00:00Z'), [gridStartIso]);
   const monthStart = useMemo(() => new Date(monthStartIso + 'T00:00:00Z'), [monthStartIso]);
   const today      = useMemo(() => todayUtcMidnight(), []);
@@ -114,12 +125,22 @@ export function MonthView({ gridStartIso, monthStartIso, events, locale }: Month
             <div
               key={dayKey}
               role="gridcell"
+              tabIndex={onCellClick ? 0 : -1}
+              onClick={() => onCellClick?.(dayKey)}
+              onKeyDown={(e) => {
+                if (!onCellClick) return;
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onCellClick(dayKey);
+                }
+              }}
               className={cn(
-                'min-h-[110px] flex flex-col gap-1 p-2',
+                'min-h-[110px] flex flex-col gap-1 p-2 cursor-pointer outline-none',
                 'border-r border-b border-spa-border last:border-r-0',
                 inMonth ? 'bg-white' : 'bg-stone-50/40',
-                'hover:bg-stone-50/80 transition-colors duration-75',
+                'hover:bg-stone-50/80 focus-visible:ring-1 focus-visible:ring-[#D4AF37]/60 transition-colors duration-75',
               )}
+              aria-label={`Nova entrada · ${dayKey}`}
             >
               {/* Day number */}
               <div className="flex items-start justify-between mb-0.5">
@@ -160,6 +181,13 @@ export function MonthView({ gridStartIso, monthStartIso, events, locale }: Month
                     serviceColor={ev.serviceColor}
                     status={ev.status}
                     locale={locale}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onChipClick?.(ev.id, {
+                        customerName: ev.customerName,
+                        serviceColor: ev.serviceColor,
+                      });
+                    }}
                   />
                 ))}
                 {overflow > 0 && (

@@ -37,6 +37,7 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
   const orgRes = await getOrganizationBySlug(slug);
   if (orgRes.error || !orgRes.data) notFound();
   const org = orgRes.data;
+  const tenantName = org.name ?? slug;
 
   // Anchor date = first of the requested month (or today)
   const anchor    = monthParam ? new Date(monthParam + 'T00:00:00Z') : new Date();
@@ -57,7 +58,12 @@ export default async function AgendaPage({ searchParams }: AgendaPageProps) {
           key={`${monthStart.toISOString()}-month`}
           fallback={<AgendaSkeleton />}
         >
-          <MonthEvents organizationId={org.id} anchorDate={monthStart} locale={locale} />
+          <MonthEvents
+            organizationId={org.id}
+            anchorDate={monthStart}
+            locale={locale}
+            tenantName={tenantName}
+          />
         </Suspense>
       ) : (
         <ComingSoon view={view} locale={locale} />
