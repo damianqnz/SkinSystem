@@ -1,15 +1,14 @@
-import type { ReactNode } from 'react';
-import { Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { headers } from 'next/headers';
 import { Cormorant_Garamond, Outfit } from 'next/font/google';
 import { Toaster } from 'sonner';
-import { TenantProvider }    from '@/shared/providers/TenantProvider';
-import { Sidebar }           from '@/shared/components/dashboard/Sidebar';
-import { BottomBar }         from '@/shared/components/dashboard/BottomBar';
-import { DashboardHeader }   from '@/shared/components/dashboard/DashboardHeader';
+import { TenantProvider } from '@/shared/providers/TenantProvider';
+import { Sidebar } from '@/shared/components/dashboard/Sidebar';
+import { BottomBar } from '@/shared/components/dashboard/BottomBar';
+import { DashboardHeader } from '@/shared/components/dashboard/DashboardHeader';
 import '../globals.css';
 
-// ── Fonts (self-hosted by Next.js, zero layout shift) ─────────────────────
+// ── Fonts (self-hosted by Next.js, zero CLS) ──────────────────────────────
 const cormorant = Cormorant_Garamond({
   subsets:  ['latin'],
   weight:   ['400', '600', '700'],
@@ -26,29 +25,27 @@ const outfit = Outfit({
 });
 
 // ── Dynamic shell ─────────────────────────────────────────────────────────
-// Reads request headers (set by middleware) — must live inside <Suspense>
-// so PPR can statically cache the outer html/body while streaming this part.
+// Reads request headers (set by middleware). MUST live inside <Suspense>
+// because Next 16 `cacheComponents` rejects runtime data accessed in the
+// statically-cacheable outer layout.
 async function DashboardShell({ children }: { children: ReactNode }) {
   const headersList = await headers();
-  const tenantSlug  = headersList.get('x-tenant-slug') ?? 'lourdes';
-  const locale      = headersList.get('x-locale') ?? 'pt';
+  const tenantSlug  = headersList.get('x-tenant-slug') ?? '';
+  const locale      = headersList.get('x-locale') ?? 'es';
 
-  // Capitalise each word so "lourdes estetica" → "Lourdes Estetica"
-  const tenantName = tenantSlug
-    .split(/[-_ ]+/)
-    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(' ');
+  // Capitalize slug for display: "lourdes" → "Lourdes"
+  const tenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);
 
   return (
     <TenantProvider tenantSlug={tenantSlug} locale={locale}>
-      {/* ── Fixed Desktop sidebar ────────────────────────────── */}
+      {/* Desktop sidebar (fixed-positioned, out of flow) */}
       <Sidebar tenantName={tenantName} />
 
-      {/* ── Main column — pushed right by sidebar width on md+ ─ */}
-      <div className="flex flex-col min-h-screen md:pl-64">
+      {/* Main column — offset by sidebar width on md+ */}
+      <div className="flex flex-col min-h-screen md:pl-60">
         <DashboardHeader tenantName={tenantName} />
 
-        <main className="flex-1 p-6 pb-20 md:pb-6 bg-[#FAFAF9]">
+        <main className="flex-1 p-6 pb-20 md:pb-6 bg-(--color-spa-bg)">
           <Suspense
             fallback={
               <div className="flex items-center justify-center h-40">
@@ -61,23 +58,22 @@ async function DashboardShell({ children }: { children: ReactNode }) {
         </main>
       </div>
 
-      {/* ── Mobile bottom navigation ─────────────────────────── */}
+      {/* Mobile bottom navigation (Thumb Zone) */}
       <BottomBar />
     </TenantProvider>
   );
 }
 
-// ── Root layout for the dashboard shell ───────────────────────────────────
+// ── Root layout ───────────────────────────────────────────────────────────
+// Provides the <html>/<body> root for the dashboard route group, matching
+// the convention used by (auth)/layout.tsx and (public)/layout.tsx.
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
-    <html
-      lang="pt"
-      className={`${cormorant.variable} ${outfit.variable}`}
-    >
-      <body className="bg-[#F5F3EF] text-[#1C1917] antialiased">
+    <html lang="es" className={`${cormorant.variable} ${outfit.variable}`}>
+      <body className="min-h-screen bg-(--color-spa-bg) text-stone-900 antialiased">
         <Suspense
           fallback={
-            <div className="flex min-h-screen items-center justify-center bg-[#FAFAF9]">
+            <div className="flex min-h-screen items-center justify-center bg-(--color-spa-bg)">
               <span className="w-6 h-6 rounded-full border-2 border-[#D4AF37] border-t-transparent animate-spin" />
             </div>
           }
