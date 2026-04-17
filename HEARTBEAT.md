@@ -343,3 +343,21 @@
 - [NEXT] Rellenar credenciales reales de Stripe + Upstash Redis en .env.local para prueba end-to-end.
 - [NEXT] Implementar WhatsApp (Evolution API) post-confirmación.
 - [NEXT] NewAppointmentFAB en /calendar: conectar al mismo createBookingAction para reservas desde el panel.
+
+### 🗓️ 2026-04-17: Dashboard Shell Restoration + Setmore-style Redesign
+- [FIX] (dashboard)/layout.tsx — añadidos `<html lang>` + `<body>` + `next/font/google` (Cormorant + Outfit) + `import '../globals.css'`. El layout estaba estructuralmente incompleto desde su primer commit (a diferencia de (auth) y (public)). Tailwind no se aplicaba en /dashboard → "text-dump" en pantalla.
+- [FIX] (dashboard)/layout.tsx — `await headers()` movido a un sub-componente `<DashboardShell>` envuelto en `<Suspense>`. Next 16 + `cacheComponents:true` rechaza runtime data accedida fuera de Suspense con error "blocking-route".
+- [DONE] Sidebar.tsx — rediseño inspirado en Setmore. Bg crema `#F5F3EF`, ancho 256px (w-64), círculo de iniciales del tenant + nombre en Cormorant + tagline "Faça crescer a sua marca". Active state: borde izq oro (#D4AF37), bg `rgba(212,175,55,0.10)`, label en Outfit medium. Footer: link "Compartilhar página pública" + upsell strip "Assine o Pro". Export `SidebarSkeleton` para PPR.
+- [DONE] DashboardHeader.tsx — glassmorphism crema `rgba(245,243,239,0.80)`. Botón pill "Reservar" oro con shimmer + UserMenu en Suspense.
+- [DONE] nav-items.ts — labels portugueses al estilo Setmore: Panel, Calendário, Serviços, Conectar, Clientes, Pagamentos, Integrações, Definições. `Panel` (LayoutDashboard) como primer item → `/dashboard` con active solo en match exacto.
+- [DONE] StatsCard.tsx — rediseño editorial. Title en Cormorant Garamond `text-[15px] font-light`. Number en Outfit `text-4xl font-extralight tabular-nums`. Borde fino `border-spa-border`, sin sombra. Hover scale 0.99 + tinte oro en ícono.
+- [DONE] dashboard/page.tsx — bento de 3 cards: "Citas hoy" + "Citas mañana" + "Clientes nuevos (7d)". `getSlotsByDate(orgId, today/tomorrow)` en Promise.all. Heading "Panel" + i18n es/pt/en. Layout max-w-6xl centrado.
+- [DONE] AppointmentsList.tsx — contenedor único con border + scroll interno `max-h-[420px] overflow-y-auto` (≈5 items visibles). Badge oro `border-[#D4AF37]/30 bg-[rgba(212,175,55,0.06)]` con nombre del servicio. Status badge con paleta semántica (pending=amber, confirmed=emerald, cancelled=stone). Limit aumentado a 20.
+- [DONE] domains/booking/seed.ts — seeder de dominio. `seedTenantData(orgId, staffProfileId)` inyecta 3 cats (Facial/Capilar/Corporal) + 8 servicios con precios reales en cents y colores hex + 15 clientes con nombres realistas PT/ES + 20 appts (2 hoy + 3 mañana confirmadas + 15 spread, 3 forzadas a `cancelled`). `clearSeedData(orgId)` respeta FKs (appts → custs → svcs → cats), borra solo lo marcado: `customers.notes='__seed__'`, `services.slug LIKE '__seed__%'`, `categories.sortOrder >= 9000`.
+- [DONE] dashboard/actions.ts — `seedTenantDataAction()` Server Action. Hard gate `process.env.NODE_ENV !== 'development'`. Resuelve tenant vía `x-tenant-slug`, escoge `staffProfileId` (logged user → fallback a cualquier profile del org). Limpia previo → siembra → `revalidatePath('/dashboard'|'/agenda'|'/customers'|'/catalog')`.
+- [DONE] _components/MockDataButton.tsx — Client. Pill dashed dorado con ícono Database + Loader2 spinner durante `useTransition`. Hidden en producción (`if NODE_ENV !== 'development' return null`). Toast de éxito con contadores + registros eliminados; `router.refresh()` al final.
+- [SECURITY] Tenant isolation respetada en todas las queries del seeder (organizationId obligatorio + Zod validation a nivel server action). Marker tags permiten cleanup quirúrgico sin afectar datos reales del tenant.
+- [DONE] tsc --noEmit: 0 errores. `pnpm check-types` (next typegen + tsc) pasa limpio.
+- [NEXT] AppointmentsList: añadir variante de query `getUpcomingAppointmentsAll` que incluya cancelled para mostrar el badge gris en el panel.
+- [NEXT] Añadir avatar/logo real del tenant (Supabase Storage) en lugar del círculo de iniciales del Sidebar.
+- [NEXT] Conectar el botón "Reservar" del header al flujo de creación interna (modal con createBookingAction existente).

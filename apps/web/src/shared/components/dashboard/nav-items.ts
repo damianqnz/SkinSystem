@@ -1,4 +1,5 @@
 import {
+  LayoutDashboard,
   CalendarDays,
   Sparkles,
   Link2,
@@ -16,13 +17,14 @@ export type NavItem = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { href: '/dashboard/agenda',   label: 'Calendário',   icon: CalendarDays },
-  { href: '/catalog',            label: 'Serviços',     icon: Sparkles     },
-  { href: '/calendar',           label: 'Conectar',     icon: Link2        },
-  { href: '/dashboard/customers',label: 'Clientes',     icon: Users        },
-  { href: '/dashboard/billing',  label: 'Pagamentos',   icon: CreditCard   },
-  { href: '/dashboard/settings', label: 'Integrações',  icon: Network      },
-  { href: '/dashboard/settings', label: 'Definições',   icon: Settings2    },
+  { href: '/dashboard',           label: 'Panel',        icon: LayoutDashboard },
+  { href: '/dashboard/agenda',    label: 'Calendário',   icon: CalendarDays    },
+  { href: '/catalog',             label: 'Serviços',     icon: Sparkles        },
+  { href: '/calendar',            label: 'Conectar',     icon: Link2           },
+  { href: '/dashboard/customers', label: 'Clientes',     icon: Users           },
+  { href: '/dashboard/billing',   label: 'Pagamentos',   icon: CreditCard      },
+  { href: '/dashboard/settings',  label: 'Integrações',  icon: Network         },
+  { href: '/dashboard/settings',  label: 'Definições',   icon: Settings2       },
 ];
 
 /** Items visible in the mobile bottom bar (max 5). */

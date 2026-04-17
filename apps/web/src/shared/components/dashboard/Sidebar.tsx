@@ -63,14 +63,6 @@ export function Sidebar({ tenantName }: SidebarProps) {
         >
           {tenantName}
         </p>
-
-        {/* Tagline */}
-        <p
-          className="mt-0.5 text-[11px] tracking-wide text-spa-muted uppercase"
-          style={{ fontFamily: 'var(--font-sans)', letterSpacing: '0.06em' }}
-        >
-          Faça crescer a sua marca
-        </p>
       </div>
 
       {/* ── Navigation ─────────────────────────────────────────── */}
