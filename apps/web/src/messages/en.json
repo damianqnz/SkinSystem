@@ -1,0 +1,32 @@
+{
+  "calendar": {
+    "view": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "team": "Team"
+    },
+    "slot": {
+      "block": "Block time",
+      "schedule": "Schedule appointment",
+      "chooseAction": "What would you like to do?",
+      "blockDescription": "Mark this time slot as unavailable",
+      "scheduleDescription": "Create a manual appointment for a client",
+      "outsideNote": "Outside business hours — special appointments only"
+    },
+    "block": {
+      "title": "Block time slot",
+      "from": "From (hrs)",
+      "to": "To (hrs)",
+      "reasonLabel": "Reason",
+      "confirm": "Confirm block",
+      "success": "Time slot blocked successfully",
+      "reason": {
+        "illness": "Illness",
+        "vacation": "Vacation",
+        "training": "Training",
+        "other": "Event"
+      }
+    }
+  }
+}

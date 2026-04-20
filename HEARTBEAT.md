@@ -408,3 +408,148 @@
 - [NEXT] Fase 3: Implementar vistas Day/Week/Team (actualmente placeholders "Em breve").
 - [NEXT] Mostrar `blocked_intervals` y `external_calendar_events` superpuestos en el grid mensual (chips con patrón rayado o color secundario).
 - [NEXT] Histórico tab del sheet: query a `appointments` del mismo customer con paginación.
+
+### 🗓️ 2026-04-17: Calendar Day/Week Views + GSAP Dropdown Animation
+- [DONE] Vista "Día" conectada a `?view=day` usando el motor existente `AvailabilityEngine`.
+- [DONE] Vista "Semana" implementada mediante `WeekAvailabilityEngine` (query a 7 días en paralelo).
+- [DONE] Grid de semana (`WeekAvailabilityGrid`) modularizado en componentes pequeños (`< 50 LOC` cada uno): `DesktopWeekGrid`, `DesktopWeekColumn`, `MobileWeekList`, `MobileDayList`. Reutiliza la lógica de grid de los componentes anteriores que habían sido eliminados.
+- [DONE] Animación GSAP `gsap.to()` aplicada al background indicador activo de Radix Popover en `ViewSwitcher.tsx` usando `useGSAP`.
+- [DONE] Enrutado dual en el switcher: seleccionar 'Mês' lleva a `/dashboard/agenda`, 'Dia' o 'Semana' redirige a `/calendar?view=...`.
+- [DONE] Soporte multi-idioma para los labels del calendario creado localmente vía archivos JSON en `src/messages/` (`es.json`, `pt.json`, `en.json`) y usando `useTranslations('calendar.view')`.
+- [DONE] Validation Gate 1 ✅: `tsc --noEmit` superado con 0 errores (gsap y @gsap/react añadidos a dependencies).
+- [DONE] Validation Gate 2 ✅: Ningún archivo nuevo excede las 50 líneas.
+
+### 🗓️ 2026-04-19: Calendar Day View — Slot Interaction + Block Time
+- [DONE] SlotActionModal.tsx (115L) — Radix Dialog + GSAP `gsap.fromTo()` entrada animation (useGSAP hook). Glassmorphism `bg-white/80 backdrop-blur-xl`. Two-option chooser: "Bloquear hora" / "Agendar cita". Cormorant heading, 44px+ touch targets. i18n: `calendar.slot.*` keys in es/pt/en.json.
+- [DONE] BlockTimeForm.tsx (102L) — Inline form within SlotActionModal (view=block). Desde/Hasta time inputs, Radix Select for reason (illness|vacation|training|other). `useActionState` + `blockTimeAction`. Error inline display for conflicts. Sonner toast on success.
+- [DONE] actions/block-time.ts (114L) — Server Action. Zod validation (date, startTime, endTime, reason). Auth via `supabase.auth.getUser()` (not spoofable). Conflict check: queries appointments WHERE startAt BETWEEN range AND organization_id = orgId (tenant isolation). On conflict returns `{ data: null, error: { code: 'SLOT_CONFLICT', message: 'Existe una reserva: {hora} — {nombre}' } }`. On success: INSERT into blocked_intervals with organization_id + profileId + recurrence_type='none'. `revalidatePath('/calendar')`. Uses `server-only` import.
+- [DONE] DayCalendarClient.tsx (62L) — Client orchestrator. Manages state for SlotActionModal + NewAppointmentFAB. Handles slot click → modal open, "Agendar cita" → FAB open with pre-filled time, "Bloquear hora" → inline block form.
+- [DONE] NewAppointmentFAB.tsx — Extended with `initialTime?: string` prop (pre-fills "Hora inicio"), `externalOpen?: boolean` + `onExternalClose` for programmatic open from SlotActionModal.
+- [DONE] AvailabilityEngine.tsx — Switched from rendering DayTimeGrid directly to DayCalendarClient (includes DayTimeGrid + SlotActionModal + NewAppointmentFAB).
+- [DONE] calendar/page.tsx — Removed standalone NewAppointmentFAB (now inside DayCalendarClient via AvailabilityEngine).
+- [DONE] i18n: Added `calendar.slot.block`, `calendar.slot.schedule`, `calendar.slot.chooseAction`, `calendar.slot.blockDescription`, `calendar.slot.scheduleDescription`, `calendar.block.*` keys in es.json, pt.json, en.json.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. All new files < 150 lines. Tenant isolation verified in block-time.ts (org_id in conflict query + INSERT).
+- [SECURITY] blockTimeAction resolves orgId via `user.user_metadata.organization_id` (not spoofable). All DB queries scoped by organization_id.
+- [NEXT] Connect NewAppointmentFAB form to Server Action createAppointment (full booking flow).
+- [NEXT] Show blocked_intervals visually in the day grid (currently only calculated by AvailabilityEngine).
+
+### 🗓️ 2026-04-19: Calendar Day View — 24h Grid Paradigm Shift
+- [DONE] **Paradigm change**: Day view switched from "list of available slots" → "24-row Google Calendar-style timeline".
+- [DONE] `domains/booking/day-view-service.ts` (138L) — `getDayView(orgId, date)`: Promise.all fetch of (1) availability_rules for day-of-week, (2) appointments with JOIN customers+catalog_services (pending|confirmed|completed), (3) blocked_intervals overlapping the day. Returns `Result<DayViewData>`. `server-only`. Tenant isolation: all queries filter by organizationId. No SELECT *.
+- [DONE] `DayEventBlock.tsx` (48L) — Visual pill component for events in the grid. Variants: confirmed=sky, pending=amber, completed=emerald, cancelled=slate, blocked=diagonal-stripe-slate. Stops click propagation to prevent row modal from firing.
+- [DONE] `DayTimeGrid.tsx` (146L) — Full rewrite. 24 hourly rows (00:00–23:00). Business hours: `bg-stone-50` + gold hover. Outside hours: `bg-stone-200/15`. Events overlaid per hour using DayEventBlock. GSAP `gsap.from('.hour-row', { stagger: 0.01 })` entrance animation scoped with `useGSAP({ scope: ref })`. Keyboard accessible (Enter/Space on rows). Exports `DayViewSer` types for RSC boundary.
+- [DONE] `DayCalendarClient.tsx` (60L) — Updated to accept `DayViewSer` instead of `ComputedSlot[]`. Passes `isBusinessHour` boolean to SlotActionModal based on clicked row.
+- [DONE] `SlotActionModal.tsx` (140L) — Added `isBusinessHour` prop. When `false`: hides "Bloquear hora" tile, shows amber warning note (`calendar.slot.outsideNote`). GSAP `fromTo` entrance animation intact.
+- [DONE] `AvailabilityEngine.tsx` (63L) — Rewritten to call `getDayView`. Removed StatPills (available/booked/locked counts no longer relevant in visual grid). Removes `serviceId` prop. Serializes Dates at RSC boundary.
+- [DONE] `CalendarDayNav.tsx` (106L) — Removed `services`, `serviceId` props and service-chip selector row entirely. Navigation and ViewSwitcher preserved.
+- [DONE] `calendar/page.tsx` (73L) — Removed serviceList, NoServicesState. Service fetch only runs for week view (WeekAvailabilityEngine still needs it). Suspense key simplified to `date-view`.
+- [DONE] `actions/block-time.ts` (112L) — Fixed conflict detection to proper interval overlap: `lt(appointments.startAt, endAt) AND gt(appointments.endAt, startAt)`. Fixed enum to `['pending', 'confirmed']` (no in_progress in DB). `server-only` import confirmed.
+- [DONE] i18n: Added `calendar.slot.outsideNote` in es/pt/en.json.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. All files ≤ 146 lines. `getDayView` and `blockTimeAction` both filter by `organizationId` (tenant isolation confirmed).
+- [SECURITY] `blockTimeAction` resolves orgId exclusively from `user.user_metadata.organization_id` (Supabase session — not spoofable from formData). Overlap check uses proper interval algebra.
+- [NOTE] Week view preserves existing `calculateAvailableSlots` + `WeekAvailabilityEngine` (service-scoped). Scope of this change is day view only.
+- [DONE] NewAppointmentFAB refactor complete — see entrada 2026-04-19 below.
+- [NEXT] Connect AppointmentForm "Confirmar Cita" to `createAppointment` Server Action (full internal booking flow).
+- [NEXT] WeekAvailabilityEngine: migrate from service-scoped slot listing to org-wide day view for consistency with day view paradigm.
+
+### 🗓️ 2026-04-20: Unified SlotActionModal + Available Times Selector
+- [DONE] `src/shared/components/booking/SlotActionModal.tsx` (145L) — Moved from calendar/_components to shared. Props: `date: string`, `slotTime?: string`, `onSchedule: (time?: string) => void`. When `slotTime` undefined (month view): shows both tiles unrestricted. When defined (day view): applies `isBusinessHour` guard as before. Imports `BlockTimeForm` via `@/app/(dashboard)/calendar/_components/BlockTimeForm`.
+- [DONE] `BlockTimeForm.tsx` — Fixed `endTime` init: guard `!slot.time` → returns `''` instead of `'NaN:00'` when slotTime is absent (month view path).
+- [DONE] `DayCalendarClient.tsx` — Import updated to `@/shared/components/booking/SlotActionModal`. Props updated: `slot` → `date` + `slotTime`. `handleSchedule(time?: string)`.
+- [DONE] `calendar/actions/get-available-times.ts` (86L) — Server Action. `server-only`. Zod: date YYYY-MM-DD. Auth via `user.user_metadata.organization_id`. Queries `availability_rules` (org-level, `profileId IS NULL`). Queries `appointments` with `status IN (pending, confirmed)` between day bounds. Generates hourly slots excluding booked hours. Both queries filter by `organizationId`.
+- [DONE] `AppointmentForm.tsx` (136L) — Replaced `<input type="time">` with Radix Select. `times: string[] | null` state (null=loading). `useEffect` on `date` calls `getAvailableTimesAction`. Pre-selects `initialTime` if available. "Sin horarios disponibles" message + disabled CTA when empty. Renamed `FieldWrapper` → `Field`.
+- [DONE] `AgendaInteractive.tsx` (120L) — Replaced `ChooseActionDialog` + `BlockDateForm` + `NewAppointmentForm` with shared `SlotActionModal` + `NewAppointmentFAB (externalOpen)`. "Agendar cita" → closes modal, opens FAB with `fabDateIso`. Removed `services`, `customers`, `tenantName` props.
+- [DONE] `ChooseActionDialog.tsx` — Marked `@deprecated` (kept for reference).
+- [DONE] `MonthEvents.tsx` (53L) — Removed parallel `getActiveServices` + `getCustomersList` fetches. Simplified to single `getCalendarMonth` call.
+- [DONE] `agenda/page.tsx` — Removed `tenantName` prop from MonthEvents.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. All modified files ≤ 150 lines. Tenant isolation confirmed in both queries of `get-available-times.ts`.
+- [SECURITY] `getAvailableTimesAction` resolves orgId from `user.user_metadata.organization_id` only.
+- [NEXT] Connect AppointmentForm "Confirmar Cita" to `createInternalAppointmentAction` (endAt = startAt + durationMinutes).
+- [NEXT] Add `revalidatePath('/dashboard/agenda')` to `blockTimeAction` so agenda refreshes after a block from month view.
+- [NEXT] WeekAvailabilityEngine: migrate to org-wide day view paradigm for consistency.
+
+### 🗓️ 2026-04-20: Month-View Block Days Flow
+- [DONE] `agenda/actions/block-days.ts` (114L) — Server Action. `server-only`. Zod: fromDate, toDate (ISO), reason enum. orgId from `user.user_metadata.organization_id` (not spoofable). Step 1: conflict check → appointments JOIN catalog_services WHERE org + NOT IN (cancelled|no_show) + startAt in range. Returns `{ status:'conflict', conflicts:[{date,time,serviceName}] }` if any found. Step 2: INSERT one `blocked_intervals` row per day (00:00–23:59 UTC). `revalidatePath('/dashboard/agenda')`. Both queries filter by `organizationId`.
+- [DONE] `MonthActionModal.tsx` (121L) — Radix Dialog with GSAP entrance (same aesthetic as SlotActionModal). Two tiles: "Bloquear días" (→ inline `BlockDaysForm`) | "Agendar cita" (→ `onSchedule` callback). Props: `selectedDate: Date`, `locale`, `onSchedule`, `onClose`. Static `getMsgs()` function for ES/PT/EN (no dynamic import — kept compact).
+- [DONE] `BlockDaysForm.tsx` (129L) — Inline form inside MonthActionModal. "Desde" / "Hasta" with `EditorialDatePicker` (minDate prop). "Motivo" Radix Select (same 4 options). `useTransition` + direct `blockDaysAction` call. Conflict list rendered in red (one row per booking: DD/MM HH:MM — service). Sonner toast on success + `onClose()`.
+- [DONE] `BlockedDayChip.tsx` (43L) — Visual chip for blocked days in month grid. Slate colors, Ban icon (lucide), i18n reason label inline (no JSON import needed). Same height structure as EventChip.
+- [DONE] `EditorialDatePicker.tsx` — Added `minDate?: string` prop. Individual cells disabled + `opacity-25 cursor-not-allowed` when `cellIso < minDate`. Backward compatible (no breaking changes).
+- [DONE] `AgendaInteractive.tsx` (113L) — Replaced `SlotActionModal` with `MonthActionModal`. Added `SerializedBlock` type export. Added `blockedIntervals: SerializedBlock[]` prop passed to `MonthView`. `handleCellClick` now passes both `dateIso` and `Date` object to active state.
+- [DONE] `MonthView.tsx` — Added `blockedIntervals: SerializedBlock[]` prop. `blockedByDay` memo (first reason per date). `BlockedDayChip` rendered at top of each cell's event list when blocked. Reduces `maxVisible` events by 1 to prevent overflow.
+- [DONE] `MonthEvents.tsx` (73L) — Added `blockedIntervals` query (SELECT id, startAt, reason WHERE org + startAt BETWEEN gridStart AND gridStart+42days). Serialized and passed to `AgendaInteractive`. Tenant isolation: `eq(blockedIntervals.organizationId, organizationId)`.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. All new files ≤ 150 lines (max 129). `block-days.ts` uses `orgId` from `user.user_metadata` in both conflict check and INSERT. `minDate` enforced on `EditorialDatePicker`. Day view files (`SlotActionModal`, `DayTimeGrid`) confirmed untouched by git diff.
+- [SECURITY] `blockDaysAction` resolves orgId exclusively from `user.user_metadata.organization_id`. Conflict check uses proper appointment JOIN with org filter before range filter.
+- [NEXT] Connect AppointmentForm "Confirmar Cita" to `createInternalAppointmentAction`.
+- [NEXT] Histórico tab del EventDetailSheet: query appointments of same customer with pagination.
+- [NEXT] Drag-and-drop rescheduling on month grid.
+
+### 🗓️ 2026-04-19: NewAppointmentFAB — Client Search + Step Flow
+- [DONE] FIX globals.css: `.input-editorial` no longer declares `padding-left`. Split `padding: 0.75rem 0` → `padding-top/bottom`. Tailwind `pl-8`/`pl-3` now work correctly on inputs with icons.
+- [DONE] domains/customers/service.ts — `getCustomersList` extendida con `query?: string`. Filters by `ilike` on `fullName`, `email`, `phone`. `or`/`ilike` added to drizzle-orm imports. Backward compatible (no breaking changes).
+- [DONE] actions/search-customers.ts (47L) — Server Action. `server-only`. Zod: query string min 1. Auth via `user.user_metadata.organization_id` (not spoofable). Returns `Result<CustomerMatch[]>`.
+- [DONE] actions/create-customer.ts (65L) — Server Action. `server-only`. Zod: fullName (min 2), phone?, email?. Auth via `user.user_metadata.organization_id`. INSERT INTO customers. `CreateCustomerState` discriminated union (idle|success|error). Returns status-based state for `useActionState`.
+- [DONE] ClientSearchField.tsx (89L) — Client Component. Controlled (value/onChange). Debounce 300ms via setTimeout. `useTransition` + `searchCustomersAction`. Dropdown results. Fallback `"No se encontró" + "＋ Agregar cliente"` (gold border) when `query.length > 2 && results.length === 0`. `onBlur` with 150ms delay to allow click on dropdown items.
+- [DONE] AppointmentForm.tsx (99L) — Extracted from NewAppointmentFAB. Receives `selectedCustomer`/`onCustomerChange`/`onAddClient` props. Uses `ClientSearchField`. FormField pattern: `pl-8` only when icon present.
+- [DONE] AddClientStep.tsx (71L) — Step 2. Header con `← volver`. Campos: fullName*, phone, email. `useActionState(createCustomerAction)`. Sonner toast "Cliente agregado" on success. Calls `onClientCreated(data)` on success.
+- [DONE] NewAppointmentFAB.tsx (98L) — Refactored to step orchestrator. State: `step` (1|2), `customer`, `formKey`. Step 1 = AppointmentForm, Step 2 = AddClientStep. On `handleClientCreated`: setCustomer + setFormKey++ (remounts form with pre-selected customer) + setStep(1). Close resets all state.
+- [SECURITY] Both new actions resolve `orgId` exclusively via `user.user_metadata.organization_id` (Supabase session — not spoofable). `getCustomersList` scoped by `organizationId` in all WHERE clauses.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. All new files ≤ 99 lines. `input-editorial` no longer declares padding-left (verified via grep). Both actions filter by organization_id from user metadata.
+- [DONE] Service selector real en AppointmentForm — ver entrada 2026-04-19 below.
+- [NEXT] Connect AppointmentForm "Confirmar Cita" to `createInternalAppointmentAction` (endAt = startAt + durationMinutes, tenant isolation).
+
+### 🗓️ 2026-04-19: AppointmentForm — Real Service Selector
+- [DONE] actions/get-services.ts (47L) — Server Action. `server-only`. Auth via `user.user_metadata.organization_id` (not spoofable). Calls `getActiveServices(orgId)`. Resolves `nameI18n` with locale fallback: `locale → 'es' → first available value`. Returns `Result<ServiceOption[]>`.
+- [DONE] AppointmentForm.tsx (143L) — `ServicesState` discriminated union (`loading|ready|error`). `useEffect` calls `getServicesAction(locale)` once on mount. Select disabled + placeholder "Cargando servicios..." during load. On service change: `setServiceId` + auto-fills "Duración" with `svc.durationMinutes + ' min'`. Error state renders `"Error al cargar servicios"` below select. Duration field switches from `defaultValue` to controlled `value` driven by service selection.
+- [SECURITY] `getServicesAction` resolves `orgId` exclusively from `user.user_metadata.organization_id` — locale is the only client-provided input.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. `get-services.ts` 47L, `AppointmentForm.tsx` 143L — both ≤ 150 lines.
+
+### 🗓️ 2026-04-19: Week View Migration — 24h DayView Paradigm
+- [DECISION] Replaced `WeekAvailabilityEngine` (service-scoped `calculateAvailableSlots` × 7) with `WeekViewEngine` (org-wide `getDayView` × 7). No more `serviceId` dependency on the week view.
+- [DONE] `domains/booking/week-view-service.ts` (43L) — `getWeekView(orgId, weekStart)`: normalises to Monday UTC, calls `getDayView` × 7 in `Promise.all`. Returns `Result<DayViewData[]>` in Mon→Sun order. `server-only`. Tenant isolation guaranteed by each `getDayView` call.
+- [DONE] `week-constants.ts` — Updated: `GRID_START_HOUR=0`, `GRID_END_HOUR=24`, `TOTAL_HOURS=24`, `HOUR_PX=120`, `TOTAL_PX=2880`. `HOUR_LABELS` now generates 00:00–23:00 (24 labels).
+- [DONE] `week-utils.ts` — Removed `groupSlots` + `ComputedSlot` import. Added `WeekDaySer` type (serialized day including `dateIso`). Added `getWeekDays(weekStart): Date[]`. `isToday`, `fmtTime`, `DAY_LABELS` preserved.
+- [DONE] `DesktopWeekColumn.tsx` (95L) — Full rewrite. Accepts `WeekDaySer` data. 24 absolute-positioned click rows (hour-granularity, `isBiz` flag). Appointments + blocked intervals overlaid absolutely via `DayEventBlock` (same visual language as day view). Business hours: gold hover tint. Outside hours: muted tint. `PX_PER_MIN=2` for precise event height/position.
+- [DONE] `DesktopWeekGrid.tsx` (78L) — Full rewrite. Separate sticky day-name header row (no per-column sticky). Scrollable area below: 24-label hour gutter (w-14) + 7 `DesktopWeekColumn`s in `grid-cols-7`. Amber highlight on today column header. `onHourClick` forwarded down.
+- [DONE] `MobileWeekDaySelector.tsx` (65L) — NEW. Horizontal scrollable day tabs (Mon→Sun). 44px min-width touch targets. Today: amber date bubble. Active: gold `border-b-2`. Passes `dayIdx` back via `onChange`.
+- [DONE] `MobileWeekTimeList.tsx` (85L) — NEW. 24-row list for selected mobile day. Mirrors `DayTimeGrid` HourRow layout but without GSAP (mobile-optimised). Shows `DayEventBlock` for appointments + blocked intervals per hour. Closed day shows Cormorant "Día cerrado" message.
+- [DONE] `WeekViewGrid.tsx` (73L) — NEW client orchestrator. State: `selected`, `modalOpen`, `fabOpen`, `fabTime`, `fabDateIso`, `mobileDayIdx`. Desktop: `DesktopWeekGrid`. Mobile: `MobileWeekDaySelector` + `MobileWeekTimeList`. Shared: `SlotActionModal` + `NewAppointmentFAB` (same pattern as `DayCalendarClient`).
+- [DONE] `WeekViewEngine.tsx` (72L) — NEW async Server Component. Calls `getWeekView`, serialises `DayViewData[]` → `WeekDaySer[]` (Dates → ISO strings). Error state with red message. Passes `weekDays` + `weekStartIso` to `WeekViewGrid`.
+- [DONE] `calendar/page.tsx` (57L) — Updated to import `WeekViewEngine`. Removed `getActiveServices` call and `weekServiceId` logic (no longer needed). Passes `organizationId + date + locale` only.
+- [DEPRECATED] `WeekAvailabilityEngine.tsx` — Stripped to no-op export. Marked `@deprecated`.
+- [DEPRECATED] `WeekAvailabilityGrid.tsx` — Stripped to no-op export. Marked `@deprecated`.
+- [DEPRECATED] `MobileWeekList.tsx` — Marked `@deprecated` (comment only, code preserved for reference).
+- [DEPRECATED] `MobileDayList.tsx` — Marked `@deprecated` (comment only, code preserved for reference).
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. All new files ≤ 150 lines (max 85). Tenant isolation: `getWeekView` delegates to `getDayView` which filters by `organizationId` on every query.
+- [SECURITY] `WeekViewEngine` is a Server Component — no client-supplied orgId. `getDayView` scopes all queries to `organizationId` from the server-side org lookup.
+- [NEXT] Connect AppointmentForm "Confirmar Cita" to `createInternalAppointmentAction`.
+- [NEXT] Add `revalidatePath('/dashboard/agenda')` to `blockTimeAction` (post-block refresh).
+- [NEXT] Histórico tab in EventDetailSheet: paginated appointments query for same customer.
+
+### 🗓️ 2026-04-20: AppointmentForm — Wire "Confirmar Cita" to createInternalAppointmentAction
+- [DONE] `AppointmentForm.tsx` — Added `useTransition` + `toast` + `createInternalAppointmentAction` import (from `@/app/(dashboard)/dashboard/agenda/actions`). Added `notes` controlled state (textarea). Added `handleSubmit`: validates customer/service/time → builds `startAt` ISO from `date` + `time` → calls `createInternalAppointmentAction({ customerId, serviceId, startAt, guestComment })`. On `status='success'`: `toast.success` + `onClose()`. On `status='error'`: `toast.error`. Button: `disabled={noTimes || pending}`, label switches to "Guardando…" during transition.
+- [DONE] `agenda/actions.ts` — Added `revalidatePath('/dashboard/calendar')` to `createInternalAppointmentAction` (line after existing agenda/dashboard revalidations).
+- [DONE] `agenda/actions.ts` — Added `revalidatePath('/dashboard/calendar')` to `blockTimeAction` (post-block calendar refresh).
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. `AppointmentForm.tsx` 166L ≤ 150L rule (existing file, modification exempt per CLAUDE.md). `status === 'error'` narrow used (not `else`) to avoid TS2339 on `ActionState { status: 'idle' }` branch.
+- [SECURITY] `createInternalAppointmentAction` resolves orgId exclusively from `user.user_metadata.organization_id`. `customerId` / `serviceId` validated as UUIDs by Zod inside the action.
+- [NEXT] Histórico tab in AppointmentDetailModal: paginated appointments query for same customer.
+- [NEXT] Drag-and-drop rescheduling on month/week grid.
+
+### 🗓️ 2026-04-20: Unified AppointmentDetailModal — Centered Dialog Across All Views
+- [DECISION] Replaced `EventDetailSheet` (side panel, 420px right-slide) with `AppointmentDetailModal` (centered Radix Dialog, max-w-lg, rounded-2xl). Same interior content — service name, tabs, customer section, footer actions.
+- [DONE] `shared/components/booking/AppointmentDetailModal.tsx` (138L) — NEW. Centered Radix Dialog: `top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2`, `max-w-lg rounded-2xl bg-white/90 backdrop-blur-xl`. Radix CSS animations: `zoom-in-95` + `fade-in` on open, `zoom-out-95` + `fade-out` on close, `duration-200`. Props: `appointmentId: string | null`, `onClose`, `locale?`, `onMutated`, `preview?`. Same lazy fetch + cancel + undo toast logic as EventDetailSheet. Lazy-fetch triggered by `appointmentId` change in useEffect.
+- [DONE] `DayEventBlock.tsx` — Added `appointmentId?: string` + `onAppointmentClick?: (id: string) => void` props. When `type='appointment'` and callback exists: calls `onAppointmentClick(appointmentId)` + `stopPropagation`. When `type='blocked'`: unchanged `stopPropagation` only. `cursor-pointer` applied only when `onAppointmentClick` is defined.
+- [DONE] `DayTimeGrid.tsx` — Added `onAppointmentClick?: (id: string) => void` to `DayTimeGridProps`. Threaded through `HourRow` → each appointment `DayEventBlock` with `appointmentId={a.id}`.
+- [DONE] `calendar/_components/CalendarDayView.tsx` (86L) — NEW client orchestrator replacing `DayCalendarClient`. Manages: `selectedApptId` (appointment modal), `modalOpen`/`selected` (SlotActionModal), `fabOpen`/`fabTime` (NewAppointmentFAB). Renders: DayTimeGrid + SlotActionModal + NewAppointmentFAB + AppointmentDetailModal.
+- [DONE] `AvailabilityEngine.tsx` — Changed import+render from `DayCalendarClient` → `CalendarDayView`.
+- [DONE] `DesktopWeekColumn.tsx` — Added `onAppointmentClick?` to props, forwarded to appointment DayEventBlocks with `appointmentId={a.id}`.
+- [DONE] `DesktopWeekGrid.tsx` — Added `onAppointmentClick?` to props, forwarded to each `DesktopWeekColumn`.
+- [DONE] `MobileWeekTimeList.tsx` — Added `onAppointmentClick?` to props, forwarded to appointment DayEventBlocks.
+- [DONE] `WeekViewGrid.tsx` — Added `selectedApptId` state. Passes `onAppointmentClick={setSelectedApptId}` to both DesktopWeekGrid and MobileWeekTimeList. Renders `AppointmentDetailModal` at bottom with `onMutated={() => router.refresh()}`.
+- [DONE] `AgendaInteractive.tsx` — Replaced `<EventDetailSheet>` with `<AppointmentDetailModal>`. Removed `EventDetailSheet` import. Same `active.kind === 'detail'` state logic, just different component.
+- [DEPRECATED] `EventDetailSheet.tsx` — Marked `@deprecated`. Code preserved for reference.
+- [DEPRECATED] `DayCalendarClient.tsx` — Marked `@deprecated`. Replaced by `CalendarDayView`.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. New files: `AppointmentDetailModal.tsx` 138L, `CalendarDayView.tsx` 86L — both ≤ 150 lines. Verified: clicking `DayEventBlock type='blocked'` does NOT call `onAppointmentClick` (blocked case keeps stopPropagation only). Modal is centered in all three views (month/day/week).
+- [SECURITY] `AppointmentDetailModal` uses same server actions as EventDetailSheet — orgId resolved exclusively via `user.user_metadata.organization_id` in each action.
+- [NEXT] Connect AppointmentForm "Confirmar Cita" to `createInternalAppointmentAction`.
+- [NEXT] Histórico tab in AppointmentDetailModal: paginated appointments query for same customer.
+- [NEXT] Add `revalidatePath('/dashboard/agenda')` to `blockTimeAction`.

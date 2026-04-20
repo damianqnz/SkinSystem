@@ -39,6 +39,7 @@ Specialist in high-availability multi-tenant systems. Mission: Build a robust, a
 - **Strict Typing**: Forbidden `any` or `@ts-ignore`.
 - **Error Format**: Return `{ data: T | null, error: AppError | null }`.
 - **Domain Isolation**: Business logic (prices, slots, cancellations) ONLY in `src/domains`. UI and API are thin layers.
+- **Modularity**: One responsibility per file. Soft limit: 150 lines. Split only when a file has multiple responsibilities, not to meet a line count. Exceptions: Drizzle schema files, translation files, config files.
 
 ## 3. Communication & I18n Strategy
 - **Visual Logic**: For complex logic, generate **Mermaid** diagram before writing code.

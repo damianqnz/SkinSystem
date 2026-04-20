@@ -1,3 +1,8 @@
+/**
+ * @deprecated Use AppointmentDetailModal from
+ * @/shared/components/booking/AppointmentDetailModal instead.
+ * EventDetailSheet (side panel) has been replaced by a centered Dialog.
+ */
 'use client';
 
 import * as Dialog from '@radix-ui/react-dialog';

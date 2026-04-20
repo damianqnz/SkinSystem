@@ -2,54 +2,58 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MonthView, type SerializedEvent } from './MonthView';
-import { ChooseActionDialog } from './ChooseActionDialog';
-import { BlockDateForm }      from './BlockDateForm';
-import { NewAppointmentForm, type ServiceOption } from './NewAppointmentForm';
-import { EventDetailSheet }   from './EventDetailSheet';
-import type { CustomerOption } from './CustomerCombobox';
+import { MonthView, type SerializedEvent }          from './MonthView';
+import { MonthActionModal }                          from './MonthActionModal';
+import { NewAppointmentFAB }                         from '@/app/(dashboard)/calendar/_components/NewAppointmentFAB';
+import { AppointmentDetailModal }                    from '@/shared/components/booking/AppointmentDetailModal';
 
-// ── Active-dialog discriminated union ──────────────────────────
+// ── Types ──────────────────────────────────────────────────────
+
+export type SerializedBlock = { id: string; dateIso: string; reason: string };
 
 type Active =
   | null
-  | { kind: 'choose';   dateIso: string }
-  | { kind: 'block';    dateIso: string }
-  | { kind: 'appoint';  dateIso: string }
-  | { kind: 'detail';   appointmentId: string; preview: { customerName: string; serviceColor: string | null } | null };
+  | { kind: 'slot';   dateIso: string; date: Date }
+  | { kind: 'detail'; appointmentId: string; preview: { customerName: string; serviceColor: string | null } | null };
 
 interface AgendaInteractiveProps {
-  gridStartIso:  string;
-  monthStartIso: string;
-  events:        SerializedEvent[];
-  services:      ServiceOption[];
-  customers:     CustomerOption[];
-  tenantName:    string;
-  locale:        string;
+  gridStartIso:     string;
+  monthStartIso:    string;
+  events:           SerializedEvent[];
+  blockedIntervals: SerializedBlock[];
+  locale:           string;
 }
 
 /**
- * Client orchestrator: holds the dialog/sheet state and wires
+ * Client orchestrator: holds dialog/sheet state and wires
  * MonthView cell+chip clicks to the right surface.
+ *
+ * Cell click → MonthActionModal (block days OR schedule appointment).
+ * Chip click → EventDetailSheet.
  */
 export function AgendaInteractive({
   gridStartIso,
   monthStartIso,
   events,
-  services,
-  customers,
-  tenantName,
+  blockedIntervals,
   locale,
 }: AgendaInteractiveProps) {
   const router = useRouter();
-  const [active, setActive] = useState<Active>(null);
+  const [active,     setActive]     = useState<Active>(null);
+  const [fabOpen,    setFabOpen]    = useState(false);
+  const [fabDateIso, setFabDateIso] = useState('');
 
-  // Empty cell click → show the choose-action dialog
-  const handleCellClick = (dateIso: string) => {
-    setActive({ kind: 'choose', dateIso });
+  const close = () => setActive(null);
+
+  const refreshAndClose = () => {
+    router.refresh();
+    close();
   };
 
-  // Chip click → side sheet with details
+  const handleCellClick = (dateIso: string) => {
+    setActive({ kind: 'slot', dateIso, date: new Date(`${dateIso}T12:00:00Z`) });
+  };
+
   const handleChipClick = (
     appointmentId: string,
     preview: { customerName: string; serviceColor: string | null },
@@ -57,13 +61,14 @@ export function AgendaInteractive({
     setActive({ kind: 'detail', appointmentId, preview });
   };
 
-  const close = () => setActive(null);
-
-  // After successful mutation: refresh server data and close
-  const refreshAndClose = () => {
-    router.refresh();
+  // "Agendar cita" from MonthActionModal → open FAB with clicked date
+  const handleSchedule = () => {
+    if (active?.kind === 'slot') setFabDateIso(active.dateIso);
     close();
+    setFabOpen(true);
   };
+
+  const dateForFab = fabDateIso ? new Date(`${fabDateIso}T12:00:00Z`) : new Date();
 
   return (
     <>
@@ -71,67 +76,37 @@ export function AgendaInteractive({
         gridStartIso={gridStartIso}
         monthStartIso={monthStartIso}
         events={events}
+        blockedIntervals={blockedIntervals}
         locale={locale}
         onCellClick={handleCellClick}
         onChipClick={handleChipClick}
       />
 
-      {/* Choose action ──────────────────────── */}
-      <ChooseActionDialog
-        open={active?.kind === 'choose'}
-        onOpenChange={(o) => { if (!o) close(); }}
-        dateIso={active?.kind === 'choose' ? active.dateIso : ''}
-        onPickBlock={() => {
-          if (active?.kind === 'choose') setActive({ kind: 'block', dateIso: active.dateIso });
-        }}
-        onPickAppoint={() => {
-          if (active?.kind === 'choose') setActive({ kind: 'appoint', dateIso: active.dateIso });
-        }}
+      {/* Month action modal (block days / schedule) ─────── */}
+      <MonthActionModal
+        open={active?.kind === 'slot'}
+        onClose={refreshAndClose}
+        selectedDate={active?.kind === 'slot' ? active.date : new Date()}
         locale={locale}
+        onSchedule={handleSchedule}
       />
 
-      {/* Block date ─────────────────────────── */}
-      <BlockDateForm
-        open={active?.kind === 'block'}
-        onOpenChange={(o) => { if (!o) close(); }}
-        onBack={() => {
-          if (active?.kind === 'block') setActive({ kind: 'choose', dateIso: active.dateIso });
-        }}
-        defaultDateIso={active?.kind === 'block' ? active.dateIso : todayIso()}
-        onSuccess={refreshAndClose}
-      />
-
-      {/* New appointment ────────────────────── */}
-      <NewAppointmentForm
-        open={active?.kind === 'appoint'}
-        onOpenChange={(o) => { if (!o) close(); }}
-        onBack={() => {
-          if (active?.kind === 'appoint') setActive({ kind: 'choose', dateIso: active.dateIso });
-        }}
-        defaultDateIso={active?.kind === 'appoint' ? active.dateIso : todayIso()}
-        services={services}
-        customers={customers}
-        tenantName={tenantName}
+      {/* New Appointment FAB ──────────────────────────────── */}
+      <NewAppointmentFAB
         locale={locale}
-        onSuccess={refreshAndClose}
+        date={dateForFab}
+        externalOpen={fabOpen}
+        onExternalClose={() => { setFabOpen(false); router.refresh(); }}
       />
 
-      {/* Detail sheet ───────────────────────── */}
-      <EventDetailSheet
-        open={active?.kind === 'detail'}
-        onOpenChange={(o) => { if (!o) close(); }}
+      {/* Appointment detail modal (centered) ────────────── */}
+      <AppointmentDetailModal
         appointmentId={active?.kind === 'detail' ? active.appointmentId : null}
+        onClose={close}
         preview={active?.kind === 'detail' ? active.preview : null}
         locale={locale}
         onMutated={() => router.refresh()}
       />
     </>
   );
-}
-
-function todayIso(): string {
-  const now = new Date();
-  const m = (now.getMonth() + 1).toString().padStart(2, '0');
-  const d = now.getDate().toString().padStart(2, '0');
-  return `${now.getFullYear()}-${m}-${d}`;
 }

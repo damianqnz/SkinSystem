@@ -1,38 +1,82 @@
 'use client';
 
 import * as Popover from '@radix-ui/react-popover';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useTransition } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useTransition, useRef } from 'react';
+import { ChevronDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
+import { gsap } from 'gsap';
+import { useGSAP } from '@gsap/react';
+
+import esMsgs from '@/messages/es.json';
+import ptMsgs from '@/messages/pt.json';
+import enMsgs from '@/messages/en.json';
+
+gsap.registerPlugin(useGSAP);
 
 export type CalendarView = 'day' | 'week' | 'month' | 'team';
 
-const VIEW_LABELS: Record<CalendarView, string> = {
-  day:   'Dia',
-  week:  'Semana',
-  month: 'Mês',
-  team:  'Equipa',
-};
-
 interface ViewSwitcherProps {
   current: CalendarView;
+  locale?: string;
 }
+
+const VIEWS: CalendarView[] = ['day', 'week', 'month', 'team'];
+
+const MESSAGES: Record<string, typeof esMsgs> = {
+  es: esMsgs,
+  pt: ptMsgs,
+  en: enMsgs,
+};
 
 /**
  * Dropdown to switch the calendar view.
- * Persists choice via the `view` URL search-param so the server can
- * render the correct view on full reloads.
+ * Routes to /calendar for day/week, and /dashboard/agenda for month.
  */
-export function ViewSwitcher({ current }: ViewSwitcherProps) {
+export function ViewSwitcher({ current, locale = 'es' }: ViewSwitcherProps) {
   const router  = useRouter();
   const params  = useSearchParams();
+  const pathname = usePathname();
   const [pending, startTransition] = useTransition();
+  
+  const msgs = MESSAGES[locale] ?? MESSAGES.es!;
+  const t = (key: CalendarView) => msgs.calendar.view[key] ?? key;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const activeBgRef = useRef<HTMLDivElement>(null);
+
+  // Animate the active indicator background using GSAP
+  useGSAP(() => {
+    if (!containerRef.current || !activeBgRef.current) return;
+    
+    // Find the active button
+    const activeBtn = containerRef.current.querySelector(`[data-view="${current}"]`) as HTMLElement;
+    if (activeBtn) {
+      gsap.to(activeBgRef.current, {
+        y: activeBtn.offsetTop,
+        height: activeBtn.offsetHeight,
+        duration: 0.3,
+        ease: "power2.out",
+        overwrite: "auto"
+      });
+    }
+  }, { scope: containerRef, dependencies: [current] });
 
   const setView = (next: CalendarView) => {
+    if (next === current) return;
+    
     const sp = new URLSearchParams(Array.from(params.entries()));
     sp.set('view', next);
-    startTransition(() => router.push(`?${sp.toString()}`, { scroll: false }));
+    
+    // Routing logic based on view
+    let targetPath = pathname;
+    if (next === 'month' || next === 'team') {
+      targetPath = '/dashboard/agenda';
+    } else if (next === 'day' || next === 'week') {
+      targetPath = '/calendar';
+    }
+    
+    startTransition(() => router.push(`${targetPath}?${sp.toString()}`, { scroll: false }));
   };
 
   return (
@@ -50,7 +94,7 @@ export function ViewSwitcher({ current }: ViewSwitcherProps) {
         aria-label="Alterar vista"
       >
         <span className="text-spa-muted">Visualização do calendário</span>
-        <span className="font-medium">· {VIEW_LABELS[current]}</span>
+        <span className="font-medium">· {t(current)}</span>
         <ChevronDown size={12} strokeWidth={1.5} className="text-spa-muted" />
       </Popover.Trigger>
 
@@ -60,32 +104,41 @@ export function ViewSwitcher({ current }: ViewSwitcherProps) {
           sideOffset={6}
           className="z-50 min-w-[180px] rounded-md border border-spa-border bg-white
                      shadow-[0_8px_24px_-12px_rgba(28,25,23,0.18)]
-                     p-1 outline-none
+                     p-1 outline-none relative
                      data-[state=open]:animate-in data-[state=closed]:animate-out
                      data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0
                      data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95"
         >
-          {(Object.keys(VIEW_LABELS) as CalendarView[]).map((v) => {
-            const active = v === current;
-            return (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setView(v)}
-                className={cn(
-                  'w-full flex items-center justify-between px-3 py-2 rounded-sm',
-                  'text-[12px] text-left transition-colors',
-                  active
-                    ? 'text-(--color-spa-stone) font-medium bg-stone-50'
-                    : 'text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50',
-                )}
-                style={{ fontFamily: 'var(--font-sans)' }}
-              >
-                <span>{VIEW_LABELS[v]}</span>
-                {active && <Check size={12} strokeWidth={1.75} className="text-[#D4AF37]" />}
-              </button>
-            );
-          })}
+          <div ref={containerRef} className="relative w-full">
+            {/* GSAP Animated active background */}
+            <div 
+              ref={activeBgRef}
+              className="absolute left-0 right-0 rounded-sm bg-stone-50 pointer-events-none"
+              style={{ top: 0, height: 0 }}
+            />
+            
+            {VIEWS.map((v) => {
+              const active = v === current;
+              return (
+                <button
+                  key={v}
+                  data-view={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  className={cn(
+                    'w-full flex items-center justify-between px-3 py-2 rounded-sm relative z-10',
+                    'text-[12px] text-left transition-colors',
+                    active
+                      ? 'text-(--color-spa-stone) font-medium'
+                      : 'text-spa-muted hover:text-(--color-spa-stone)',
+                  )}
+                  style={{ fontFamily: 'var(--font-sans)' }}
+                >
+                  <span>{t(v)}</span>
+                </button>
+              );
+            })}
+          </div>
         </Popover.Content>
       </Popover.Portal>
     </Popover.Root>
