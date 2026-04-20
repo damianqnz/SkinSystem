@@ -27,6 +27,23 @@ export const customers = pgTable('customers', {
   email:          text('email'),
   isGuest:        boolean('is_guest').notNull().default(false),
   notes:          text('notes'),
+  /** Lifecycle status — recalculated nightly by pg_cron (update_customer_statuses) */
+  clientStatus:   text('client_status').notNull().default('nuevo')
+                    .$type<'nuevo' | 'recurrente' | 'riesgo' | 'inactivo' | 'perdido'>(),
+  /** Blocked customers cannot make online bookings */
+  isBlocked:      boolean('is_blocked').notNull().default(false),
+  /** Public avatar URL from Supabase Storage bucket 'customer-avatars' */
+  avatarUrl:      text('avatar_url'),
+  company:        text('company'),
+  country:        text('country'),
+  /** ISO 3166-1 alpha-2 code — e.g. 'ES', 'PT', 'BR'. Used for state/province lookups */
+  countryIso:     text('country_iso'),
+  address:        text('address'),
+  city:           text('city'),
+  state:          text('state'),
+  postalCode:     text('postal_code'),
+  /** { instagram: "@handle", tiktok: "...", custom_1: { label: "...", value: "..." } } */
+  socialLinks:    jsonb('social_links').$type<Record<string, unknown>>().default({}),
   createdAt:      timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index('idx_customers_org_id').on(t.organizationId),
