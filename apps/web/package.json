@@ -13,6 +13,7 @@
   "dependencies": {
     "@fontsource/cormorant-garamond": "^5.2.11",
     "@fontsource/outfit": "^5.2.8",
+    "@gsap/react": "^2.1.2",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-popover": "^1.1.15",
     "@radix-ui/react-select": "^2.2.6",
@@ -30,6 +31,7 @@
     "cookie-store": "^3.0.0",
     "drizzle-orm": "^0.45.2",
     "framer-motion": "^12.38.0",
+    "gsap": "^3.15.0",
     "lucide-react": "^1.8.0",
     "next": "16.2.0",
     "next-intl": "^4.9.1",

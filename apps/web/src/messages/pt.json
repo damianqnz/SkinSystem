@@ -1,0 +1,32 @@
+{
+  "calendar": {
+    "view": {
+      "day": "Dia",
+      "week": "Semana",
+      "month": "Mês",
+      "team": "Equipa"
+    },
+    "slot": {
+      "block": "Bloquear horário",
+      "schedule": "Agendar consulta",
+      "chooseAction": "O que deseja fazer?",
+      "blockDescription": "Marcar este horário como indisponível",
+      "scheduleDescription": "Criar uma consulta manual para um cliente",
+      "outsideNote": "Horário fora da agenda — só consultas especiais"
+    },
+    "block": {
+      "title": "Bloquear horário",
+      "from": "Desde (hs)",
+      "to": "Até (hs)",
+      "reasonLabel": "Motivo",
+      "confirm": "Confirmar bloqueio",
+      "success": "Horário bloqueado com sucesso",
+      "reason": {
+        "illness": "Doença",
+        "vacation": "Férias",
+        "training": "Formação",
+        "other": "Evento"
+      }
+    }
+  }
+}

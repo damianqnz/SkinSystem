@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { eq, and, asc, inArray, sql } from 'drizzle-orm';
+import { eq, and, asc, inArray, sql, or, ilike } from 'drizzle-orm';
 import { db } from '@/infrastructure/db';
 import { customers } from './schema';
 import { appointments } from '@/infrastructure/db/schema/booking';
@@ -27,11 +27,20 @@ export type CustomerWithStats = {
 
 export async function getCustomersList(
   organizationId: string,
+  query?: string,
 ): Promise<Result<SelectCustomer[]>> {
   try {
+    const baseFilter = eq(customers.organizationId, organizationId);
+    const where = query
+      ? and(baseFilter, or(
+          ilike(customers.fullName, `%${query}%`),
+          ilike(customers.email,    `%${query}%`),
+          ilike(customers.phone,    `%${query}%`),
+        ))
+      : baseFilter;
     const data = await db
       .select(LIST).from(customers)
-      .where(eq(customers.organizationId, organizationId))
+      .where(where)
       .orderBy(asc(customers.fullName)) as SelectCustomer[];
     return { data, error: null };
   } catch {

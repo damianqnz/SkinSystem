@@ -118,6 +118,7 @@ export async function createBlockedIntervalAction(
   if (result.error) return { status: 'error', message: result.error.message };
 
   revalidatePath('/dashboard/agenda');
+  revalidatePath('/dashboard/calendar');
   return { status: 'success', id: result.data.id, message: 'Período bloqueado' };
 }
 
@@ -189,6 +190,7 @@ export async function createInternalAppointmentAction(
     ));
 
   revalidatePath('/dashboard/agenda');
+  revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard');
   return { status: 'success', id: result.data.id, message: 'Marcação criada' };
 }

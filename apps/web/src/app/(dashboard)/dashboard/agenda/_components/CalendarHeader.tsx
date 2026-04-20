@@ -44,7 +44,7 @@ export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps
   return (
     <header className="h-14 px-5 flex items-center gap-3 border-b border-spa-border bg-white/85 backdrop-blur-md shrink-0">
       {/* Left — view dropdown */}
-      <ViewSwitcher current={view} />
+      <ViewSwitcher current={view} locale={locale} />
 
       {/* Center — month navigation */}
       <div className="flex-1 flex items-center justify-center gap-3">

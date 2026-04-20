@@ -1,38 +1,25 @@
 /**
  * MonthEvents — async Server Component.
  *
- * Fetches month events + the supporting catalog/customers in parallel,
- * serialises Dates → ISO and hands off to the client orchestrator
- * `<AgendaInteractive>` which hosts MonthView and the dialogs/sheet.
+ * Fetches month events + blocked intervals in parallel, serialises Dates → ISO
+ * and hands off to the client orchestrator `<AgendaInteractive>`.
  */
 
-import { getCalendarMonth } from '@/domains/booking/calendar-service';
-import { getActiveServices } from '@/domains/catalog/service';
-import { getCustomersList }  from '@/domains/customers/service';
-import { AgendaInteractive } from './AgendaInteractive';
+import { and, eq, gte, lt } from 'drizzle-orm';
+import { getCalendarMonth }  from '@/domains/booking/calendar-service';
+import { db }                from '@/infrastructure/db';
+import { blockedIntervals }  from '@/infrastructure/db/schema/calendar';
+import { AgendaInteractive, type SerializedBlock } from './AgendaInteractive';
 import type { SerializedEvent } from './MonthView';
-import type { ServiceOption }   from './NewAppointmentForm';
-import type { CustomerOption }  from './CustomerCombobox';
 
 interface MonthEventsProps {
   organizationId: string;
   anchorDate:     Date;
   locale:         string;
-  tenantName:     string;
 }
 
-export async function MonthEvents({
-  organizationId,
-  anchorDate,
-  locale,
-  tenantName,
-}: MonthEventsProps) {
-  // Parallel fetch — all three are independent
-  const [monthRes, servicesRes, customersRes] = await Promise.all([
-    getCalendarMonth(organizationId, anchorDate),
-    getActiveServices(organizationId),
-    getCustomersList(organizationId),
-  ]);
+export async function MonthEvents({ organizationId, anchorDate, locale }: MonthEventsProps) {
+  const monthRes = await getCalendarMonth(organizationId, anchorDate);
 
   if (monthRes.error || !monthRes.data) {
     return (
@@ -45,6 +32,20 @@ export async function MonthEvents({
 
   const { events, gridStart, monthStart } = monthRes.data;
 
+  // Grid spans exactly 42 days (6 weeks)
+  const gridEnd = new Date(gridStart.getTime());
+  gridEnd.setUTCDate(gridEnd.getUTCDate() + 42);
+
+  // Fetch blocked intervals for the visible grid window
+  const blockedRows = await db
+    .select({ id: blockedIntervals.id, startAt: blockedIntervals.startAt, reason: blockedIntervals.reason })
+    .from(blockedIntervals)
+    .where(and(
+      eq(blockedIntervals.organizationId, organizationId),
+      gte(blockedIntervals.startAt, gridStart),
+      lt(blockedIntervals.startAt, gridEnd),
+    ));
+
   const serializedEvents: SerializedEvent[] = events.map((e) => ({
     id:           e.id,
     customerName: e.customerName,
@@ -54,19 +55,10 @@ export async function MonthEvents({
     startIso:     e.startAt.toISOString(),
   }));
 
-  const services: ServiceOption[] = (servicesRes.data ?? []).map((s) => ({
-    id:              s.id,
-    nameI18n:        (s.nameI18n as Record<string, string>) ?? {},
-    durationMinutes: s.durationMinutes,
-    priceCents:      s.priceCents,
-    color:           s.color,
-  }));
-
-  const customers: CustomerOption[] = (customersRes.data ?? []).map((c) => ({
-    id:       c.id,
-    fullName: c.fullName,
-    email:    c.email,
-    phone:    c.phone,
+  const serializedBlocked: SerializedBlock[] = blockedRows.map((b) => ({
+    id:      b.id,
+    dateIso: b.startAt.toISOString().slice(0, 10),
+    reason:  b.reason,
   }));
 
   return (
@@ -74,9 +66,7 @@ export async function MonthEvents({
       gridStartIso={gridStart.toISOString().slice(0, 10)}
       monthStartIso={monthStart.toISOString().slice(0, 10)}
       events={serializedEvents}
-      services={services}
-      customers={customers}
-      tenantName={tenantName}
+      blockedIntervals={serializedBlocked}
       locale={locale}
     />
   );
