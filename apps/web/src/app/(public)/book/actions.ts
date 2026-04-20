@@ -141,13 +141,18 @@ export async function createBookingAction(
 
   // ── 4. Upsert guest customer ──────────────────────────────
   const existing = await db
-    .select({ id: customers.id })
+    .select({ id: customers.id, isBlocked: customers.isBlocked })
     .from(customers)
     .where(and(
       eq(customers.organizationId, org.id),
       eq(customers.email, input.guestEmail),
     ))
     .limit(1);
+
+  // Guard: blocked customers cannot make online bookings (reason not disclosed)
+  if (existing[0]?.isBlocked) {
+    return { status: 'error', message: 'No es posible realizar esta reserva.' };
+  }
 
   let customerId: string;
   if (existing[0]) {
