@@ -13,6 +13,8 @@ interface EditorialDatePickerProps {
   /** Optional label rendered above the trigger */
   label?: string;
   disabled?: boolean;
+  /** ISO YYYY-MM-DD — disable individual cells before this date */
+  minDate?: string;
 }
 
 const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -51,6 +53,7 @@ export function EditorialDatePicker({
   locale,
   label,
   disabled,
+  minDate,
 }: EditorialDatePickerProps) {
   const initial = useMemo(() => parseIso(value), [value]);
   const [viewYear,  setViewYear]  = useState(initial.y);
@@ -175,17 +178,20 @@ export function EditorialDatePicker({
                 const isSelected = cellIso === selectedIso;
                 const isToday    = cellIso === todayIso;
 
+                const beforeMin = !!minDate && cellIso < minDate;
                 return (
                   <button
                     key={cellIso}
                     type="button"
-                    onClick={() => { onChange(cellIso); setOpen(false); }}
+                    onClick={() => { if (!beforeMin) { onChange(cellIso); setOpen(false); } }}
+                    disabled={beforeMin}
                     className={cn(
                       'h-8 rounded-sm text-[12px] tabular-nums transition-colors',
                       isSelected && 'bg-(--color-spa-stone) text-white font-medium',
                       !isSelected && isToday && 'border border-[#D4AF37] text-(--color-spa-stone)',
                       !isSelected && !isToday && inMonth && 'text-(--color-spa-stone) hover:bg-stone-100',
                       !isSelected && !inMonth && 'text-stone-300 hover:bg-stone-50',
+                      beforeMin && 'opacity-25 cursor-not-allowed hover:bg-transparent',
                     )}
                     style={{ fontFamily: 'var(--font-sans)' }}
                     aria-pressed={isSelected}

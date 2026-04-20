@@ -3,6 +3,8 @@
 import { useMemo } from 'react';
 import { cn } from '@/shared/lib/utils';
 import { EventChip } from './EventChip';
+import { BlockedDayChip } from './BlockedDayChip';
+import type { SerializedBlock } from './AgendaInteractive';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -18,15 +20,16 @@ export type SerializedEvent = {
 
 interface MonthViewProps {
   /** ISO date (YYYY-MM-DD) of the first visible cell (Monday on/before the 1st). */
-  gridStartIso:  string;
+  gridStartIso:     string;
   /** ISO date of the first day of the displayed month. */
-  monthStartIso: string;
-  events:        SerializedEvent[];
-  locale:        string;
+  monthStartIso:    string;
+  events:           SerializedEvent[];
+  blockedIntervals: SerializedBlock[];
+  locale:           string;
   /** Cell click → opens the "Nova entrada" dialog */
-  onCellClick?:  (dateIso: string) => void;
+  onCellClick?:     (dateIso: string) => void;
   /** Chip click → opens the side sheet */
-  onChipClick?:  (eventId: string, preview: { customerName: string; serviceColor: string | null }) => void;
+  onChipClick?:     (eventId: string, preview: { customerName: string; serviceColor: string | null }) => void;
 }
 
 // ── Day labels ─────────────────────────────────────────────────────
@@ -62,6 +65,7 @@ export function MonthView({
   gridStartIso,
   monthStartIso,
   events,
+  blockedIntervals,
   locale,
   onCellClick,
   onChipClick,
@@ -92,6 +96,15 @@ export function MonthView({
     return map;
   }, [events]);
 
+  // Group blocked intervals by date — keep first reason per day
+  const blockedByDay = useMemo(() => {
+    const map = new Map<string, string>(); // dateIso → reason
+    for (const b of blockedIntervals) {
+      if (!map.has(b.dateIso)) map.set(b.dateIso, b.reason);
+    }
+    return map;
+  }, [blockedIntervals]);
+
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-(--color-spa-bg)">
       {/* ── Day-of-week header row ──────────────────────────────── */}
@@ -118,8 +131,11 @@ export function MonthView({
           const isToday   = isSameUTCDay(date, today);
           const dayKey    = isoDateUTC(date);
           const dayEvents = eventsByDay.get(dayKey) ?? [];
-          const visible   = dayEvents.slice(0, MAX_EVENTS_PER_CELL);
-          const overflow  = dayEvents.length - visible.length;
+          const blockedReason = blockedByDay.get(dayKey);
+          // Reserve 1 slot for the blocked chip if present
+          const maxVisible  = blockedReason ? MAX_EVENTS_PER_CELL - 1 : MAX_EVENTS_PER_CELL;
+          const visible     = dayEvents.slice(0, maxVisible);
+          const overflow    = dayEvents.length - visible.length + (blockedReason ? 0 : 0);
 
           return (
             <div
@@ -171,8 +187,11 @@ export function MonthView({
                 )}
               </div>
 
-              {/* Events */}
+              {/* Events + blocked chip */}
               <div className="flex flex-col gap-0.5">
+                {blockedReason && (
+                  <BlockedDayChip reason={blockedReason} locale={locale} />
+                )}
                 {visible.map((ev) => (
                   <EventChip
                     key={ev.id}

@@ -1,9 +1,9 @@
-import { calculateAvailableSlots } from '@/domains/booking/service';
-import { DayTimeGrid } from './DayTimeGrid';
+import { getDayView }        from '@/domains/booking/day-view-service';
+import { CalendarDayView }   from './CalendarDayView';
+import type { DayViewSer }   from './DayTimeGrid';
 
 interface AvailabilityEngineProps {
   organizationId: string;
-  serviceId:      string;
   date:           Date;
   locale:         string;
 }
@@ -11,86 +11,53 @@ interface AvailabilityEngineProps {
 /**
  * AvailabilityEngine — async Server Component, wrapped in Suspense by parent.
  *
- * Fetches slots from:
- *   - DB: availabilityRules, appointments, blockedIntervals
- *   - Redis: locked slot keys (5-min checkout locks, WF-01)
+ * Fetches the full day snapshot via getDayView:
+ *   - availability_rules → business hours
+ *   - appointments       → confirmed/pending/in_progress + customer + service names
+ *   - blocked_intervals  → manual blocks
  *
- * Passes serialized slots to DayTimeGrid (Client Component).
+ * Serializes Dates → ISO strings at the RSC boundary before passing
+ * to DayCalendarClient (Client Component).
+ *
+ * Tenant isolation: all queries in getDayView are filtered by organizationId.
  */
 export async function AvailabilityEngine({
   organizationId,
-  serviceId,
   date,
   locale,
 }: AvailabilityEngineProps) {
-  const result = await calculateAvailableSlots(organizationId, serviceId, date);
+  const result = await getDayView(organizationId, date);
 
   if (result.error) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+      <div className="flex items-center justify-center py-16 px-4">
         <p className="text-sm text-red-400">{result.error.message}</p>
       </div>
     );
   }
 
-  // Serialize Dates → ISO strings for RSC boundary
-  const slots = result.data.map((s) => ({
-    ...s,
-    startAt: s.startAt instanceof Date ? s.startAt : new Date(s.startAt),
-    endAt:   s.endAt   instanceof Date ? s.endAt   : new Date(s.endAt),
-  }));
+  const dv = result.data;
 
-  const stats = {
-    available: slots.filter((s) => s.status === 'available').length,
-    booked:    slots.filter((s) => s.status === 'booked').length,
-    locked:    slots.filter((s) => s.status === 'locked').length,
+  // Serialize Dates → ISO strings for RSC → Client boundary
+  const data: DayViewSer = {
+    businessStart:    dv.businessStart,
+    businessEnd:      dv.businessEnd,
+    isOpen:           dv.isOpen,
+    appointments:     dv.appointments.map((a) => ({
+      id:           a.id,
+      startAt:      a.startAt.toISOString(),
+      endAt:        a.endAt.toISOString(),
+      status:       a.status,
+      customerName: a.customerName,
+      serviceName:  a.serviceName,
+    })),
+    blockedIntervals: dv.blockedIntervals.map((b) => ({
+      id:      b.id,
+      startAt: b.startAt.toISOString(),
+      endAt:   b.endAt.toISOString(),
+      reason:  b.reason,
+    })),
   };
 
-  return (
-    <div className="flex flex-col min-h-0">
-      {/* Stats bar */}
-      <div className="flex items-center gap-4 px-4 py-2 border-b border-stone-100 bg-stone-50/50">
-        <StatPill
-          value={stats.available}
-          label={locale === 'pt' ? 'disponíveis' : locale === 'en' ? 'available' : 'disponibles'}
-          color="text-emerald-600"
-        />
-        <StatPill
-          value={stats.booked}
-          label={locale === 'pt' ? 'reservados' : locale === 'en' ? 'booked' : 'reservados'}
-          color="text-sky-600"
-        />
-        {stats.locked > 0 && (
-          <StatPill
-            value={stats.locked}
-            label={locale === 'pt' ? 'em checkout' : locale === 'en' ? 'in checkout' : 'en proceso'}
-            color="text-amber-600"
-          />
-        )}
-      </div>
-
-      <DayTimeGrid
-        slots={slots}
-        date={date}
-        locale={locale}
-      />
-    </div>
-  );
-}
-
-function StatPill({
-  value,
-  label,
-  color,
-}: {
-  value: number;
-  label: string;
-  color: string;
-}) {
-  return (
-    <div className="flex items-baseline gap-1">
-      <span className={`text-sm font-bold tabular-nums ${color}`}>{value}</span>
-      <span className="text-[10px] text-stone-400 uppercase tracking-wide">{label}</span>
-    </div>
-  );
+  return <CalendarDayView data={data} date={date} locale={locale} />;
 }
