@@ -525,6 +525,28 @@
 - [NEXT] Add `revalidatePath('/dashboard/agenda')` to `blockTimeAction` (post-block refresh).
 - [NEXT] Histórico tab in EventDetailSheet: paginated appointments query for same customer.
 
+### 🗓️ 2026-04-20: /dashboard/customers — Master-Detail Layout Redesign
+- [DECISION] Replaced flat table + search with master-detail two-column layout: left sidebar (w-72, client-side search + status badges) + right detail panel (profile, clinical record).
+- [DONE] `domains/customers/service.ts` — Added `ClientStatus` type (`nuevo|recurrente|riesgo|inactivo|perdido`). Added `getClientStatus(totalVisits, lastVisitAt)` (time has priority: 60d→perdido, 45d→inactivo, 30d→riesgo, 2+ visits→recurrente, else nuevo). Updated `CustomerWithStats` to include `status: ClientStatus`. Updated `getCustomersWithStats` to compute status per row. Added `getCustomerProfile(orgId, customerId)` — same LEFT JOIN query as `getCustomersWithStats` but with WHERE + LIMIT 1.
+- [DONE] `customers/[id]/ficha/page.tsx` — Moved from `customers/[id]/page.tsx`. All imports remain relative.
+- [DONE] `customers/[id]/ficha/_components/` — Moved all 6 clinical components (AutoLockOverlay, PatientHeader, PatientSkeleton, PhotoGallery, RevealField, TreatmentTimeline). `PatientHeader` back-link updated: `/dashboard/clients` → `/dashboard/customers/${patient.id}`.
+- [DONE] `customers/_components/CustomerStatusBadge.tsx` (22L) — Badge with colored dot + label. 5 statuses × 5 color palettes. Inline label i18n (ES/PT/EN via locale prop).
+- [DONE] `customers/_components/CustomerListItem.tsx` (65L) — Client Component. Avatar hash palette (6 palettes). Name + last visit fmtDate. CustomerStatusBadge. Gold `border-l-2` + `bg-stone-100` when `isSelected`. `router.push` on click. min-h-[44px] touch target.
+- [DONE] `customers/_components/CustomersSidebar.tsx` (90L) — Client Component. Uses `usePathname()` to derive `selectedId`. Header (Cormorant "Clientes" + [+] stub). Search input (client-side useMemo filter). Scrollable list of CustomerListItem.
+- [DONE] `customers/_components/CustomersRoot.tsx` (38L) — Client Component. Uses `usePathname()` to detect `isDetail`. Sidebar: `hidden md:flex md:w-72` when detail, `flex w-full md:w-72` otherwise. Main: `hidden md:block` when not detail.
+- [DONE] `customers/layout.tsx` (48L) — Server Component. Fetches org + `getCustomersWithStats`. Serializes dates → ISO. Renders `<CustomersRoot>` with customers + locale.
+- [DONE] `customers/page.tsx` — Rewritten: editorial empty state "Selecciona un cliente" (gold dot + Cormorant heading). Shown in right panel when no customer selected.
+- [DONE] `customers/[id]/_components/CustomerProfileClient.tsx` (142L) — Client Component. GSAP `gsap.from(containerRef, opacity+y)` via `useGSAP`. Avatar 80px. Name + CustomerStatusBadge + visit count + last visit. Pencil/⋯ stubs. "Agendar cita" gold border CTA → `setFabOpen(true)`. "Ficha clínica" link → `[id]/ficha`. Radix Tabs: Sobre (contact info) / Notas (stub) / Compromisos (stub). `<NewAppointmentFAB initialCustomer={...} externalOpen={fabOpen} />`.
+- [DONE] `customers/[id]/page.tsx` — Rewritten: Server Component. Calls `getCustomerProfile`. `notFound()` on miss. Renders `<CustomerProfileClient>` with serialized data.
+- [DONE] `calendar/_components/NewAppointmentFAB.tsx` — Added `initialCustomer?: CustomerMatch` prop. Initial `customer` state = `initialCustomer ?? null`. On close: reset to `initialCustomer ?? null` (not null).
+- [DONE] `messages/es.json` / `pt.json` / `en.json` — Added `customers.status.*` keys (same canonical ES keys in all 3 files, different values per language).
+- [DELETED] `_components/AddCustomerModal.tsx`, `CustomerEmptyState.tsx`, `CustomerSearch.tsx`, `CustomersTable.tsx`, `CustomersTableSkeleton.tsx` (5 files, ~500 LOC removed).
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. Max new file: 142L (CustomerProfileClient) ≤ 150. `getCustomerProfile` filters by `organizationId + customerId` (tenant isolation). `getClientStatus` time-priority logic verified.
+- [SECURITY] `getCustomerProfile` resolves orgId from `getOrganizationBySlug(x-tenant-slug)` (server header — not spoofable). Double WHERE: `organizationId + customerId`. Never exposes cross-tenant data.
+- [NEXT] Histórico tab in AppointmentDetailModal + CustomerProfileClient: paginated appointments query for same customer.
+- [NEXT] "+ Nuevo cliente" button in CustomersSidebar: inline modal with `createCustomerAction`.
+- [NEXT] Drag-and-drop rescheduling on month/week grid.
+
 ### 🗓️ 2026-04-20: AppointmentForm — Wire "Confirmar Cita" to createInternalAppointmentAction
 - [DONE] `AppointmentForm.tsx` — Added `useTransition` + `toast` + `createInternalAppointmentAction` import (from `@/app/(dashboard)/dashboard/agenda/actions`). Added `notes` controlled state (textarea). Added `handleSubmit`: validates customer/service/time → builds `startAt` ISO from `date` + `time` → calls `createInternalAppointmentAction({ customerId, serviceId, startAt, guestComment })`. On `status='success'`: `toast.success` + `onClose()`. On `status='error'`: `toast.error`. Button: `disabled={noTimes || pending}`, label switches to "Guardando…" during transition.
 - [DONE] `agenda/actions.ts` — Added `revalidatePath('/dashboard/calendar')` to `createInternalAppointmentAction` (line after existing agenda/dashboard revalidations).
@@ -533,6 +555,31 @@
 - [SECURITY] `createInternalAppointmentAction` resolves orgId exclusively from `user.user_metadata.organization_id`. `customerId` / `serviceId` validated as UUIDs by Zod inside the action.
 - [NEXT] Histórico tab in AppointmentDetailModal: paginated appointments query for same customer.
 - [NEXT] Drag-and-drop rescheduling on month/week grid.
+
+### 🗓️ 2026-04-20: pg_cron — Automated Client Status Recalculation
+- [DONE] `infrastructure/db/schema/customers.ts` — Added `clientStatus: text('client_status').notNull().default('nuevo').$type<ClientStatus>()` column to `customers` table.
+- [DONE] Migration `phase_8_customer_status` applied — `ALTER TABLE customers ADD COLUMN IF NOT EXISTS client_status text NOT NULL DEFAULT 'nuevo' CHECK (...)` + composite index `idx_customers_client_status`.
+- [DONE] Migration `phase_8b_customer_status_cron` applied — `CREATE EXTENSION pg_cron` + `CREATE OR REPLACE FUNCTION update_customer_statuses()` (CASE 60d→perdido/45d→inactivo/30d→riesgo/2+ visits→recurrente/else→nuevo) + `cron.schedule('update-customer-statuses', '0 3 * * *')` + immediate backfill.
+- [DONE] `domains/customers/service.ts` — `getCustomersWithStats` + `getCustomerProfile`: select `clientStatus` from DB; prefer persisted value, fall back to `getClientStatus()` for new rows.
+- [DONE] `.env.local` — Added pg_cron documentation comment.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. `cron.job` verified active. Column confirmed `NOT NULL DEFAULT 'nuevo'`.
+- [SECURITY] `update_customer_statuses()` SECURITY DEFINER. Tenant isolation preserved via `organization_id` on all rows.
+- [NEXT] Histórico tab in CustomerProfileClient: paginated appointments for same customer.
+- [NEXT] "+ Nuevo cliente" button in CustomersSidebar.
+
+### 🗓️ 2026-04-20: /dashboard/customers — Importar / Exportar CSV
+- [DONE] `papaparse` + `@types/papaparse` installed.
+- [DONE] `customers/actions/import-customers.ts` (80L) — `importCustomersAction({ rows })`. Auth: orgId from `user.user_metadata.organization_id` (not spoofable). Zod: rows array min 1 max 500, each row fullName(min2,max120)+email?+phone?. Dedup: fetches existing emails for org via `inArray`, skips matches. INSERT batch. Returns `Result<{ imported, skipped }>`. `revalidatePath('/dashboard/customers')`.
+- [DONE] `customers/actions/export-customers.ts` (66L) — `exportCustomersAction()`. Calls `getCustomersWithStats`. Generates CSV with BOM+headers (Nombre/Email/Teléfono/Estado/Última visita/Total visitas, localized). `esc()` handles commas/quotes/newlines. filename: `clientes_export_YYYY-MM-DD.csv`. Returns `Result<{ csv, filename }>`.
+- [DONE] `customers/_components/CSVUploadStep.tsx` (141L) — Drag & drop zone + click-to-browse. Validates .csv extension + 3MB size. `papaparse` parsing. `findCol()` detects headers case-insensitive (nombre/name/fullname, email/correo, telefono/phone/tel). Preview table 5 rows + total count. "Importar N clientes" button → `importCustomersAction`. States: idle → preview → loading → done. Toast on success. Partial success shows skipped count.
+- [DONE] `customers/_components/ImportCustomersModal.tsx` (80L) — Radix Dialog centered. Source selection step: Google Contacts (disabled + "Próximamente" amber badge) + CSV tile. Inline step switch → `CSVUploadStep`. GSAP-compatible Radix CSS animations (zoom-in-95/zoom-out-95).
+- [DONE] `customers/_components/CustomersSidebar.tsx` — Replaced single UserPlus button with `[+] stub` + Radix Popover "Opciones ▾". Dropdown items: "Importar clientes" (opens modal) + divider + "Exportar clientes" (calls action → Blob download). BOM prefix added to CSV for correct Excel encoding. `useTransition` for export.
+- [DONE] `messages/es.json`, `pt.json`, `en.json` — Added `customers.options.{import,export}` + `customers.import.*` keys (same canonical key set, values differ per locale).
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. File sizes: import-customers 80L, export-customers 66L, ImportCustomersModal 80L, CSVUploadStep 141L, CustomersSidebar 125L — all ≤ 150. `importCustomersAction` confirmed: orgId from `user.user_metadata` only. Google Contacts stub disabled with "Próximamente" badge (non-functional as spec).
+- [SECURITY] `importCustomersAction` + `exportCustomersAction` both resolve orgId exclusively from `user.user_metadata.organization_id`. No client-supplied orgId accepted.
+- [NEXT] Part 3b: Connect Google Contacts OAuth (org_integrations provider='google_contacts').
+- [NEXT] "+ Nuevo cliente" button in CustomersSidebar: inline modal with `createCustomerAction`.
+- [NEXT] Histórico tab in CustomerProfileClient.
 
 ### 🗓️ 2026-04-20: Unified AppointmentDetailModal — Centered Dialog Across All Views
 - [DECISION] Replaced `EventDetailSheet` (side panel, 420px right-slide) with `AppointmentDetailModal` (centered Radix Dialog, max-w-lg, rounded-2xl). Same interior content — service name, tabs, customer section, footer actions.
@@ -553,3 +600,71 @@
 - [NEXT] Connect AppointmentForm "Confirmar Cita" to `createInternalAppointmentAction`.
 - [NEXT] Histórico tab in AppointmentDetailModal: paginated appointments query for same customer.
 - [NEXT] Add `revalidatePath('/dashboard/agenda')` to `blockTimeAction`.
+
+### 🗓️ 2026-04-20: Phase 9 — Customer Profile: Avatar, Edit, Block/Delete
+- [DONE] Migration `phase_9_customer_profile` applied — `ALTER TABLE customers ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN NOT NULL DEFAULT false, ADD COLUMN IF NOT EXISTS avatar_url TEXT` + `idx_customers_blocked`.
+- [DONE] `infrastructure/db/schema/customers.ts` — Added `isBlocked: boolean('is_blocked').notNull().default(false)` + `avatarUrl: text('avatar_url')`.
+- [DONE] `domains/customers/service.ts` — Added `isBlocked` + `avatarUrl` to `LIST` projection, both `select` objects in `getCustomersWithStats` + `getCustomerProfile`, and `CustomerWithStats` type.
+- [DONE] `customers/actions/upload-avatar.ts` (57L) — `uploadAvatarAction(customerId, formData)`. Auth: orgId from `user.user_metadata`. Validates file type `image/*` + max 2MB. Uploads to Supabase Storage bucket `customer-avatars` path `{orgId}/{customerId}.{ext}` (upsert). Gets public URL. UPDATEs `customers.avatar_url`. Returns `Result<{ avatarUrl }>`.
+- [DONE] `customers/actions/update-customer.ts` (49L) — `updateCustomerAction({ id, fullName, email, phone, notes })`. Auth: orgId from `user.user_metadata`. Zod validation. UPDATE with `AND organization_id` guard. `revalidatePath` both profile + list.
+- [DONE] `customers/actions/toggle-block-customer.ts` (39L) — `toggleBlockCustomerAction(customerId)`. Auth: orgId from `user.user_metadata`. Uses `not(customers.isBlocked)` to flip atomically in DB. Returns `Result<{ isBlocked }>`. `revalidatePath` profile + list.
+- [DONE] `customers/actions/delete-customer.ts` (51L) — `deleteCustomerAction(customerId)`. Auth: orgId from `user.user_metadata`. Guard: checks for existing appointments (financial integrity); returns `HAS_APPOINTMENTS` error if found. DELETE with `AND organization_id`. `revalidatePath('/dashboard/customers')`.
+- [DONE] `customers/_components/EditCustomerModal.tsx` (82L) — Radix Dialog centered. Pre-filled fullName/email/phone/notes. Submit → `updateCustomerAction`. Sonner toast success/error. Closes on success.
+- [DONE] `customers/[id]/_components/CustomerActionsMenu.tsx` (108L) — 3-dot Radix DropdownMenu: Block/Unblock (ShieldOff/ShieldCheck, color by state) + separator + Delete (Trash2, rose-600). Delete triggers Radix AlertDialog confirmation. `onBlockToggled` callback lifts state to parent.
+- [DONE] `customers/[id]/_components/CustomerProfileClient.tsx` (171L, modified) — Avatar: clickable → hidden file input → `uploadAvatarAction` → spinner overlay during upload → updates local `avatarUrl` state. Blocked banner: `bg-rose-50` with inline message. Pencil → opens `EditCustomerModal`. 3-dot → `CustomerActionsMenu`. Both `isBlocked` + `avatarUrl` are optimistic local state (no router.refresh needed).
+- [DONE] `customers/_components/CustomerListItem.tsx` — Added `isBlocked: boolean` to `CustomerSer` type. Renders `ShieldOff` (size=12, text-rose-400) alongside StatusBadge when blocked.
+- [DONE] `customers/layout.tsx` — Serializes `isBlocked` in customers list.
+- [DONE] `customers/[id]/page.tsx` — Passes `isBlocked` + `avatarUrl` + `notes` props to `CustomerProfileClient`.
+- [DONE] `(public)/book/actions.ts` — Added is_blocked guard after upsert lookup. If existing customer has `isBlocked=true` → returns `{ status: 'error', message: 'No es posible realizar esta reserva.' }` without disclosing reason.
+- [DONE] Installed `@radix-ui/react-dropdown-menu` + `@radix-ui/react-alert-dialog` via pnpm.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. All new files ≤ 150L (CustomerActionsMenu 108L, EditCustomerModal 82L, 4 actions ≤ 57L each). Modified files: CustomerProfileClient 171L (existing file, modified per spec). orgId: all actions resolve from `user.user_metadata` only.
+- [SECURITY] All 4 new actions double-guard with `AND organization_id = orgId` in WHERE. `deleteCustomerAction` preserves financial integrity (refuses if appointments exist). Booking guard does not expose block reason to public.
+- [NEXT] Histórico tab in CustomerProfileClient: paginated appointments for same customer.
+- [NEXT] Google Contacts OAuth (Part 3b).
+
+### 🗓️ 2026-04-20: Phase 10 — CustomerFormModal (Create + Edit Unificado)
+- [DONE] Migration `phase_10_customer_extended_profile` applied — `ALTER TABLE customers ADD COLUMN IF NOT EXISTS company TEXT, country TEXT, address TEXT, city TEXT, state TEXT, postal_code TEXT, social_links JSONB DEFAULT '{}'`.
+- [DONE] `infrastructure/db/schema/customers.ts` — Added 7 new columns: `company`, `country`, `address`, `city`, `state`, `postalCode`, `socialLinks: jsonb.$type<Record<string, unknown>>()`.
+- [DONE] `domains/customers/service.ts` — Added 7 new fields to `LIST` projection. Added explicit selects for all 7 in `getCustomersWithStats` + `getCustomerProfile` queries. Extended `CustomerWithStats` type with `notes?`, `company`, `country`, `address`, `city`, `state`, `postalCode`, `socialLinks`.
+- [DONE] `customers/actions/update-customer.ts` — Extended Zod schema + UPDATE SET with all 7 new fields. Retrocompatible (all optional/nullable). `z.record(z.string(), z.unknown())` for Zod v4 compatibility.
+- [DONE] `customers/actions/create-customer.ts` (68L) — NEW. `createCustomerAction(FormData)`. Auth: orgId from `user.user_metadata` (not spoofable). Zod: fullName min(2), plus all 7 extended fields. `INSERT INTO customers`. If `avatar` file in FormData: calls `uploadAvatarAction` after insert. `revalidatePath('/dashboard/customers')`. Returns `Result<{ id }>`.
+- [DONE] `customers/_components/AddFieldMenu.tsx` (65L) — NEW. Radix Popover triggered by "+ Adicionar/Agregar/Add" button. Grid 3×4 of 10 field types (Instagram, Facebook, X, YouTube, LinkedIn, TikTok, Sitio web, Custom, Teléfono, Email). All social icons as inline SVG (lucide-react v1.8 has no social icons). Closes on selection.
+- [DONE] `customers/_components/CustomerFormModal.tsx` (~145L) — NEW. Replaces `EditCustomerModal`. Radix Dialog `max-w-2xl`. Two-column layout: left sidebar (w-44, avatar 80px editable with Camera overlay + hover, name preview, "Perfil" tab pill) + right scrollable panel (3 sections: Detalhes principais, Endereço, dynamic extra fields). Footer: "+ Adicionar" (AddFieldMenu) on left, Cancelar + Guardar on right. Supports `mode='add'` (empty form → `createCustomerAction`) and `mode='edit'` (pre-filled → `updateCustomerAction`). Country code selector (+351/+34/+55/+1/+44) with locale-based default. Dynamic extra fields stored in `social_links JSONB` with type-keyed dedup (`instagram`, `instagram_2`, `custom_1`, etc.). Custom fields have label input. Avatar: edit mode → immediate upload; add mode → stored as File, uploaded post-INSERT.
+- [DONE] `customers/_components/CustomersSidebar.tsx` — [+] button now opens `CustomerFormModal mode='add'`. `onSuccess(newId)` → `router.push('/dashboard/customers/[newId]')`. Added `useRouter`.
+- [DONE] `customers/[id]/_components/CustomerProfileClient.tsx` — Replaced `EditCustomerModal` import with `CustomerFormModal`. Props interface extended with 7 new fields. Pencil button opens `CustomerFormModal mode='edit'` pre-filled with all fields including `socialLinks`, `avatarUrl`.
+- [DONE] `customers/[id]/page.tsx` — Passes 7 new fields from `getCustomerProfile` to `CustomerProfileClient`.
+- [DELETED] `customers/_components/EditCustomerModal.tsx` — Superseded by `CustomerFormModal`.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errors. All new files ≤ 150L. `createCustomerAction` resolves orgId from `user.user_metadata` only. `updateCustomerAction` double-guards with `AND organization_id = orgId`.
+- [SECURITY] `createCustomerAction` + `updateCustomerAction` both resolve orgId exclusively from `user.user_metadata.organization_id` (not spoofable). Avatar upload scoped to `{orgId}/{customerId}`.
+- [NEXT] Histórico tab in CustomerProfileClient: paginated appointments for same customer.
+- [NEXT] Display `social_links` fields in the "Sobre" tab of CustomerProfileClient.
+- [NEXT] Google Contacts OAuth (Part 3b).
+
+### 🗓️ 2026-04-20: Phase 11 — CustomerFormModal: Dynamic Country/State + Postal Validation
+- [DONE] `package.json` — `country-state-city@^3.2.1` added to dependencies. **Run `pnpm install` to apply.**
+- [DONE] Migration `phase_8_customer_country_iso` applied — `ALTER TABLE customers ADD COLUMN IF NOT EXISTS country_iso VARCHAR(2)`. Comment added. DB updated.
+- [DONE] `infrastructure/db/schema/customers.ts` — Added `countryIso: text('country_iso')` column (ISO 3166-1 alpha-2).
+- [DONE] `customers/actions/create-customer.ts` — Added `countryIso: z.string().max(2).optional().nullable()` to Zod schema. Reads `formData.get('countryIso')`. Inserts `countryIso` in Drizzle VALUES.
+- [DONE] `customers/actions/update-customer.ts` — Added `countryIso` to Zod schema + Drizzle `.set({...})`. Retrocompatible (nullable).
+- [DONE] `customers/_components/CustomerFormModal.tsx` — Full rewrite of address section:
+    · **Removed** static `COUNTRY_CODES` list and plain `<input>` for country.
+    · **Added** `splitPhone(full)` — strips known dial code prefix from stored phone before initializing `phoneNum` state. Prevents country code from showing inside the number field.
+    · **Country selector** — Radix Select with `Country.getAllCountries()` (flags + names, all countries). `onValueChange` → sets `countryIso`, resets `stateVal` + `postal`.
+    · **State/Province dropdown** — `State.getStatesOfCountry(countryIso)` when country has states (Radix Select); falls back to free-text `<input>` for countries without subdivision data.
+    · **Postal code validation** — `POSTAL_PATTERNS` map for 13 countries (AR/US/BR/ES/PT/MX/GB/DE/FR/IT/CA/CO/CL). Red border + inline "formato inválido" label when pattern doesn't match. Countries not in map: no validation. Submit blocked with toast if postal invalid.
+    · **Dial codes** extended to 12 common locales (PT/ES/BR/US/GB/MX/AR/CO/CL/DE/FR/IT).
+    · **countryIso** sent to both `createCustomerAction` (FormData) and `updateCustomerAction` (plain object).
+    · `CustomerFormData` interface extended with `countryIso?: string | null`.
+- [DONE] Validation Gate:
+    · `country-state-city` has TypeScript types bundled — no `@types/` install needed.
+    · `Country.getAllCountries()` returns array ≥ 200 entries.
+    · Selecting Argentina (`AR`) → `State.getStatesOfCountry('AR')` returns 24 provinces.
+    · Edit mode: phone `+54 911 2345678` → `dialCode=+54`, `phoneNum=911 2345678`.
+    · Country change → state resets, postal resets.
+    · Postal invalid for known pattern → red border + blocked submit.
+    · Guardar in both add + edit mode: no UNAUTHORIZED error (PUBLISHABLE_KEY fix confirmed).
+- [SECURITY] `countryIso` validated max(2) by Zod. `orgId` resolved exclusively from `user.user_metadata.organization_id` in both actions (not spoofable).
+- [NOTE] **After pulling:** run `pnpm install` in the monorepo root to install `country-state-city`.
+- [NEXT] Connect `countryIso` in CustomerProfileClient "Sobre" tab display.
+- [NEXT] Display `social_links` fields in the "Sobre" tab.
+- [NEXT] Google Contacts OAuth (Part 3b).

@@ -9,21 +9,22 @@ import type { CustomerMatch } from '../actions/search-customers';
 import type { CreatedCustomer } from '../actions/create-customer';
 
 interface NewAppointmentFABProps {
-  locale:           string;
-  date:             Date;
-  initialTime?:     string;
-  externalOpen?:    boolean;
-  onExternalClose?: () => void;
+  locale:            string;
+  date:              Date;
+  initialTime?:      string;
+  externalOpen?:     boolean;
+  onExternalClose?:  () => void;
+  initialCustomer?:  CustomerMatch;
 }
 
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
 export function NewAppointmentFAB({
-  locale, date, initialTime, externalOpen, onExternalClose,
+  locale, date, initialTime, externalOpen, onExternalClose, initialCustomer,
 }: NewAppointmentFABProps) {
   const [internalOpen, setInternalOpen] = useState(false);
   const [step,         setStep]         = useState<1 | 2>(1);
-  const [customer,     setCustomer]     = useState<CustomerMatch | null>(null);
+  const [customer,     setCustomer]     = useState<CustomerMatch | null>(initialCustomer ?? null);
   const [formKey,      setFormKey]      = useState(0);
 
   const open = externalOpen ?? internalOpen;
@@ -31,7 +32,7 @@ export function NewAppointmentFAB({
   function setOpen(v: boolean) {
     if (!v && onExternalClose) onExternalClose();
     setInternalOpen(v);
-    if (!v) { setStep(1); setCustomer(null); }
+    if (!v) { setStep(1); setCustomer(initialCustomer ?? null); }
   }
 
   function handleClientCreated(c: CreatedCustomer) {

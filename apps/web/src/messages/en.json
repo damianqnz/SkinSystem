@@ -28,5 +28,36 @@
         "other": "Event"
       }
     }
+  },
+  "customers": {
+    "status": {
+      "nuevo": "New",
+      "recurrente": "Returning",
+      "riesgo": "At Risk",
+      "inactivo": "Inactive",
+      "perdido": "Lost"
+    },
+    "options": {
+      "import": "Import clients",
+      "export": "Export clients"
+    },
+    "import": {
+      "title": "Let's import your clients",
+      "subtitle": "Choose how you want to import your contact list.",
+      "googleContacts": "Google Contacts",
+      "googleDesc": "Import directly with no limits",
+      "comingSoon": "Coming soon",
+      "csvFile": "CSV File",
+      "csvDesc": "Upload a .csv file (max 3 MB)",
+      "dropzone": "Drag CSV here or click to browse",
+      "sizeError": "File exceeds 3 MB",
+      "preview": "Preview — first 5 rows",
+      "importBtn": "Import {count} clients",
+      "importing": "Importing...",
+      "success": "{count} clients imported successfully",
+      "partial": "{imported} imported, {skipped} skipped",
+      "close": "Close",
+      "back": "Back"
+    }
   }
 }

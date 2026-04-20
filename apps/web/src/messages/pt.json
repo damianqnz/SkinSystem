@@ -28,5 +28,36 @@
         "other": "Evento"
       }
     }
+  },
+  "customers": {
+    "status": {
+      "nuevo": "Novo",
+      "recurrente": "Recorrente",
+      "riesgo": "Risco de fuga",
+      "inactivo": "Inativo",
+      "perdido": "Perdido"
+    },
+    "options": {
+      "import": "Importar clientes",
+      "export": "Exportar clientes"
+    },
+    "import": {
+      "title": "Vamos importar os seus clientes?",
+      "subtitle": "Escolha como quer importar a sua lista de contactos.",
+      "googleContacts": "Google Contacts",
+      "googleDesc": "Importe diretamente sem limites",
+      "comingSoon": "Em breve",
+      "csvFile": "Ficheiro CSV",
+      "csvDesc": "Carregue um ficheiro .csv (máx. 3 MB)",
+      "dropzone": "Arraste o CSV aqui ou clique para selecionar",
+      "sizeError": "O ficheiro excede 3 MB",
+      "preview": "Pré-visualização — primeiras 5 filas",
+      "importBtn": "Importar {count} clientes",
+      "importing": "Importando...",
+      "success": "{count} clientes importados com sucesso",
+      "partial": "{imported} importados, {skipped} ignorados",
+      "close": "Fechar",
+      "back": "Voltar"
+    }
   }
 }
