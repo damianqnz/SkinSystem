@@ -129,7 +129,7 @@ export function CustomersSidebar({ customers, locale }: Props) {
         open={addOpen}
         onClose={() => setAddOpen(false)}
         locale={locale}
-        onSuccess={(newId) => router.push(`/dashboard/customers/${newId}`)}
+        onSuccess={(newId) => { router.push(`/dashboard/customers/${newId}`); router.refresh(); }}
       />
     </div>
   );

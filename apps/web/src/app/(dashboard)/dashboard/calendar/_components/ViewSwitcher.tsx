@@ -68,13 +68,8 @@ export function ViewSwitcher({ current, locale = 'es' }: ViewSwitcherProps) {
     const sp = new URLSearchParams(Array.from(params.entries()));
     sp.set('view', next);
     
-    // Routing logic based on view
-    let targetPath = pathname;
-    if (next === 'month' || next === 'team') {
-      targetPath = '/dashboard/agenda';
-    } else if (next === 'day' || next === 'week') {
-      targetPath = '/calendar';
-    }
+    // All views live within /dashboard/calendar — only ?view= changes
+    const targetPath = '/dashboard/calendar';
     
     startTransition(() => router.push(`${targetPath}?${sp.toString()}`, { scroll: false }));
   };

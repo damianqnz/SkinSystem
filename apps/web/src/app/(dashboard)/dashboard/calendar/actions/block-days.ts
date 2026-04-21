@@ -105,7 +105,7 @@ export async function blockDaysAction(
       })),
     );
 
-    revalidatePath('/dashboard/agenda');
+    revalidatePath('/dashboard/calendar');
     return { status: 'success', blockedDays: days.length };
 
   } catch {

@@ -103,7 +103,7 @@ export async function blockTimeAction(
       isActive:         true,
     });
 
-    revalidatePath('/calendar');
+    revalidatePath('/dashboard/calendar');
     return { status: 'success' };
 
   } catch {

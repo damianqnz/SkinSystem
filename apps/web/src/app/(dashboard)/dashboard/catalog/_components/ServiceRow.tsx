@@ -1,8 +1,8 @@
 'use client';
 
-import { useActionState, useEffect, useOptimistic } from 'react';
+import { useActionState, useEffect, useOptimistic, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Pencil, Circle } from 'lucide-react';
+import { Pencil, Circle, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { toggleServiceStatusAction } from '../actions';
 import type { CatalogActionState } from '../actions';
@@ -53,8 +53,36 @@ export function ServiceRow({ service, locale, onEdit, index }: ServiceRowProps) 
     (dispatch as (p: unknown) => void)({ id: service.id, isActive: next });
   }
 
-  const name   = resolveI18n(service.nameI18n, locale);
-  const price  = fmtPrice(service.priceCents, service.currency);
+  const handleCopyLink = useCallback(() => {
+    const url = `${window.location.origin}/book?service=${service.id}`;
+
+    // navigator.clipboard requires HTTPS; fall back to execCommand for HTTP (local dev)
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(url)
+        .then(() => toast.success('Link copiado'))
+        .catch(() => toast.error('No se pudo copiar el link'));
+      return;
+    }
+
+    // Fallback: create a temporary textarea and use execCommand
+    const el = document.createElement('textarea');
+    el.value = url;
+    el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+    document.body.appendChild(el);
+    el.focus();
+    el.select();
+    try {
+      document.execCommand('copy');
+      toast.success('Link copiado');
+    } catch {
+      toast.error('No se pudo copiar el link');
+    } finally {
+      document.body.removeChild(el);
+    }
+  }, [service.id]);
+
+  const name  = resolveI18n(service.nameI18n, locale);
+  const price = fmtPrice(service.priceCents, service.currency);
 
   return (
     <motion.tr
@@ -117,7 +145,18 @@ export function ServiceRow({ service, locale, onEdit, index }: ServiceRowProps) 
 
       {/* Actions */}
       <td className="py-3.5 pl-3 pr-4">
-        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* On mobile always visible; on sm+ fades in on row hover */}
+        <div className="flex items-center justify-end gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+          {/* Copy booking link */}
+          <button
+            onClick={handleCopyLink}
+            className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-stone-500 hover:text-amber-700 hover:bg-amber-50 transition-colors"
+            title="Copiar link de reserva"
+          >
+            <Link2 size={11} strokeWidth={1.8} />
+            <span className="hidden md:inline">Copiar link</span>
+          </button>
+
           {/* Toggle */}
           <button
             onClick={handleToggle}

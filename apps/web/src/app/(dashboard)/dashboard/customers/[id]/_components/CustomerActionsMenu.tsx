@@ -57,7 +57,7 @@ export function CustomerActionsMenu({ customerId, fullName, locale, isBlocked, o
     <>
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          <button className="p-2 rounded-md hover:bg-stone-50 text-stone-400 transition-colors" aria-label="Opciones">
+          <button className="p-1.5 rounded-md hover:bg-stone-100 text-stone-400 transition-colors" aria-label="Opciones">
             <MoreHorizontal size={14} strokeWidth={1.5} />
           </button>
         </DropdownMenu.Trigger>

@@ -75,9 +75,9 @@ export async function seedTenantDataAction(): Promise<SeedActionState> {
 
   // 5. Refresh dashboard
   revalidatePath('/dashboard');
-  revalidatePath('/dashboard/agenda');
+  revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard/customers');
-  revalidatePath('/catalog');
+  revalidatePath('/dashboard/catalog');
 
   return { status: 'success', counts: seeded.data, removed: cleared.data.removed };
 }

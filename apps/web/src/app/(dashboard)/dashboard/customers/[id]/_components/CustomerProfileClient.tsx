@@ -1,21 +1,24 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGSAP }   from '@gsap/react';
 import gsap          from 'gsap';
 import * as Tabs     from '@radix-ui/react-tabs';
 import Image         from 'next/image';
-import { Mail, Phone, Calendar, CalendarPlus, Pencil, Stethoscope } from 'lucide-react';
+import { CalendarPlus, Pencil, Stethoscope } from 'lucide-react';
 import Link          from 'next/link';
 import { toast }     from 'sonner';
 import { CustomerStatusBadge }  from '../../_components/CustomerStatusBadge';
 import { CustomerFormModal }    from '../../_components/CustomerFormModal';
 import { CustomerActionsMenu }  from './CustomerActionsMenu';
-import { NewAppointmentFAB }    from '@/app/(dashboard)/calendar/_components/NewAppointmentFAB';
+import { SobreTab }             from './SobreTab';
+import { CompromisosTab }       from './CompromisosTab';
+import { NewAppointmentFAB }    from '@/app/(dashboard)/dashboard/calendar/_components/NewAppointmentFAB';
 import { uploadAvatarAction }   from '../../actions/upload-avatar';
 import { cn }        from '@/shared/lib/utils';
 import type { ClientStatus } from '@/domains/customers/service';
-import type { CustomerMatch } from '@/app/(dashboard)/calendar/actions/search-customers';
+import type { CustomerMatch } from '@/app/(dashboard)/dashboard/calendar/actions/search-customers';
 
 const PALETTES = [
   { bg: '#F5F0E8', fg: '#8B7355' }, { bg: '#EFF6FF', fg: '#3B82F6' },
@@ -41,14 +44,15 @@ interface Props {
   isGuest: boolean; visitCount: number; lastVisitAtIso: string | null;
   status: ClientStatus; createdAtIso: string; locale: string;
   isBlocked: boolean; avatarUrl: string | null; notes: string | null;
-  company?: string | null; country?: string | null; address?: string | null;
-  city?: string | null; state?: string | null; postalCode?: string | null;
-  socialLinks?: Record<string, unknown> | null;
+  company?: string | null; country?: string | null; countryIso?: string | null;
+  address?: string | null; city?: string | null; state?: string | null;
+  postalCode?: string | null; socialLinks?: Record<string, unknown> | null;
 }
 
 const TR = 'px-3 py-2.5 font-sans text-[11px] uppercase tracking-wider border-b-2 border-transparent transition-colors data-[state=active]:border-[#D4AF37] data-[state=active]:text-stone-900 text-stone-400 disabled:opacity-30 disabled:cursor-not-allowed';
 
-export function CustomerProfileClient({ id, fullName, email, phone, isGuest, visitCount, lastVisitAtIso, status, createdAtIso, locale, isBlocked: initialBlocked, avatarUrl: initialAvatarUrl, notes, company, country, address, city, state, postalCode, socialLinks }: Props) {
+export function CustomerProfileClient({ id, fullName, email, phone, isGuest, visitCount, lastVisitAtIso, status, createdAtIso, locale, isBlocked: initialBlocked, avatarUrl: initialAvatarUrl, notes, company, country, countryIso, address, city, state, postalCode, socialLinks }: Props) {
+  const router       = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [fabOpen,       setFabOpen]       = useState(false);
@@ -128,7 +132,7 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
 
           {/* Action buttons */}
           <div className="flex items-center gap-0.5 shrink-0">
-            <button onClick={() => setEditOpen(true)} className="p-2 rounded-md hover:bg-stone-50 text-stone-400 transition-colors" aria-label="Editar">
+            <button onClick={() => setEditOpen(true)} className="p-1.5 rounded-md hover:bg-stone-100 text-stone-400 transition-colors" aria-label="Editar">
               <Pencil size={14} strokeWidth={1.5} />
             </button>
             <CustomerActionsMenu customerId={id} fullName={fullName} locale={locale} isBlocked={isBlocked} onBlockToggled={setIsBlocked} />
@@ -155,16 +159,21 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
         <Tabs.List className="flex border-b border-[var(--color-spa-border)] px-4 shrink-0">
           <Tabs.Trigger value="sobre" className={TR}>{locale === 'pt' ? 'Sobre' : locale === 'en' ? 'About' : 'Sobre'}</Tabs.Trigger>
           <Tabs.Trigger value="notas" className={TR} disabled>{locale === 'pt' ? 'Notas' : 'Notas'}</Tabs.Trigger>
-          <Tabs.Trigger value="compromisos" className={TR} disabled>{locale === 'pt' ? 'Compromissos' : locale === 'en' ? 'Appointments' : 'Compromisos'}</Tabs.Trigger>
+          <Tabs.Trigger value="compromisos" className={TR}>{locale === 'pt' ? 'Compromissos' : locale === 'en' ? 'Appointments' : 'Compromisos'}</Tabs.Trigger>
         </Tabs.List>
-        <Tabs.Content value="sobre" className="flex-1 overflow-y-auto p-6 space-y-4">
-          {email && <div className="flex items-center gap-3"><Mail size={13} strokeWidth={1.5} className="text-stone-400 shrink-0" /><span className="font-sans text-sm text-stone-700">{email}</span></div>}
-          {phone && <div className="flex items-center gap-3"><Phone size={13} strokeWidth={1.5} className="text-stone-400 shrink-0" /><span className="font-sans text-sm text-stone-700">{phone}</span></div>}
-          <div className="flex items-center gap-3"><Calendar size={13} strokeWidth={1.5} className="text-stone-400 shrink-0" /><span className="font-sans text-sm text-stone-500">{locale === 'en' ? 'Member since' : locale === 'pt' ? 'Desde' : 'Alta'} {fmtDate(createdAtIso, locale)}</span></div>
-          {!email && !phone && <p className="font-sans text-sm text-stone-400 italic">{locale === 'pt' ? 'Sem contactos.' : locale === 'en' ? 'No contact info.' : 'Sin datos de contacto.'}</p>}
+        <Tabs.Content value="sobre" className="flex-1 overflow-y-auto p-6">
+          <SobreTab
+            locale={locale} email={email} phone={phone} createdAtIso={createdAtIso}
+            company={company} country={country} address={address} city={city}
+            state={state} postalCode={postalCode} notes={notes} socialLinks={socialLinks}
+          />
         </Tabs.Content>
-        <Tabs.Content value="notas" className="flex-1 p-6"><p className="font-sans text-sm text-stone-400 text-center mt-6">Próximamente.</p></Tabs.Content>
-        <Tabs.Content value="compromisos" className="flex-1 p-6"><p className="font-sans text-sm text-stone-400 text-center mt-6">Próximamente.</p></Tabs.Content>
+        <Tabs.Content value="notas" className="flex-1 p-6">
+          <p className="font-sans text-sm text-stone-400 text-center mt-6">Próximamente.</p>
+        </Tabs.Content>
+        <Tabs.Content value="compromisos" className="flex-1 overflow-y-auto p-6">
+          <CompromisosTab customerId={id} locale={locale} />
+        </Tabs.Content>
       </Tabs.Root>
 
       <NewAppointmentFAB locale={locale} date={new Date()} externalOpen={fabOpen} onExternalClose={() => setFabOpen(false)} initialCustomer={initialCustomer} />
@@ -173,7 +182,7 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
         open={editOpen}
         onClose={() => setEditOpen(false)}
         locale={locale}
-        onSuccess={() => setEditOpen(false)}
+        onSuccess={() => { setEditOpen(false); router.refresh(); }}
         customer={{ id, fullName, email, phone, notes, company, country, address, city, state, postalCode, socialLinks: socialLinks ?? null, avatarUrl: avatarUrl }}
       />
     </div>

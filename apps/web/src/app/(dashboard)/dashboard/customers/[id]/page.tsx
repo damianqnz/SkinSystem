@@ -44,9 +44,10 @@ export default async function CustomerPage({ params }: Props) {
       locale={locale}
       isBlocked={c.isBlocked}
       avatarUrl={c.avatarUrl ?? null}
-      notes={null}
+      notes={c.notes ?? null}
       company={c.company ?? null}
       country={c.country ?? null}
+      countryIso={c.countryIso ?? null}
       address={c.address ?? null}
       city={c.city ?? null}
       state={c.state ?? null}
