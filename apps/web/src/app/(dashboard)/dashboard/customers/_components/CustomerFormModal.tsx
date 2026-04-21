@@ -1,10 +1,11 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
-import * as Dialog from '@radix-ui/react-dialog';
-import * as Select from '@radix-ui/react-select';
+import { useRef, useState, useMemo, useTransition } from 'react';
+import * as Dialog  from '@radix-ui/react-dialog';
+import * as Select  from '@radix-ui/react-select';
+import * as Popover from '@radix-ui/react-popover';
 import Image        from 'next/image';
-import { X, Camera, ChevronDown, Check } from 'lucide-react';
+import { X, Camera, ChevronDown, Check, Search } from 'lucide-react';
 import { Country, State } from 'country-state-city';
 import { toast }    from 'sonner';
 import { AddFieldMenu, type FieldType } from './AddFieldMenu';
@@ -14,9 +15,9 @@ import { uploadAvatarAction }    from '../actions/upload-avatar';
 
 // ── i18n ────────────────────────────────────────────────────────
 const L = {
-  es: { addTitle: 'Nuevo cliente', editTitle: 'Editar cliente', save: 'Guardar', saving: 'Guardando…', cancel: 'Cancelar', profile: 'Perfil', mainDetails: 'Detalles principales', address: 'Dirección', fullName: 'Nombre completo', phone: 'Teléfono primario', email: 'Email principal', company: 'Empresa (opcional)', country: 'País', selectCountry: 'Seleccionar país', street: 'Dirección (calle, piso)', city: 'Ciudad', state: 'Estado / Provincia', selectState: 'Seleccionar provincia', postal: 'Código postal', successAdd: 'Cliente creado', successEdit: 'Cliente actualizado' },
-  pt: { addTitle: 'Novo cliente',   editTitle: 'Editar cliente', save: 'Guardar', saving: 'Guardando…', cancel: 'Cancelar', profile: 'Perfil', mainDetails: 'Detalhes principais', address: 'Endereço', fullName: 'Nome completo', phone: 'Telefone primário', email: 'Email principal', company: 'Empresa (opcional)', country: 'País', selectCountry: 'Selecionar país', street: 'Endereço (rua, apt)', city: 'Cidade', state: 'Estado / Província', selectState: 'Selecionar estado', postal: 'Código postal', successAdd: 'Cliente criado', successEdit: 'Cliente atualizado' },
-  en: { addTitle: 'New client',     editTitle: 'Edit client',   save: 'Save',    saving: 'Saving…',     cancel: 'Cancel',   profile: 'Profile', mainDetails: 'Main details',      address: 'Address',   fullName: 'Full name',     phone: 'Primary phone',   email: 'Primary email', company: 'Company (optional)', country: 'Country', selectCountry: 'Select country', street: 'Address (street, apt)', city: 'City', state: 'State / Province', selectState: 'Select state', postal: 'Postal code', successAdd: 'Client created', successEdit: 'Client updated' },
+  es: { addTitle: 'Nuevo cliente', editTitle: 'Editar cliente', save: 'Guardar', saving: 'Guardando…', cancel: 'Cancelar', profile: 'Perfil', mainDetails: 'Detalles principales', address: 'Dirección', fullName: 'Nombre completo', phone: 'Teléfono primario', email: 'Email principal', company: 'Empresa (opcional)', country: 'País', selectCountry: 'Seleccionar país', searchCountry: 'Buscar país…', street: 'Dirección (calle, piso)', city: 'Ciudad', state: 'Estado / Provincia', selectState: 'Seleccionar provincia', postal: 'Código postal', successAdd: 'Cliente creado', successEdit: 'Cliente actualizado' },
+  pt: { addTitle: 'Novo cliente',   editTitle: 'Editar cliente', save: 'Guardar', saving: 'Guardando…', cancel: 'Cancelar', profile: 'Perfil', mainDetails: 'Detalhes principais', address: 'Endereço', fullName: 'Nome completo', phone: 'Telefone primário', email: 'Email principal', company: 'Empresa (opcional)', country: 'País', selectCountry: 'Selecionar país', searchCountry: 'Procurar país…', street: 'Endereço (rua, apt)', city: 'Cidade', state: 'Estado / Província', selectState: 'Selecionar estado', postal: 'Código postal', successAdd: 'Cliente criado', successEdit: 'Cliente atualizado' },
+  en: { addTitle: 'New client',     editTitle: 'Edit client',   save: 'Save',    saving: 'Saving…',     cancel: 'Cancel',   profile: 'Profile', mainDetails: 'Main details',      address: 'Address',   fullName: 'Full name',     phone: 'Primary phone',   email: 'Primary email', company: 'Company (optional)', country: 'Country', selectCountry: 'Select country', searchCountry: 'Search country…', street: 'Address (street, apt)', city: 'City', state: 'State / Province', selectState: 'Select state', postal: 'Postal code', successAdd: 'Client created', successEdit: 'Client updated' },
 };
 
 // ── Avatar palette ───────────────────────────────────────────────
@@ -170,12 +171,21 @@ export function CustomerFormModal(props: Props) {
   const [menuOpen,     setMenuOpen]    = useState(false);
   const [pending,      startSave]      = useTransition();
 
+  // ── Country search state ─────────────────────────────────────────
+  const [countrySearch, setCountrySearch] = useState('');
+  const [countryOpen,   setCountryOpen]   = useState(false);
+
   // ── Derived data ─────────────────────────────────────────────────
   const pal              = avatarPalette(fullName || 'A');
   const displayAvatarUrl = avatarPreview ?? avatarUrl;
   const allCountries     = Country.getAllCountries();
   const selectedCountry  = countryIso ? Country.getCountryByCode(countryIso) : null;
   const states           = countryIso ? State.getStatesOfCountry(countryIso) : [];
+  const filteredCountries = useMemo(() => {
+    const q = countrySearch.trim().toLowerCase();
+    if (!q) return allCountries;
+    return allCountries.filter(c => c.name.toLowerCase().includes(q));
+  }, [allCountries, countrySearch]);
   const postalMeta       = countryIso ? POSTAL_PATTERNS[countryIso] : undefined;
   const postalInvalid    = !!postalMeta && !!postal && !postalMeta.pattern.test(postal);
 
@@ -344,29 +354,55 @@ export function CustomerFormModal(props: Props) {
                 <p className={SECTION_TITLE}>{t.address}</p>
                 <div className="space-y-3">
 
-                  {/* Country — Radix Select with all countries */}
+                  {/* Country — Popover with search input */}
                   <div>
                     <label className={LABEL}>{t.country}</label>
-                    <Select.Root value={countryIso} onValueChange={handleCountryChange}>
-                      <Select.Trigger className={SELECT_TRIGGER}>
-                        <Select.Value placeholder={t.selectCountry}>
-                          {selectedCountry ? `${selectedCountry.flag} ${selectedCountry.name}` : undefined}
-                        </Select.Value>
-                        <Select.Icon><ChevronDown size={14} strokeWidth={1.5} className="text-stone-400" /></Select.Icon>
-                      </Select.Trigger>
-                      <Select.Portal>
-                        <Select.Content className={SELECT_CONTENT} position="popper" sideOffset={4}>
-                          <Select.Viewport>
-                            {allCountries.map(c => (
-                              <Select.Item key={c.isoCode} value={c.isoCode} className={SELECT_ITEM}>
-                                <Select.ItemIndicator><Check size={12} className="text-stone-500" /></Select.ItemIndicator>
-                                <Select.ItemText>{c.flag} {c.name}</Select.ItemText>
-                              </Select.Item>
+                    <Popover.Root open={countryOpen} onOpenChange={(v) => { setCountryOpen(v); if (!v) setCountrySearch(''); }}>
+                      <Popover.Trigger asChild>
+                        <button type="button" className={`${SELECT_TRIGGER} justify-between`}>
+                          <span className={selectedCountry ? 'text-stone-800' : 'text-stone-400'}>
+                            {selectedCountry ? `${selectedCountry.flag} ${selectedCountry.name}` : t.selectCountry}
+                          </span>
+                          <ChevronDown size={14} strokeWidth={1.5} className={`text-stone-400 transition-transform duration-150 ${countryOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                      </Popover.Trigger>
+                      <Popover.Portal>
+                        <Popover.Content
+                          className="z-[200] w-[var(--radix-popover-trigger-width)] bg-white border border-stone-200 rounded-sm shadow-lg"
+                          sideOffset={4} align="start"
+                          onOpenAutoFocus={(e) => e.preventDefault()}>
+                          {/* Search */}
+                          <div className="p-2 border-b border-stone-100">
+                            <div className="relative">
+                              <Search size={12} strokeWidth={1.5} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                              <input
+                                autoFocus
+                                value={countrySearch}
+                                onChange={e => setCountrySearch(e.target.value)}
+                                placeholder={t.searchCountry}
+                                className="w-full pl-7 pr-2 py-1.5 font-sans text-sm bg-stone-50 border border-stone-200 rounded-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-stone-400 transition-colors"
+                              />
+                            </div>
+                          </div>
+                          {/* List */}
+                          <div className="max-h-52 overflow-y-auto">
+                            {filteredCountries.length === 0 ? (
+                              <p className="px-3 py-4 text-center font-sans text-sm text-stone-400">Sin resultados</p>
+                            ) : filteredCountries.map(c => (
+                              <button
+                                type="button"
+                                key={c.isoCode}
+                                onClick={() => { handleCountryChange(c.isoCode); setCountrySearch(''); setCountryOpen(false); }}
+                                className={`w-full text-left flex items-center gap-2 px-3 py-1.5 font-sans text-sm transition-colors hover:bg-stone-50 ${countryIso === c.isoCode ? 'bg-stone-50 font-medium text-stone-900' : 'text-stone-700'}`}>
+                                <span className="text-base leading-none shrink-0">{c.flag}</span>
+                                <span className="truncate">{c.name}</span>
+                                {countryIso === c.isoCode && <Check size={12} className="ml-auto text-stone-500 shrink-0" />}
+                              </button>
                             ))}
-                          </Select.Viewport>
-                        </Select.Content>
-                      </Select.Portal>
-                    </Select.Root>
+                          </div>
+                        </Popover.Content>
+                      </Popover.Portal>
+                    </Popover.Root>
                   </div>
 
                   <div>

@@ -10,7 +10,7 @@ import {
   cancelAppointmentAction,
   getAppointmentDetailAction,
   restoreAppointmentAction,
-} from '@/app/(dashboard)/dashboard/agenda/actions';
+} from '@/app/(dashboard)/dashboard/calendar/actions';
 import type { AppointmentFull } from '@/domains/booking/service';
 
 // ── Status data ────────────────────────────────────────────────

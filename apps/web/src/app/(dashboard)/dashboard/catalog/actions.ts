@@ -49,7 +49,7 @@ export async function createCategoryAction(
   const result = await createCategory(parsed.data);
   if (result.error) return { status: 'error', message: result.error.message };
 
-  revalidatePath('/catalog');
+  revalidatePath('/dashboard/catalog');
   return { status: 'success', id: result.data.id, message: 'Categoría creada' };
 }
 
@@ -75,7 +75,7 @@ export async function updateCategoryAction(
   const result = await updateCategory(id, auth.orgId, patch);
   if (result.error) return { status: 'error', message: result.error.message };
 
-  revalidatePath('/catalog');
+  revalidatePath('/dashboard/catalog');
   return { status: 'success', id: result.data.id, message: 'Categoría actualizada' };
 }
 
@@ -96,7 +96,7 @@ export async function createServiceAction(
   const result = await createService(parsed.data);
   if (result.error) return { status: 'error', message: result.error.message };
 
-  revalidatePath('/catalog');
+  revalidatePath('/dashboard/catalog');
   return { status: 'success', id: result.data.id, message: 'Servicio creado' };
 }
 
@@ -117,7 +117,7 @@ export async function updateServiceAction(
   const result = await updateService(id, auth.orgId, patch);
   if (result.error) return { status: 'error', message: result.error.message };
 
-  revalidatePath('/catalog');
+  revalidatePath('/dashboard/catalog');
   return { status: 'success', id: result.data.id, message: 'Servicio actualizado' };
 }
 
@@ -136,7 +136,7 @@ export async function toggleServiceStatusAction(
   const result = await toggleServiceStatus(parsed.data.id, auth.orgId, parsed.data.isActive);
   if (result.error) return { status: 'error', message: result.error.message };
 
-  revalidatePath('/catalog');
+  revalidatePath('/dashboard/catalog');
   const label = parsed.data.isActive ? 'activado' : 'desactivado';
   return { status: 'success', id: result.data.id, message: `Servicio ${label}` };
 }

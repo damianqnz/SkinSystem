@@ -5,7 +5,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { Lock, CalendarPlus, X, AlertCircle } from 'lucide-react';
-import { BlockTimeForm } from '@/app/(dashboard)/calendar/_components/BlockTimeForm';
+import { BlockTimeForm } from '@/app/(dashboard)/dashboard/calendar/_components/BlockTimeForm';
 
 gsap.registerPlugin(useGSAP);
 

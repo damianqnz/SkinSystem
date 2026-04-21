@@ -117,7 +117,7 @@ export async function createBlockedIntervalAction(
 
   if (result.error) return { status: 'error', message: result.error.message };
 
-  revalidatePath('/dashboard/agenda');
+  revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard/calendar');
   return { status: 'success', id: result.data.id, message: 'Período bloqueado' };
 }
@@ -189,7 +189,7 @@ export async function createInternalAppointmentAction(
       eq(appointments.organizationId, auth.orgId),
     ));
 
-  revalidatePath('/dashboard/agenda');
+  revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard');
   return { status: 'success', id: result.data.id, message: 'Marcação criada' };
@@ -217,7 +217,7 @@ export async function cancelAppointmentAction(raw: unknown): Promise<CancelActio
   const result = await cancelAppointment(auth.orgId, parsed.data.appointmentId);
   if (result.error) return { ok: false, message: result.error.message };
 
-  revalidatePath('/dashboard/agenda');
+  revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard');
   return { ok: true, previousStatus };
 }
@@ -237,7 +237,7 @@ export async function restoreAppointmentAction(raw: unknown): Promise<ActionStat
   const result = await restoreAppointmentStatus(auth.orgId, parsed.data.appointmentId, parsed.data.status);
   if (result.error) return { status: 'error', message: result.error.message };
 
-  revalidatePath('/dashboard/agenda');
+  revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard');
   return { status: 'success', id: result.data.id };
 }

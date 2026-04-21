@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MonthView, type SerializedEvent }          from './MonthView';
 import { MonthActionModal }                          from './MonthActionModal';
-import { NewAppointmentFAB }                         from '@/app/(dashboard)/calendar/_components/NewAppointmentFAB';
+import { NewAppointmentFAB }                         from './NewAppointmentFAB';
 import { AppointmentDetailModal }                    from '@/shared/components/booking/AppointmentDetailModal';
 
 // ── Types ──────────────────────────────────────────────────────

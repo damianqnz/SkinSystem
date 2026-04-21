@@ -7,7 +7,7 @@ import { toast } from 'sonner';
 import { ClientSearchField }                  from './ClientSearchField';
 import { getServicesAction }                  from '../actions/get-services';
 import { getAvailableTimesAction }            from '../actions/get-available-times';
-import { createInternalAppointmentAction }    from '@/app/(dashboard)/dashboard/agenda/actions';
+import { createInternalAppointmentAction }    from '@/app/(dashboard)/dashboard/calendar/actions';
 import type { CustomerMatch }                 from '../actions/search-customers';
 import type { ServiceOption }                 from '../actions/get-services';
 
