@@ -668,3 +668,98 @@
 - [NEXT] Connect `countryIso` in CustomerProfileClient "Sobre" tab display.
 - [NEXT] Display `social_links` fields in the "Sobre" tab.
 - [NEXT] Google Contacts OAuth (Part 3b).
+
+### 🗓️ 2026-04-20: Phase 11b — CustomerFormModal UX Fixes
+- [DONE] `CustomerFormModal.tsx` — Country selector replaced Radix Select with Popover + search input. `useMemo` filters `Country.getAllCountries()` on `countrySearch` state. `autoFocus` on search input when popover opens. Clears search on close. Shows "Sin resultados" when no match. Selected country shows checkmark + highlight.
+- [DONE] `CustomerProfileClient.tsx` — Added `useRouter`. `onSuccess` now calls `router.refresh()` after closing the modal so the profile panel reflects saved data immediately (email, phone, company, etc. in "Sobre" tab).
+- [DONE] `CustomersSidebar.tsx` — `onSuccess` after new customer creation now calls `router.refresh()` so the sidebar list updates with the new customer.
+- [DONE] `CustomerProfileClient.tsx` + `CustomerActionsMenu.tsx` — Pencil and 3-dot buttons: `p-2 hover:bg-stone-50` → `p-1.5 hover:bg-stone-100` to match UserPlus button style in sidebar header.
+- [NOTE] Phone field `+34+351987170551` seen in screenshot: this is a pre-existing corrupt value in the DB (two dial codes concatenated from a previous bug). `splitPhone()` correctly handles new saves going forward. Corrupt records need a one-time DB cleanup if desired.
+- [NEXT] One-time DB cleanup: `UPDATE customers SET phone = substring(phone from 4) WHERE phone LIKE '+34+351%'` (run via Supabase SQL editor for affected rows).
+- [NEXT] Display `social_links` + `countryIso` in "Sobre" tab of CustomerProfileClient.
+- [NEXT] Google Contacts OAuth (Part 3b).
+
+### 🗓️ 2026-04-20: Phase 12 — CustomerProfileClient: Sobre + Compromisos Tabs Fully Functional
+- [DONE] `domains/customers/service.ts` — `getCustomerProfile`: added `countryIso` + `notes` to inline SELECT columns. Updated return object to include `notes: r.notes ?? null` + `countryIso: r.countryIso ?? null`. Extended `CustomerWithStats` type with `notes?: string | null` (second declaration merged). `getCustomersWithStats` return includes `countryIso` via cast.
+- [DONE] `customers/[id]/page.tsx` — Fixed `notes={null}` hardcoded bug → `notes={c.notes ?? null}`. Added `countryIso={c.countryIso ?? null}` prop to `CustomerProfileClient`.
+- [DONE] `customers/[id]/_components/SobreTab.tsx` (NEW, 138L) — Client Component. Renders all customer profile fields: email (Mail icon), phone (Phone icon), company (Building icon), address block (MapPin icon — street/city+state+postal/country stacked), notes (stone-50 card with whitespace-pre-wrap), social/extra links (per-type icon + 20px label column + value), member-since (Calendar icon, always shown). Social links support: known types (instagram/facebook/x/youtube/linkedin/tiktok/website/phone/email → matching icons via `SOCIAL_META`), custom fields (`{ label, value }` shape with Tag icon). Empty state: italic "Sin datos de contacto." shown only when all fields are absent.
+- [DONE] `domains/customers/service-appointments.ts` (NEW, ~90L) — `server-only`. Types: `AppointmentHistoryItem` (id, startAt, endAt, status, priceCents, totalCents, serviceId, serviceName, staffName), `AppointmentHistoryStats` (totalThisYear, cancelledCount, avgSpendCents, distinctServices), `AppointmentHistoryData`. `getCustomerAppointmentHistory(orgId, customerId)`: LEFT JOIN `appointments` → `catalog_services` (serviceName) + `profiles` (staffName). Tenant isolation: `eq(appointments.organizationId, orgId)` + `eq(appointments.customerId, customerId)`. Orders by `startAt DESC`, limit 200. `computeStats()`: year filter (current UTC year), cancelled count, avg of completed totalCents, distinct serviceIds.
+- [DONE] `customers/actions/get-customer-appointments.ts` (NEW, ~30L) — Server Action. `server-only`. Auth: `orgId` from `user.user_metadata.organization_id` (not spoofable). Calls `getCustomerAppointmentHistory(orgId, customerId)`. Returns `Result<AppointmentHistoryData>`.
+- [DONE] `customers/[id]/_components/CompromisosTab.tsx` (NEW, 143L) — Client Component. Lazy fetch: `useEffect` fires on mount, cleanup with `cancelled` flag. `Skeleton` component: 4 gray boxes + 3 list rows with `animate-pulse`. 4 `StatCard` components (totalThisYear, cancelledCount, avgSpendCents, distinctServices) in 2-col grid. Appointment list: `ApptRow` sub-component (date+time left w-32 / service+staff center flex-1 truncate / status badge+price right flex-col items-end). Status color map: pending=amber, confirmed=sky, completed=emerald, cancelled=stone, no_show=rose. Empty state: `CalendarX` icon + locale-aware message. `fmtEur(cents)` via `Intl.NumberFormat` EUR. `fmtAppt(iso, locale)` returning `{ date, time }`.
+- [DONE] `customers/[id]/_components/CustomerProfileClient.tsx` — Removed stale `Mail/Phone/Calendar` imports (moved to SobreTab). Added `SobreTab` + `CompromisosTab` imports. Added `countryIso?: string | null` to Props interface + destructuring. Replaced inline Sobre content with `<SobreTab locale email phone createdAtIso company country address city state postalCode notes socialLinks />`. Removed `disabled` from "Compromisos" Tabs.Trigger. Replaced Compromisos stub with `<CompromisosTab customerId={id} locale={locale} />`.
+- [DONE] Validation Gate ✅: All new files ≤ 150L. `getCustomerAppointmentHistory` filters by both `organizationId` + `customerId`. `getCustomerAppointmentsAction` resolves orgId from `user.user_metadata` only (not spoofable). `SobreTab` handles all nullable fields gracefully (no render when absent). `CompromisosTab` handles loading/error/empty states. Lazy fetch cleanup prevents state updates on unmounted component.
+- [SECURITY] `getCustomerAppointmentsAction` resolves orgId exclusively from `user.user_metadata.organization_id`. JOIN query scoped by both org + customer (double tenant guard).
+- [NEXT] "Notas" tab: free-text notes editor with auto-save.
+- [NEXT] Compromisos "Histórico" pagination (currently limited to 200 rows).
+- [NEXT] Google Contacts OAuth (Part 3b).
+- [NEXT] Drag-and-drop rescheduling on month/week grid.
+
+### 🗓️ 2026-04-20: Phase 13 — Seed Enriquecido (Perfiles + Historial)
+- [DONE] `domains/booking/seed.ts` — Refactored customer seed from flat string array to `CustomerSeed[]` with full profile fields: company, country, countryIso, city, state, address, postalCode, socialLinks, isBlocked.
+- [DONE] 20 customers con datos reales: mezcla PT/ES/BR, 7 con empresa, 12 con social links (instagram/website/linkedin/tiktok/facebook), 6 con dirección completa, 1 bloqueado (`Roberto Almeida`) para testing del banner isBlocked.
+- [DONE] Appointments expandidos de ~20 → ~50: 12 `completed` pasados (últimos 90 días), 3 `no_show` pasados, 4 `cancelled` pasados, 5 hoy/mañana `confirmed`, 15 futuros mixtos. Los primeros 4 clientes acumulan historial rico para poblar CompromisosTab.
+- [DONE] Bug fixes: `service-appointments.ts` l.62 `catalogServices.name` → `catalogServices.nameI18n`. `service.ts` `CustomerWithStats.notes` duplicado eliminado.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errores.
+- [NEXT] Re-run "Generar datos de prueba" desde el dashboard para aplicar el nuevo seed.
+
+### 🗓️ 2026-04-21: Phase 14 — Refactor: Rutas de Calendario unificadas en /dashboard/calendar
+- [DONE] `(dashboard)/calendar/` (ruta raíz de day/week) eliminada completamente.
+- [DONE] `(dashboard)/dashboard/agenda/` → renombrada a `(dashboard)/dashboard/calendar/`.
+- [DONE] `dashboard/calendar/page.tsx` (nuevo unificado) — maneja los 4 views (month/week/day/team) desde una sola ruta `/dashboard/calendar?view=X`.
+- [DONE] `ViewSwitcher.tsx` — `targetPath` siempre `/dashboard/calendar`; eliminada la lógica de split de rutas.
+- [DONE] `CalendarDayNav.tsx` — import `ViewSwitcher` corregido a `./ViewSwitcher`.
+- [DONE] `SlotActionModal.tsx`, `AppointmentDetailModal.tsx`, `CustomerProfileClient.tsx`, `AppointmentForm.tsx`, `AgendaInteractive.tsx` — imports actualizados a nueva ruta.
+- [DONE] `actions.ts` + `actions/block-time.ts` + `actions/block-days.ts` — todos los `revalidatePath` actualizados a `/dashboard/calendar`.
+- [DONE] `nav-items.ts` — eliminado item "Conectar" (`href: '/calendar'`), `href: '/dashboard/agenda'` → `/dashboard/calendar`.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errores (tras `rm -rf .next`).
+- [NEXT] Reiniciar `pnpm dev` para que Next.js genere `.next/types/` con la nueva estructura de rutas.
+
+### 🗓️ 2026-04-21: Phase 15 — Catalog: mover ruta + link por servicio + búsqueda
+- [DONE] `(dashboard)/catalog/` → movida a `(dashboard)/dashboard/catalog/`. URL ahora `/dashboard/catalog` (consistente con el resto de secciones).
+- [DONE] `nav-items.ts` — `href: '/catalog'` → `href: '/dashboard/catalog'`.
+- [DONE] `dashboard/catalog/actions.ts` + `dashboard/actions.ts` — todos los `revalidatePath('/catalog')` → `revalidatePath('/dashboard/catalog')`.
+- [DONE] `ServiceRow.tsx` — Botón "Copiar link" añadido (icono `Link2`). Copia `window.location.origin + /book?service={id}` al portapapeles. `toast.success('Link copiado')` / `toast.error(...)` via `sonner`. Visible siempre en mobile, `opacity-0 group-hover:opacity-100` en desktop. Hover: `text-amber-700 bg-amber-50`.
+- [DONE] `CatalogClient.tsx` — Input de búsqueda añadido (`Search` icon, `w-44 sm:w-52`, foco con `ring-amber-200`). Filtrado local en tiempo real: `useMemo` sobre `categories` y `orphans`, filtra por nombre de servicio (`resolveI18n` + `toLowerCase().includes(term)`). Islands vacías se ocultan durante la búsqueda. Estado "Sin resultados" con botón "Limpiar búsqueda".
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 errores.
+- [NEXT] Reiniciar `pnpm dev` para que Next.js genere `.next/types/` con la nueva estructura de rutas.
+- [NEXT] "Notas" tab: editor de texto libre con auto-save.
+- [NEXT] Stripe Connect Express onboarding (Pagamentos).
+
+### 🗓️ 2026-04-21: Phase 16 — Página de Integrações (/dashboard/integrations)
+- [DONE] `(dashboard)/dashboard/integrations/page.tsx` (NEW) — Server Component. Resolve `stripeConnected` desde DB (`getOrganizationSettings`). Passa ao client via prop. Inclui `IntegrationsSkeleton` como fallback Suspense.
+- [DONE] `integrations-data.ts` (NEW, ~110L) — Registo estático das 6 integrações: Facebook Reservas, Instagram Reservas, Google Analytics, Google Tag Manager, Stripe, Google Maps. Campos: id, name, tagline, category, about[], instructions[], docsUrl, comingSoon. `CATEGORY_LABELS` + `INTEGRATIONS_BY_CATEGORY` para agrupamento.
+- [DONE] `IntegrationLogos.tsx` (NEW) — Componentes SVG inline para cada integração (Facebook azul, Instagram gradiente, GA laranja, GTM azul, Stripe violeta, Google Maps vermelho). Sem dependências externas de imagens.
+- [DONE] `IntegrationModal.tsx` (NEW, ~150L) — Radix Dialog + Radix Tabs (Sobre / Instruções). Header com logo (size=lg) + nome + badge "Conectado"/"Em breve". Coluna esquerda: tabs com bullets/steps numerados. Coluna direita (w-44): botão Conectar, links de suporte (Documentação, Fale connosco, Ligue-nos). Stripe: usa `createStripeConnectAccount` action diretamente com `useActionState`. Outros: `toast.info('Em breve')`. Se já conectado: badge + link Dashboard Stripe.
+- [DONE] `IntegrationsClient.tsx` (NEW, ~120L) — Client Component. Pesquisa em tempo real com `useMemo` por nome+tagline. Grid 3 colunas responsive. Badge "Conectado" por cima do card quando ativo. `isConnected()` centraliza a lógica de estado (só Stripe por agora). `selected` state → abre IntegrationModal.
+- [DONE] `nav-items.ts` — `href: '/dashboard/settings'` para "Integrações" → `href: '/dashboard/integrations'`. "Definições" mantém `/dashboard/settings`.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 erros.
+- [NOTE] Integrações com `comingSoon: true` mostram badge "Em breve" e o botão Conectar dispara `toast.info`. Apenas Stripe tem fluxo real funcional.
+- [NEXT] Stripe: mover `StripeConnectCard` para dentro do modal de integrações (unificar UX).
+- [NEXT] Google Analytics / GTM: implementar campo de input para ID de medição/contentor e guardar em `organization_settings`.
+- [NEXT] Facebook / Instagram OAuth flow.
+
+### 🗓️ 2026-04-21: Phase 17 — Página de Pagamentos (/dashboard/billing)
+- [DONE] `domains/billing/service-history.ts` (NEW, ~80L) — `getPaymentHistory(orgId, from, to)`. JOINs: payments → appointments (startAt, staffProfileId, serviceId) → customers (fullName) → catalogServices (nameI18n, depositPercent) → profiles (staffName). Tenant-isolated: `organizationId` filter em todas as tabelas. Limit 500, orderBy createdAt DESC. Retorna `PaymentHistoryRow[]` com ISO strings.
+- [DONE] `dashboard/billing/actions.ts` (NEW, ~60L) — `toggleOnlinePaymentAction(bool)`, `toggleAdvancePaymentAction(bool)` (update bookingSettings + revalidatePath). `getPaymentHistoryAction({from, to})` — Zod validation de datas, wraps domain service.
+- [DONE] `dashboard/billing/_components/PaymentMethodCard.tsx` (NEW) — Mostra logo Stripe + badge "Conectado"/"Não conectado". Se conectado: link para Stripe Dashboard. Se não conectado: link para /dashboard/integrations.
+- [DONE] `dashboard/billing/_components/PaymentSettings.tsx` (NEW) — Dois toggles Radix Switch com optimistic update + toast de erro/rollback: "Aceitar pagamentos" + "Exigir pagamento antecipado" (desativado se o primeiro estiver off).
+- [DONE] `dashboard/billing/_components/PaymentHistoryTable.tsx` (NEW, ~160L) — Date range (desde/hasta) + botão "Generar" (useTransition). Search local em tempo real (cliente, serviço, data). Tabela com 10 colunas: data pagamento, cliente, profissional, serviço, data serviço, valor, tipo (Dep.X%/Total), método, estado (badge colorido), ID agendamento. Link externo para Stripe por linha. Export CSV (UTF-8 BOM, separador `;`) via Blob + URL.createObjectURL.
+- [DONE] `dashboard/billing/page.tsx` (NEW, ~75L) — Server Component. Promise.all para org settings + bookingSettings. Passa stripeConnected + stripeAccountId + bs toggles como props. Skeleton PPR.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 erros.
+- [NOTE] XLS export implementado como CSV (UTF-8 BOM, `;` separador). Excel abre nativamente. O package `xlsx` não foi instalado por limitação do ambiente monorepo (workspace: protocol).
+- [NEXT] Instalar `xlsx` (SheetJS) via pnpm para export XLSX real quando o ambiente o permitir.
+- [NEXT] Stripe: completar env vars + webhook local para testar fluxo completo.
+
+### 🗓️ 2026-04-21: Phase 21 — Taxas/Reduções + Cupões em /dashboard/billing
+- [DONE] `dashboard/billing/actions-surcharges.ts` (NEW, 125L) — CRUD completo para `payment_surcharges`. `SurchargeRow` type. `getSurchargesAction`, `createSurchargeAction` (limite: 2 taxas, 1 redução), `updateSurchargeAction`, `deleteSurchargeAction`. Import corrigido: `paymentSurcharges` de `@/domains/billing/schema`.
+- [DONE] `dashboard/billing/actions-coupons.ts` (NEW, 149L) — CRUD completo para `coupons`. `CouponRow` type. `getCouponsAction`, `createCouponAction`, `updateCouponAction`, `toggleCouponAction`, `deleteCouponAction`. Duplicados de código retornam erro `DUPLICATE`.
+- [DONE] `dashboard/billing/_components/SurchargeModal.tsx` (NEW, ~130L) — Radix Dialog. Seletor Taxa/Redução (botões pill). Campo nome. Dropdown valueType (Porcentagem/Quantia fixa). Campo amount. `createSurchargeAction` / `updateSurchargeAction` consoante modo.
+- [DONE] `dashboard/billing/_components/SurchargesSection.tsx` (NEW, ~120L) — Lista de surcharges com 3-dot menu (Radix DropdownMenu): Editar + Remover. Ícone por tipo (Percent/DollarSign). Badge Taxa/Redução. Botão "+ Adicionar taxa ou redução" (desativado quando limite atingido). Optimistic delete via state.
+- [DONE] `dashboard/billing/_components/CouponModal.tsx` (NEW, ~160L) — Radix Dialog. Campos: código (uppercase, font-mono), tipo desconto, valor, limite de usos (opcional), validFrom, validUntil (opcional). Validação client-side antes de chamar action.
+- [DONE] `dashboard/billing/_components/CouponsSection.tsx` (NEW, ~150L) — Lista de cupões com toggle Radix Switch (ativar/desativar, optimistic), badge desconto, usos/limite, data expiração. Badge "Expirado" quando validUntil < today. 3-dot menu: Editar + Remover. Botão "+ Criar cupão".
+- [DONE] `dashboard/billing/page.tsx` — Atualizado: importa `SurchargesSection` + `CouponsSection`. `Promise.all` extendido com `getSurchargesAction()` + `getCouponsAction()`. Ambas as secções renderizadas com dados iniciais do servidor.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 erros.
+- [SECURITY] Tenant isolation: todas as actions resolvem `orgId` via `user.user_metadata.organization_id` (não spoofable). Queries com `AND organization_id = orgId` em todos os WHERE.
+- [NEXT] Testar fluxo completo: criar taxa + redução (verificar limite), criar cupão com expiry + maxUses.
+- [NEXT] "Notas" tab: editor de texto livre com auto-save em CustomerProfileClient.
+- [NEXT] Stripe Connect: completar env vars + webhook local.

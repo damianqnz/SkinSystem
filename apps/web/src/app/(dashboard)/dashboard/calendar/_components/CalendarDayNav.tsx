@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
-import { ViewSwitcher, type CalendarView } from '../../dashboard/agenda/_components/ViewSwitcher';
+import { ViewSwitcher, type CalendarView } from './ViewSwitcher';
 
 interface CalendarDayNavProps {
   date:   Date;
