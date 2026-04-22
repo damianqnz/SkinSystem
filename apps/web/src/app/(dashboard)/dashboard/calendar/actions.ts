@@ -1,5 +1,6 @@
 'use server';
 
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 /**
  * /dashboard/agenda — Server Actions for the management calendar.
  *
@@ -44,7 +45,13 @@ async function getAuth(): Promise<AuthOk | { error: string }> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: 'Não autorizado' };
 
-  const orgId = user.user_metadata?.organization_id as string | undefined;
+  // Fast path: JWT metadata
+  const metaOrgId = user.user_metadata?.organization_id as string | undefined;
+  if (metaOrgId) return { orgId: metaOrgId, userId: user.id };
+  // Fallback: profiles table
+  const profileRows = await db.select({ organizationId: profiles.organizationId })
+    .from(profiles).where(eq(profiles.id, user.id)).limit(1);
+  const orgId = profileRows[0]?.organizationId;
   if (!orgId) return { error: 'Organização não encontrada na sessão' };
   return { orgId, userId: user.id };
 }

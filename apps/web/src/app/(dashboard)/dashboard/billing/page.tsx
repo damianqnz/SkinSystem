@@ -94,10 +94,24 @@ async function BillingContent() {
       </section>
 
       {/* Section: Surcharges & reductions */}
-      <SurchargesSection initial={surchargesResult.data ?? []} />
+      {surchargesResult.error ? (
+        <SectionError
+          title="Taxas e reduções"
+          message={surchargesResult.error.message}
+        />
+      ) : (
+        <SurchargesSection initial={surchargesResult.data} />
+      )}
 
       {/* Section: Coupons */}
-      <CouponsSection initial={couponsResult.data ?? []} />
+      {couponsResult.error ? (
+        <SectionError
+          title="Cupões de desconto"
+          message={couponsResult.error.message}
+        />
+      ) : (
+        <CouponsSection initial={couponsResult.data} />
+      )}
 
       {/* Section: Payment history */}
       <section className="space-y-3">
@@ -112,6 +126,20 @@ async function BillingContent() {
         <PaymentHistoryTable locale={locale} />
       </section>
     </div>
+  );
+}
+
+function SectionError({ title, message }: { title: string; message: string }) {
+  return (
+    <section className="space-y-3">
+      <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">{title}</h2>
+      <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4">
+        <p className="text-sm text-rose-700">{message}</p>
+        <p className="text-xs text-rose-500 mt-1">
+          Recarrega a página. Se o problema persistir, contacta o suporte.
+        </p>
+      </div>
+    </section>
   );
 }
 

@@ -8,7 +8,7 @@ const ES = authTranslations['es'];
 
 export const metadata = {
   title: 'SkinSystem — Acceso',
-  description: 'Portal de acceso para especialistas de SkinSystem.',
+  description: 'Accede a tu espacio personal en SkinSystem.',
 };
 
 interface LoginPageProps {

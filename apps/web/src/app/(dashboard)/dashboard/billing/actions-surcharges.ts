@@ -1,9 +1,9 @@
 'use server';
 
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { revalidatePath }             from 'next/cache';
 import { z }                          from 'zod';
 import { eq, and }                    from 'drizzle-orm';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { db }                         from '@/infrastructure/db';
 import { paymentSurcharges }          from '@/domains/billing/schema';
 import type { Result }                from '@/shared/types/result';
@@ -21,21 +21,12 @@ export type SurchargeRow = {
 
 // ── Auth helper ───────────────────────────────────────────────
 
-async function resolveOrgId(): Promise<{ orgId: string } | { error: string }> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autorizado' };
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { error: 'Organización no encontrada' };
-  return { orgId };
-}
-
 function revalidate() { revalidatePath('/dashboard/billing'); }
 
 // ── Get ───────────────────────────────────────────────────────
 
 export async function getSurchargesAction(): Promise<Result<SurchargeRow[]>> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const rows = await db
@@ -61,7 +52,7 @@ const surchargeSchema = z.object({
 // ── Create ────────────────────────────────────────────────────
 
 export async function createSurchargeAction(raw: unknown): Promise<Result<SurchargeRow>> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = surchargeSchema.safeParse(raw);
@@ -93,7 +84,7 @@ export async function createSurchargeAction(raw: unknown): Promise<Result<Surcha
 // ── Update ────────────────────────────────────────────────────
 
 export async function updateSurchargeAction(id: string, raw: unknown): Promise<Result<SurchargeRow>> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = surchargeSchema.safeParse(raw);
@@ -113,7 +104,7 @@ export async function updateSurchargeAction(id: string, raw: unknown): Promise<R
 // ── Delete ────────────────────────────────────────────────────
 
 export async function deleteSurchargeAction(id: string): Promise<{ error?: string }> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { error: auth.error };
 
   await db.delete(paymentSurcharges)

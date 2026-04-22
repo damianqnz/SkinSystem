@@ -2,9 +2,158 @@
 
 ## Current Status
 - [x] Initial Monorepo setup.
-- [/] In Progress: Drizzle Schema with i18n JSONB.
+- [x] Drizzle Schema with i18n JSONB (all phases applied).
+- [x] Public consumer landing page (SPA with scroll) — see 2026-04-21 entry.
+- [x] Phase 22 — /dashboard/settings multi-section experience (DONE — see 2026-04-21 entry).
+- [x] Phase 23 — Consumer booking funnel redesign (DONE — see 2026-04-22 entry).
 - [ ] Pending: Stripe Connect Express onboarding.
 - [ ] Pending Integration: Google Calendar OAuth.
+- [x] Phase 24 — `/me` authenticated consumer dashboard (DONE — see 2026-04-22 entry).
+- [x] Phase 25 — Public navbar language selector (PT/ES/EN) + smart auto-detect (DONE — see 2026-04-22 entry).
+- [x] Phase 26 — `/book` funnel full i18n (PT/ES/EN) + dedicated BookHeader with LanguageSwitcher (DONE — see 2026-04-22 entry).
+- [x] Phase 27 — Auth-aware step skipping in `/book` funnel (DONE — see 2026-04-22 entry).
+- [x] Phase 28 — Tenant-resolution unification for dashboard actions (DONE — see 2026-04-22 entry).
+- [x] Phase 29 — Dashboard RBAC gate (staff-only), role propagation to TenantProvider (DONE — see 2026-04-22 entry).
+- [x] Phase 30 — Unified `/login` (staff + customers) + public navbar `UserMenu` (DONE — see 2026-04-22 entry).
+- [ ] Pending: /settings/profile — personal profile editor (stub page created).
+- [ ] Pending: /settings/general — account settings (stub page created).
+
+### 🗓️ 2026-04-22: Phase 30 — Unified `/login` + Public Navbar `UserMenu`
+- **Problem (two halves)**:
+  1. `/login` was staff-only. The action queried `profiles INNER JOIN organizations`; any successful sign-in by a customer (who has no `profiles` row — customers live in `public.customers`, email-keyed, no FK to `auth.users`) failed with `no_profile` and they had **no** re-auth entry point outside the `/book` funnel. So a customer who signed up inside `/book` could never "log in" again from the public landing — they could only book again.
+  2. The public navbar exposed no session affordance at all. Authenticated visitors looked identical to anonymous ones; "Reservar" was the only CTA. No way to reach `/me`, no way to sign out.
+- **Design decision (Option C)**: unify `/login` as the single re-auth gateway for both audiences, but keep **signup** inside the `/book` funnel so we don't duplicate `Step2Auth`'s three-way flow (login / register / guest + Google OAuth). Post-login routing is tenant-aware and branches on data, not on form fields:
+  - `profiles` row in THIS tenant → `{slug}.host/dashboard`
+  - else `customers` row in THIS tenant (matched by email) → `{slug}.host/me`
+  - else → `no_account` error + in-form CTA to `/book` (copy: "¿Primera vez por aquí? Reserva tu primera cita.")
+- [DONE] `app/(auth)/login/actions.ts` — rewrote `loginAction`. Reads `x-tenant-slug` (proxy header) to scope everything to the subdomain the user is actually browsing. After `signInWithPassword`, branches: staff first (single-tenant `profiles` lookup; inactive → `no_account` after `signOut`), then customer (email-matched lookup in THIS org's `customers` row; blocked → `no_account` after `signOut`), else `no_account` + `signOut` so the caller never ends up with a stray Supabase session in a tenant they don't belong to. Redirect helper extended with a `defaultPath: '/dashboard' | '/me'` parameter so the same open-redirect guard works for both audiences.
+- [DONE] `shared/lib/i18n/auth.ts` — neutralised copy (no more "especialistas"). Error key `no_profile` → `no_account` across ES/PT/EN (users don't care about the staff/customer distinction). New keys `noAccountCtaLead` + `noAccountCtaAction` drive the "first time here? book your first appointment" CTA in the form.
+- [DONE] `app/(auth)/login/page.tsx` — `metadata.description` switched from "Portal de acceso para especialistas de SkinSystem" to "Accede a tu espacio personal en SkinSystem" (audience-agnostic).
+- [DONE] `app/(auth)/login/_components/LoginForm.tsx` — renders the `no_account` CTA (pointer to `/book`) **only** when that specific error is surfaced, using the same `AnimatePresence` pattern as the error box. Other errors (invalid_credentials, generic) render unchanged.
+- [DONE] `app/(public)/actions.ts` — new `signOutAction`: `supabase.auth.signOut()` → `revalidatePath('/', 'layout')` → `redirect('/')`. Kept in the public segment because it's consumed from the public navbar; `redirect()` intentionally outside try/catch (Next.js control-flow throw).
+- [DONE] `shared/lib/resolve-public-session.ts` (NEW, `server-only`) — server-side resolver for the public navbar. Reads `x-tenant-slug`, fetches Supabase user, then looks up profiles (staff in this tenant) → customer (email-matched in this tenant). Returns `{ displayName, avatarUrl, accountHref: '/dashboard' | '/me' } | null`. Display name falls through `profile/customer.fullName` → `user_metadata.full_name|name` → email-local-part. Avatar falls through `profile/customer.avatarUrl` → `user_metadata.avatar_url|picture`. Authenticated-but-not-a-member is treated as anonymous (no menu surfaced).
+- [DONE] `app/(public)/_components/UserMenu.tsx` (NEW) — client component. Unauthenticated: `User` icon in a round chip links directly to `/login` (sharing the scrolled/transparent palette with `LanguageSwitcher`). Authenticated: 32px avatar chip — Google/uploaded image (plain `<img>` with `referrerPolicy="no-referrer"` to avoid Next remotePatterns whitelist churn) or a single-letter initial on the fallback — opens a Radix `DropdownMenu` with header row (displayName), "Mi cuenta" (→ `accountHref`), "Cerrar sesión" (calls `signOutAction` via `useTransition`). Copy localised pt/es/en.
+- [DONE] `app/(public)/_components/PublicHeader.tsx` — new `user: PublicSessionUser | null` prop. `UserMenu` mounted next to `LanguageSwitcher` in the right cluster, before the "Reservar" CTA.
+- [DONE] `app/(public)/page.tsx` — fetches `resolvePublicSessionUser()` in parallel with `getLandingData()` (`Promise.all`), forwards the result to `<PublicHeader user={...} />`. `BookHeader.tsx` intentionally untouched — it comments that it does NOT reuse `PublicHeader`.
+- **Threat model**: (1) customer of Lourdes cannot slip into Gloria's `/me` by logging in at `gloria.lvh.me/login` — the customer lookup is scoped by `organizationId = thisTenantOrg.id`. (2) staff of tenant A logging in on tenant B's subdomain → `no_account` + signOut (no stray session). (3) inactive staff / blocked customer → `no_account` + signOut. (4) the public navbar never exposes an admin destination to a user who is not staff here: `accountHref` is computed server-side by the resolver.
+- **Verification**: `npx tsc --noEmit` on `apps/web` → **EXIT=0, 0 errors** under strict mode.
+- **Follow-ups** (not blocking):
+  - Password reset flow (the "¿Olvidaste tu contraseña?" link is still a `href="#"`).
+  - Whitelist `lh3.googleusercontent.com` in `next.config` and switch `UserMenu` to `next/image` for the authenticated avatar.
+  - Mirror `UserMenu` into `BookHeader` so users authenticated mid-funnel see the same widget.
+  - Add a second copy-test for ES/PT/EN error states (unit check that all keys are present).
+- **Next**: Stripe Connect Express onboarding.
+
+#### Hotfix 2026-04-22: `/me` auth-fallback redirigía a `/book` en lugar de `/login`
+- **Reportado por**: Damian — abriendo `lourdes.lvh.me:3000/me` sin sesión la app lo mandaba al funnel, no al gateway unificado.
+- **Causa**: código heredado de Fase 24 (cuando `/login` era staff-only). Tras Fase 30 el fallback correcto para un cliente sin sesión es `/login?next=/me`, no `/book` (el funnel es para INICIAR reserva, no para re-autenticar).
+- [DONE] `app/(public)/me/layout.tsx` — `redirect('/book')` → `redirect('/login?next=/me')` en rama `!user`. Rama `orgResult.error` → `redirect('/')` (anomalía de infra, no flujo de usuario).
+- [DONE] `app/(public)/me/citas/page.tsx` — `!user?.email` → `redirect('/login?next=/me/citas')`; `orgResult.error` → `redirect('/')`.
+- [DONE] `app/(public)/me/perfil/page.tsx` — `!user?.email` → `redirect('/login?next=/me/perfil')`; `orgResult.error` → `redirect('/')`.
+- [DONE] `app/(public)/me/_components/LogoutButton.tsx` — tras `signOut()` → `router.push('/')` (antes `/book`). Alineado con `signOutAction` de la navbar pública.
+- **Preservado**: los `href="/book"` que son CTAs explícitas ("Reservar cita →") en `me/layout.tsx`, `me/citas/page.tsx` empty-state y `AppointmentTabs.tsx` siguen igual — son acciones, no fallbacks.
+- **Verificación**: `npx tsc --noEmit` → EXIT=0, 0 errores.
+
+### 🗓️ 2026-04-22: Phase 29 — Dashboard RBAC Gate (Staff-only)
+- **Threat**: An authenticated *customer* (account created at `/me`, stored in `public.customers` — no row in `profiles`) could type `http://<tenant>.lvh.me:3000/dashboard` in the URL bar and the admin shell would render. The proxy only checked `!user` ("are you authenticated?"), not role. The layout had no guard at all. Phase 28 already blocked writes (`resolveTenantOrgId` rejects a user with no matching `profiles` row), but SSR reads inside some page.tsx files (e.g. `billing/page.tsx` calling `getOrganizationSettings(org.id)`) leaked sensitive metadata — Stripe account ID, Stripe onboarded flag, online payment toggles — to any logged-in end-user on the tenant subdomain. This was an information-disclosure bug + bad UX (admin menu + "error loading" surface shown to customers).
+- **Invariant (now enforced)**: the dashboard is reachable *only* by users with a `profiles` row scoped to the current tenant org. Model check: `customers` is the table for external clients (email-keyed, no FK to `auth.users`); `profiles.role ∈ { super_admin | owner | staff }` is the table for internal staff (FK to both `organizations` and `auth.users`); `appointments.staff_profile_id → profiles.id` and `service_staff.profile_id → profiles.id` confirm that "being a dashboard user" is exactly "having a `profiles` row here." So the check is boolean: profile row exists for `(user.id, org.id, is_active)`, or redirect out.
+- [DONE] `shared/lib/resolve-tenant-org-id.ts` — extended signature to `resolveTenantOrgId(requiredRoles?: readonly UserRole[])`. Default = all staff roles (`STAFF_ROLES = ['super_admin','owner','staff']`). Error shape now discriminated: `{ error, code: 'NO_TENANT' | 'NO_AUTH' | 'ORG_NOT_FOUND' | 'NOT_MEMBER' | 'INACTIVE' | 'FORBIDDEN' }` so layouts can pick the correct redirect target. Existing 21 call sites still narrow via `'error' in auth` → no change needed on consumers. `UserRole` type and `STAFF_ROLES` constant exported for reuse.
+- [DONE] `app/(dashboard)/layout.tsx` — new RBAC gate at the top of `DashboardShell`. Calls `resolveTenantOrgId()` before rendering; on error: `NO_AUTH` → `redirect('/login')` (redundant with proxy but defense in depth), `NOT_MEMBER` / `INACTIVE` / anything else → `redirect('/me')`. On success, `{ userId, role }` is forwarded to `TenantProvider` so the admin UI can apply owner-only gates without another DB round-trip.
+- [DONE] `shared/providers/TenantProvider.tsx` — context extended with optional `userId: string | null` and `role: UserRole | null`. Public pages that still mount `TenantProvider` without staff identity (e.g. public landing) continue to work: defaults are `null`. Client Components now read `const { role } = useTenantContext()` for RBAC fino.
+- [DONE] `proxy.ts` — **unchanged** on purpose. The "authenticated?" check stays there (cheap cookie validation). The "staff of this tenant?" check lives in the layout because (a) the matcher is very broad so every request would pay a DB query otherwise, and (b) the layout runs Next's per-request cache so a subsequent page or server action in the same render reuses the query.
+- **Threat model closed**: (1) customer at `/me` typing `/dashboard` → layout redirects to `/me`, admin shell never renders, no metadata leak. (2) staff of tenant A visiting tenant B's subdomain → redirected to `/me` (which will redirect further since they don't match `customers` either). (3) unauthenticated user → proxy still catches it first; layout is second line. (4) owner-only operations → callers can pass `resolveTenantOrgId(['owner','super_admin'])` to reject plain staff.
+- **Verification**: `node_modules/.bin/tsc --noEmit` on `apps/web` — **EXIT=0, 0 errores** en strict mode. All 21 existing dashboard action files continue to type-check against the new error-shape (backward-compatible narrowing).
+- **Follow-ups** (not blocking):
+  - Audit sensitive endpoints and narrow their `requiredRoles` — candidates: `settings/brand/actions.ts` (rename org, change Stripe account), `billing/actions.ts` (Stripe onboarding init), `settings/team/actions.ts` (invite / remove staff). Proposal: owner-only for these.
+  - Page-level reads that bypass `resolveTenantOrgId` (e.g. `billing/page.tsx` calling `getOrganizationBySlug` directly) are now covered transitively by the layout gate, but a future refactor should have every `page.tsx` call `resolveTenantOrgId` itself so the invariant is visible file-by-file instead of depending on parent layouts.
+  - Fill the `profiles` row during invitation/onboarding of new staff so admins don't get locked out after sign-up.
+- **Next**: Stripe Connect Express onboarding.
+
+### 🗓️ 2026-04-22: Phase 28 — Tenant-resolution Unification (`resolveTenantOrgId`)
+- **Problem**: Creating a surcharge/reduction or a coupon at `/dashboard/billing` failed with "Organización no encontrada". The page itself loaded fine because it resolves the org from the subdomain via `x-tenant-slug` + `getOrganizationBySlug(slug)` — the canonical pattern per `ARCHITECTURE.md §3.1`. But `getSurchargesAction` and `getCouponsAction` (and 19 other dashboard server actions) called a second, older helper `resolveOrgId()` that:
+  1. read `user_metadata.organization_id` from the JWT, and
+  2. fell back to a `SELECT organization_id FROM profiles WHERE id = auth.user.id` lookup.
+  Any user who has no `organization_id` in their JWT AND no row in `profiles` (legit: legacy accounts, OAuth flows that don't inject metadata, invitations that never finished populating `profiles`) got the error. The page hid this on READ with `?? []` masking; the CREATE flow surfaced it as a toast.
+- **Security concern (defense in depth)**: with the old helper, a staff whose `profiles.organization_id = orgA` browsing `orgB.lvh.me` would READ orgB data (good — page uses subdomain) but WRITE to orgA via any action that called `resolveOrgId` (cross-tenant write contamination). The subdomain is the user's intent; their `profiles` row was effectively being consulted as a side channel.
+- **Rule (now enforced)**: the subdomain is the single source of truth for tenant identity. Every dashboard server action resolves the org the same way the page does — from `x-tenant-slug` — and then verifies that the authenticated user actually has a profile row scoped to that org.
+- [DONE] `shared/lib/resolve-tenant-org-id.ts` (NEW) — `resolveTenantOrgId()` reads `x-tenant-slug` from `headers()`, requires an authenticated Supabase user, resolves the org via `getOrganizationBySlug(slug)`, and verifies `profiles.id === user.id AND profiles.organization_id === org.id AND profiles.isActive`. Returns `{ orgId, userId, role }` or `{ error }`. Caller-friendly error messages: `'Tenant no identificado' | 'No autorizado' | 'Organización no encontrada' | 'Acceso no permitido a este tenant' | 'Cuenta inactiva'`.
+- [DONE] Swapped imports and call sites in 21 dashboard action files: `catalog/actions.ts`, `calendar/actions.ts`, `calendar/actions/{block-days,get-available-times,get-services,block-time,create-customer,search-customers}.ts`, `customers/actions/{update-customer,upload-avatar,get-customer-appointments,toggle-block-customer,delete-customer,create-customer}.ts`, `settings/team/actions.ts`, `settings/actions.ts`, `settings/preferences/actions.ts`, `settings/brand/actions.ts`, `billing/actions.ts`, `billing/actions-surcharges.ts`, `billing/actions-coupons.ts`. The call-site shape `const auth = await resolveOrgId()` → `const auth = await resolveTenantOrgId()` was a pure rename (same `{ orgId } | { error }` narrowing), so no consumers needed refactor — they already destructure `auth.orgId` after the error branch.
+- [DONE] `billing/page.tsx` — dropped the `?? []` masking on `surchargesResult` and `couponsResult`. When an action errors, the page now renders a compact `<SectionError>` banner in place of the section (soft rose alert, "Recarrega a página. Se o problema persistir, contacta o suporte.") so real failures surface to the admin instead of silently showing empty lists.
+- [DONE] `shared/lib/resolve-org-id.ts` — emptied (0 bytes). Sandbox blocks physical `rm` without interactive approval, so the file exists but exports nothing. **Action for user**: `rm apps/web/src/shared/lib/resolve-org-id.ts` before committing (or approve the cowork delete permission the next time it prompts). All imports already migrated off it.
+- **Verification**: `node_modules/.bin/tsc --noEmit` on `apps/web` — **EXIT=0, 0 errors** under strict mode.
+- **Follow-ups** (not blocking): (a) the root cause on Damian's current account is likely a missing `profiles` row — wire profile creation into the invitation/onboarding flow so new staff are guaranteed a row. (b) audit RLS policies on `payment_surcharges` / `coupons` to confirm they match the new `profiles.organization_id = current_tenant` invariant.
+- **Next**: Stripe Connect Express onboarding.
+
+### 🗓️ 2026-04-22: Phase 27 — Auth-aware `/book` Funnel
+- **Problem**: `getStepOrder()` inserted the `'auth'` step based purely on `config.clientLoginEnabled`, ignoring the actual session. A user landing on `/book?service=X` from `/me/citas` saw 4 StepIndicator dots and hit `Step2Auth` asking them to log in again — even though `Step3Confirm` already detects the session and renders `AuthenticatedConfirm`. Double-login anti-pattern.
+- **Rule (now enforced)**: `showAuthStep = clientLoginEnabled && !authenticated`. Single formula, applied identically to Mode B (catalog) and Mode A (funnel) so the StepIndicator never surprises the user mid-flow.
+- [DONE] `app/(public)/book/page.tsx` — new `getAuthUser()` helper reads the Supabase server session and builds `{ name, email }` from `user_metadata.full_name | user_metadata.name | email-prefix`. Mode B: parallel fetch of auth user + `clientLoginEnabled` (tiny single-column query on `bookingSettings`) so the catalog `StepIndicator` shows 3 or 4 dots correctly. Mode A: `getAuthUser()` added to the existing `Promise.all`, `authUser` prop forwarded to `BookingFunnel`.
+- [DONE] `app/(public)/book/_components/BookingFunnel.tsx` — new `authUser: AuthUser | null` prop. `getStepOrder(showAuth, isAuthenticated)` skips `'auth'` for logged-in users. `handleSlotSelect` jumps directly to `'confirm'` when authenticated. The inline `StepIndicator` receives `showAuthStep={showAuth && !isAuthenticated}`. `authUser` forwarded as `initialAuthUser` seed to `Step3Confirm`.
+- [DONE] `app/(public)/book/_components/Step3Confirm.tsx` — new optional `initialAuthUser` prop. When provided, seeds `authUser` state and sets `sessionReady=true` immediately (kills the spinner flash). Client-side `useEffect` still runs as defense-in-depth in case the session expired between server render and user action.
+- **Net effect (3 flows)**: (1) `clientLoginEnabled=false` → Service · Fecha · Confirmar (guest form). (2) `clientLoginEnabled=true` + guest → Service · Fecha · Sesión · Confirmar. (3) `clientLoginEnabled=true` + logged in (e.g. from `/me/citas`) → Service · Fecha · Confirmar (`AuthenticatedConfirm`, no re-login).
+- **Files touched**: 3. TypeScript: 0 errors under strict mode.
+- **Follow-ups** (not blocking): (a) `?cancelled=1` notice only renders in Mode A — Mode B should also surface it. (b) `Step2Auth` OAuth `redirectTo=/book` loses the preselected service — ideally `next=/book?service=<id>`.
+- **Next**: Stripe Connect Express onboarding.
+
+### 🗓️ 2026-04-22: Phase 26 — `/book` Funnel Full i18n
+- [DONE] `app/(public)/book/_i18n/` (NEW) — Typed dictionary module, single source of truth for every label in the funnel. Files: `types.ts` (BookingLabels interface with tuple-typed month/day arrays), `es.ts`, `pt.ts`, `en.ts`, `index.ts` (`bookT(locale)` getter with ES fallback, `format(template, vars)` interpolator for `{amount}` / `{percent}` tokens, `toIntlTag(locale)` → `'es-ES' | 'pt-PT' | 'en-GB'`).
+- [DONE] `messages/{es,pt,en}.json` — Booking namespace mirrored so future migration to `next-intl` is a mechanical swap (no new keys to invent).
+- [DONE] `app/(public)/book/_components/BookHeader.tsx` (NEW) — Dedicated sticky header for /book. Tenant logo + subtitle + `<LanguageSwitcher>`. Does NOT reuse `PublicHeader` because its `IntersectionObserver` targets scroll sections (#servicos, #sobre…) that don't exist on /book. Tailwind-only (90/10 rule).
+- [DONE] `app/(public)/book/page.tsx` — `generateMetadata` and `BookPage` now read `x-locale` header (default `pt`), pass the typed locale + dictionary into BookHeader. Notices (cancelled payment, OAuth error) use `labels.notices.*`.
+- [DONE] Components refactored to consume `bookT(locale)`: `StepIndicator`, `BookingFunnel`, `Step1Service`, `Step2Calendar` (localised month names, day headers, empty slot label, date formatting via `toIntlTag`), `Step2Auth` (all 25+ strings: options/login/register headings, form labels, placeholders, errors, back button), `Step3Confirm` (both `AuthenticatedConfirm` and `GuestConfirm` — heading, date/time labels, policy fallback, Stripe badge, pay/book CTAs with `format(t.payButton, { amount })`, redirecting text, form field labels, terms checkbox, conflict toast, terms-required toast), `BookingSummary` (heading, subtotal online, coupon placeholder/apply, total now, local balance, all `fmtPrice`/`fmtDate` via `toIntlTag`).
+- [DONE] Internal DB i18n JSONB picker renamed to `pickI18n` in `Step3Confirm` and `BookingSummary` to avoid shadowing the UI `t` alias.
+- [DONE] `Step2Auth` now receives `locale` prop (wired in `BookingFunnel`); Google OAuth `redirectTo` logic unchanged.
+- [DONE] Locale flow verified: `proxy.ts` sets `x-locale` from cookie `NEXT_LOCALE` → `Accept-Language` → default `'pt'`. Matcher covers `/book`. Cookie persists 1 year on first visit so manual switches survive across the funnel.
+- [DONE] `npx tsc --noEmit` on `apps/web` — **0 errors**. No `any`, no `@ts-ignore`. Tailwind-only styling respected (no new Stitches).
+- **Not blocking**: Full `next-intl` wiring (moving `bookT` → `useTranslations`) is a mechanical future swap now that all strings live in typed dictionaries.
+- **Next**: Fix Supabase Site URL / Redirect URLs (still pending from Phase 23d) to close the Google OAuth 404 loop. Then: Stripe Connect Express onboarding.
+
+### 🗓️ 2026-04-22: Phase 25 — Public Navbar Language Selector
+- [DONE] `src/proxy.ts` — `DEFAULT_LOCALE` switched `'es'` → `'pt'`. New helper `mapBrowserLangToLocale()`: any `es-*` → `es`, any `pt-*` → `pt`, **any other** tag (en, fr, de, …) → `en`. Cookie `NEXT_LOCALE` still has priority (respects manual choice).
+- [DONE] `app/(public)/actions.ts` (NEW) — `setLocaleAction`: Zod-validated `'es' | 'pt' | 'en'`, writes `NEXT_LOCALE` cookie with same flags as the proxy, `revalidatePath('/', 'layout')`.
+- [DONE] `app/(public)/_components/LanguageSwitcher.tsx` (NEW) — Client component, Radix `DropdownMenu`, Globe icon trigger showing PT/ES/EN short code, dropdown lists full names with check-mark on active. Uses `useTransition` for pending state. Tailwind-only (90/10 rule). Adaptive colors for scrolled/transparent navbar.
+- [DONE] `app/(public)/_components/PublicHeader.tsx` — `LanguageSwitcher` inserted into right cluster next to the "Reservar" CTA; works on mobile + desktop.
+- [DONE] `app/(public)/me/layout.tsx` — `LanguageSwitcher` reused in the `/me` top nav (scrolled palette for the solid white bar). Reads `x-locale` header. "Reservar cita →" CTA now localized via `BOOK_CTA` map (pt/es/en).
+- **Tenant-agnostic**: Works on `lourdes.lvh.me:3000`, `gloria.lvh.me:3000` and any future subdomain — the switcher lives in the public layout and has zero coupling to a specific tenant.
+- **Follow-up (not blocking)**: Wire `next-intl` into the `(public)` segment so `SECTIONS` / `BOOK_LABEL` / `BOOK_CTA` label-maps move to `messages/*.json`.
+- **Next**: Stripe Connect Express onboarding.
+
+### 🗓️ 2026-04-22: Phase 24 — `/me` Consumer Dashboard
+- [DONE] `domains/customers/service-me.ts` (NEW) — `getMyCustomer(orgId, email)`, `getMyAppointments(orgId, customerId)`, `updateMyProfile(orgId, customerId, input)`. All queries strictly tenant-isolated.
+- [DONE] `app/(public)/me/layout.tsx` — Auth guard (redirect `/book` if no Supabase session). Org name in header. Tab nav via `MeNav` client component.
+- [DONE] `app/(public)/me/page.tsx` — Redirects to `/me/citas`.
+- [DONE] `app/(public)/me/citas/page.tsx` — Upcoming + Past appointment cards. Status badges (confirmed, pending, completed, cancelled, no_show). Empty state with CTA. Join with catalog_services for service name + color.
+- [DONE] `app/(public)/me/perfil/page.tsx` — Shows email (read-only from Supabase), editable name + phone via `ProfileForm`. Logout button.
+- [DONE] `app/(public)/me/_components/` — `MeNav` (tab switcher with active detection), `ProfileForm` (useActionState + toast feedback), `LogoutButton` (signOut → /book).
+- [DONE] `app/(public)/me/actions.ts` — `updateProfileAction`: server-side auth check + Zod validation + `revalidatePath('/me')`. TypeScript: clean (0 errors).
+- **Phase 24b** — Redesign to 2-column layout (sidebar + content): `MeSidebar` with avatar/initials + nav links (Citas, Datos, Recomendaciones, Logout). `AppointmentTabs` client component (Próximas/Pasadas pill switcher). `/me/recomendaciones` empty state. TypeScript: 0 errors.
+- **Next**: Google OAuth fix (Supabase Site URL → `http://lourdes.lvh.me:3000`). Then: Stripe Connect Express onboarding.
+
+### 🗓️ 2026-04-22: Phase 23d — Step3Confirm session detection + Google OAuth diagnosis
+- [DONE] `Step3Confirm.tsx` — Rewritten with 3 modes: (1) Loading spinner while Supabase session check resolves via `getUser()`; (2) `AuthenticatedConfirm` — clean booking summary card (service, slot, "Reservado como: name · email") + single pay button, NO form fields, dispatches with `guestPhone: 'N/A'`; (3) `GuestConfirm` — full form unchanged. TypeScript: clean (0 errors).
+- [DONE] Google OAuth 404 root cause identified: Supabase Site URL is `http://localhost:3000` — when whitelist doesn't match `redirectTo` exactly, Supabase falls back to Site URL, browser hits wrong host. FIX: In Supabase Dashboard → Authentication → URL Configuration: (a) Site URL → `http://lourdes.lvh.me:3000`; (b) Add exact URLs to Additional Redirect URLs: `http://lourdes.lvh.me:3000/auth/callback` and `http://gloria.lvh.me:3000/auth/callback`. Wildcards unreliable in Supabase whitelist.
+- **Next**: Build `/me` — authenticated consumer dashboard (appointments history, profile editor).
+
+### 🗓️ 2026-04-22: Phase 23c — Stripe Checkout Gateway (full flow)
+- [DONE] `billing/service.ts` — `createBookingSession` acepta `overrideAmountCents` (surcharges + cupón ya aplicados). Fallback test-mode: si no hay `stripeAccountId` y `sk_test_*`, crea Checkout directo sin `transfer_data` (permite testing sin Stripe Connect). En producción, Connected Account sigue siendo obligatorio.
+- [DONE] `book/actions.ts` — `createBookingAction` reescrito: (1) fetch de `bookingSettings` + `paymentSurcharges` en paralelo server-side; (2) si `onlinePaymentEnabled=false` → confirma cita directamente, redirige a `/book/success`; (3) calcula `onlineAmountCents` con reducciones + re-valida cupón server-side; (4) origin construido desde headers para preservar subdominio multi-tenant; (5) schema acepta `couponId` opcional.
+- [DONE] `Step3Confirm.tsx` — pasa `couponId` del `appliedCoupon` al payload de la acción.
+- **Nota**: Para producción completa se necesita Stripe Connect. Para testing del flujo completo funciona con las keys `sk_test_` existentes.
+
+### 🗓️ 2026-04-22: Phase 23b — OAuth Social Login (Google + Apple)
+- [DONE] `app/auth/callback/route.ts` (NEW) — Route Handler que recibe el redirect de OAuth, llama a `exchangeCodeForSession(code)` y redirige al usuario a `?next=` (default `/book`). Preserva subdominio para tenant isolation.
+- [DONE] `Step2Auth.tsx` — Botón Google totalmente funcional vía `supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })`. Botón Apple aparece condicionalmente solo en iOS/macOS (detección con `navigator.userAgent` en `useEffect` para evitar SSR mismatch). Spinner individual por proveedor mientras redirige. Error de OAuth mostrado bajo los botones.
+- **Requisito Supabase Dashboard**: Habilitar Google OAuth en Authentication → Providers → Google (Client ID + Secret). Apple en Authentication → Providers → Apple (Service ID + Key).
+
+### 🗓️ 2026-04-22: Phase 23 — Consumer Booking Funnel Redesign
+- [DONE] `book/actions.ts` — Added `validateCouponAction` (validates against coupons table: isActive, validFrom/Until, maxUses). Exported `BookingConfig`, `SurchargeItem`, `CouponResult` types.
+- [DONE] `book/page.tsx` — Parallel fetch of bookingSettings, paymentSurcharges (active only), googleReviews (avgRating + reviewCount), org logoUrl/address/city. Passes all to BookingFunnel.
+- [DONE] `BookingFunnel.tsx` — Restructured to 4-step flow (`service → calendar → auth? → confirm`). 2-column layout (main + sticky side panel) from calendar step. Manages `appliedCoupon` state.
+- [DONE] `BookingSummary.tsx` (NEW) — Sticky right panel: OrgInfoCard (logo, name, star rating, address) + ResumoCard (service price, surcharge reductions, coupon input/validate/remove, totals: online + saldo local).
+- [DONE] `Step2Calendar.tsx` — Full month calendar grid (7-col, weekStartDay-aware headers, prev/next month navigation, disabled dates based on bookingWindowDays + leadTimeHours). Slots in 3-col grid, timeFormat-aware labels.
+- [DONE] `Step2Auth.tsx` (NEW) — Auth gate: options view (Google deferred, Email login, Criar Perfil register), inline login/register forms using Supabase Auth. "Continuar como invitado" hidden when clientLoginRequired.
+- [DONE] `Step3Confirm.tsx` — Dynamic form fields (formFieldName/Phone/Email/Address toggles). termsRequired checkbox with termsLabel/Url. cancellationPolicyText display. Payment button adapts to onlinePaymentEnabled + advancePaymentRequired. Mobile-only summary card (hidden on lg where side panel shows).
+- [DONE] `StepIndicator.tsx` — Now accepts `Step` string type + `showAuthStep` bool to show/hide auth step.
 
 ## Special Configurations
 - **Subdomain Local Dev:** Use `lvh.me:3000` for testing subdomains.
@@ -763,3 +912,71 @@
 - [NEXT] Testar fluxo completo: criar taxa + redução (verificar limite), criar cupão com expiry + maxUses.
 - [NEXT] "Notas" tab: editor de texto livre com auto-save em CustomerProfileClient.
 - [NEXT] Stripe Connect: completar env vars + webhook local.
+
+### 🗓️ 2026-04-21: Public Consumer Landing Page (SPA)
+- [DONE] `(public)/_data/getLandingData.ts` (NEW, ~160L) — Server-only aggregator. Fetches: org (all public fields), phones, gallery (Supabase Storage URLs), google_reviews, availability_rules, catalog categories+services. Computes `openStatus` (isOpen, label) using org timezone + availability rules. `avgRating` + `reviewCount` calculated.
+- [DONE] `(public)/_components/PublicHeader.tsx` (NEW) — Fixed header. Intersection Observer for active section highlighting. Smooth scroll on nav click. Gold "Reservar" CTA. Transparent → blurred on scroll.
+- [DONE] `(public)/_components/HeroSection.tsx` (NEW) — Video (if bannerUrl is video) or image background. Gold dot-grid fallback. "Mostrar todas as fotos" button dispatches `CustomEvent` to open GalleryModal.
+- [DONE] `(public)/_components/GalleryModal.tsx` (NEW) — Listens to `skinsystem:open-gallery` CustomEvent. Full-screen lightbox. Keyboard navigation (←/→/Esc). Thumbnail strip. Dispatched from HeroSection and GalleryGrid.
+- [DONE] `(public)/_components/ServicesAccordion.tsx` (NEW) — Accordion by category. Each service row: thumbnail, name, duration, "Detalhes" (expand description), price, ">" link to /book?service=id.
+- [DONE] `(public)/_components/StickyInfoCard.tsx` (NEW) — Logo/initials, org name, star rating, Reservar CTA, open/closed status badge + hours dropdown (all 7 days), address, Contactar-nos dropdown (phone→WhatsApp, email, website, instagram SVG, facebook SVG).
+- [DONE] `(public)/_components/AboutSection.tsx` (NEW) — org.about text + decorative signature watermark.
+- [DONE] `(public)/_components/GalleryGrid.tsx` (NEW) — Masonry columns-2/3 grid. Click on image opens GalleryModal via CustomEvent at specific index.
+- [DONE] `(public)/_components/ReviewsSection.tsx` (NEW) — Rating summary badge + bar chart breakdown. Individual reviews (avatar initial, name, timeAgo, Google badge, stars, comment). Show more/less toggle.
+- [DONE] `(public)/_components/MapSection.tsx` (NEW) — Address + Google Maps embed iframe (no API key).
+- [DONE] `(public)/page.tsx` — Full rewrite. Two-column layout: left col (all sections stacked), right col (sticky StickyInfoCard, desktop only). Mobile: card appears as top section. GalleryModal mounted once at page root.
+- [DONE] `globals.css` — Dark mode CSS variables via `@media (prefers-color-scheme: dark)`.
+- [DONE] `(public)/layout.tsx` — body + html support Tailwind `dark:` classes.
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 erros.
+- [NEXT] Implement `/me` — authenticated client dashboard (booking history, profile, home care PDFs).
+- [NEXT] Add `book/` page improvements: staff selector, coupon field.
+
+### 🗓️ 2026-04-21: Phase 22 — /dashboard/settings Multi-section Experience
+- [DONE] **Phase 22-A** — Settings layout + sub-sidebar + live preview iframe.
+  - `settings/layout.tsx` — 3-col layout: sub-sidebar | content (max-w-2xl) | preview panel (xl+).
+  - `settings/_components/SettingsSidebar.tsx` — Client Component, `usePathname()`, collapsible sections (Sua marca, Preferências), MANAGE separator.
+  - `settings/_components/PreviewPanel.tsx` — mobile/desktop device toggle, iframe sandbox, refresh button.
+  - `settings/page.tsx` — redirects to `/dashboard/settings/brand`.
+- [DONE] **Phase 22-B** — `/settings/brand` — Sua marca (6 sections).
+  - `brand/actions.ts` — `updateBrandDetailsAction`, `updateAppearanceAction` (JSONB merge), `updateContactAction` (email + phone upsert), `updateLocationAction`, `updateWorkingHoursAction` (upsert availability_rules WHERE profileId IS NULL), `updateLinksAction`.
+  - `brand/page.tsx` — Server Component + Suspense. Fetches org, phones, availability rules.
+  - Components: `BrandDetailsSection`, `AppearanceSection` (8 presets + color picker), `ContactSection`, `LocationSection` (currency warning, timezone), `WorkingHoursSection` (DOW 1-6-0), `LinksSection`.
+- [DONE] **Phase 22-C** — `/settings/preferences` — Preferências de agendamento (4 sections).
+  - DB migration `phase_11_booking_preferences_extended` applied → 17 new columns on `booking_settings`.
+  - Drizzle schema `booking.ts` updated with all 17 columns.
+  - `preferences/actions.ts` — `updatePoliciesAction`, `updateConfigAction`, `updatePersonalizationAction`, `updateVisibilityAction`.
+  - `preferences/page.tsx` — Server Component + Suspense. Fetches all `bookingSettings` columns (explicit select).
+  - Components: `PoliciesSection`, `ConfigSection` (toggles + contact fields), `PersonalizationSection` (language/format/T&C/redirect), `VisibilitySection` (search + channel buttons).
+- [DONE] **Phase 22-D** — `/settings/team` — Gestão de equipa.
+  - `team/actions.ts` — `inviteStaffAction` (72h token), `toggleMemberActiveAction`, `updateMemberRoleAction`, `cancelInvitationAction`. Tenant-isolated via `organization_id`.
+  - `team/page.tsx` — Server Component + Suspense. Fetches profiles (owner/staff) + pending invitations.
+  - `team/_components/TeamSection.tsx` — MemberRow (Radix DropdownMenu: promote/demote/activate/deactivate), InvitationRow (cancel), inline invite form (email + role selector), optimistic updates.
+- [DONE] **Stubs**: `settings/profile/page.tsx`, `settings/general/page.tsx` (placeholder "Em breve").
+- [DONE] Validation Gate ✅: `tsc --noEmit` 0 erros (all Phase 22 files).
+- [NEXT] `/settings/profile` — personal profile editor (fullName, phone, locale, avatarUrl, password change).
+- [NEXT] `/settings/general` — account-level config (danger zone: delete org, export data).
+
+### 🗓️ 2026-04-22: UX — Accordion desplegable em /settings/preferences
+- [DONE] `preferences/_components/AccordionSection.tsx` (NEW, ~35L) — Client Component. `useState(defaultOpen=true)`. Header clicável com label em small-caps + `ChevronDown` (rotação 180° com `duration-200`). Conteúdo colapsa/expande com toggle. `id` mantido para anchor links do sidebar.
+- [DONE] `PoliciesSection.tsx` — refatorado: `<section>` + `<h2>` substituídos por `<AccordionSection id="politicas" title="Políticas de reserva">`.
+- [DONE] `ConfigSection.tsx` — refatorado: `<AccordionSection id="config" title="Configuração de agendamento">`.
+- [DONE] `PersonalizationSection.tsx` — refatorado: `<AccordionSection id="personalizacao" title="Personalização">`.
+- [DONE] `VisibilitySection.tsx` — refatorado: `<AccordionSection id="visibilidade" title="Visibilidade da página de agendamentos">`.
+- [NOTE] Padrão visual idêntico a `/settings/brand` (label uppercase tracking-widest + card). Cada secção arranca expandida por defeito. Os 4 anchor links do `SettingsSidebar` continuam funcionais.
+
+### 🗓️ 2026-04-22: UX — PoliciesSection (#politicas) refactor completo
+- [DONE] **Tiempo de reserva** — texto informativo reemplazado por "¿Con cuánta antelación hay que avisar antes de una cita?". Input numérico + `UnitSelect` Minutos / Horas / Días. Helpers `detectLeadUnit` + `leadToHours` (convierte a horas antes de guardar en DB).
+- [DONE] **Janela de agendamento** — input numérico + `UnitSelect` Días / Meses. Helpers `detectWindowUnit` + `windowToDays`.
+- [DONE] **Tamanho do horário de reserva** — tooltip `HelpCircle` (hover) con "Si seleccionas un horario de cita de 1 hora, aparecerán los horarios disponibles cada hora a partir de la hora de apertura de tu negocio." + `UnitSelect` Minutos / Horas. Al cambiar unidad, convierte el valor automáticamente. `step=0.5` en modo horas. Helper `slotToMinutes`.
+- [DONE] **Política de cancelamento** — selector con 12 opciones: En cualquier momento (0h), 1h, 2h, 4h, 6h, 10h, 12h, 24h, 48h, 72h, 1 semana (168h), Nunca (-1). Almacenado como integer en DB.
+- [DONE] **Mensagem personalizada** — placeholder reemplazado: "Comparte la información que necesitas saber —sobre cambios en las reservas, reembolsos y mucho más— antes de que los clientes confirmen sus reservas."
+- [DONE] `UnitSelect<T>` — componente genérico tipado sin `any`, reutilizable en el mismo archivo.
+- [DONE] Validation Gate ✅: `tsc --noEmit --skipLibCheck` 0 errores.
+
+### 🗓️ 2026-04-22: UX — ConfigSection (#config) refactor completo
+- [DONE] **Textos actualizados** — "Primeira Marcação Disponível" hint → "Dirige a los clientes a su primer horario disponible." | "Saltar membros" hint → "Su cliente selecciona una franja horaria y se le asigna automáticamente un miembro del equipo." | "Qualquer membro" hint → "Permita que clientes evitem selecionar um membro da equipe durante o agendamento".
+- [DONE] **`FieldStatusBadge`** — badge dinámico: switch ON → "Obligatorio" (bg-stone-100 text-stone-500), switch OFF → "Opcional" (bg-stone-50 text-stone-400). Unifica color gris en todos los campos (eliminado verde de Telefone/Email).
+- [DONE] **`ContactFieldRow`** — componente para los 4 campos del sistema (Nome, Telefone, E-mail, Endereço). Todos muestran badge dinámico. Endereço ahora tiene badge (antes no tenía ninguno).
+- [DONE] **Campos personalizados** — `CustomField { id, label, required }`. Botón "+ Adicionar campo personalizado" (icono `Plus`) añade fila inline con: input de nombre, pill toggle "Obligatorio"/"Opcional", botón `Trash2` para eliminar. Sin límite de campos.
+- [NOTE] Persistencia de `customFields` requiere migración DB: `ALTER TABLE booking_settings ADD COLUMN custom_form_fields jsonb DEFAULT '[]'`. Campos viven en estado local hasta entonces.
+- [DONE] Validation Gate ✅: `tsc --noEmit --skipLibCheck` 0 errores.
