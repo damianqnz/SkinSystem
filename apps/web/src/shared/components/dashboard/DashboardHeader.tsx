@@ -2,40 +2,22 @@ import { Suspense } from 'react';
 import Link from 'next/link';
 import { UserMenu, UserMenuSkeleton } from './UserMenu';
 
-interface DashboardHeaderProps {
-  tenantName: string;
-}
-
 /**
- * Setmore-inspired glassmorphism header — Server Component.
- * Receives tenantName as prop (no headers() call) → static-prerenderable.
+ * Glassmorphism header — Server Component.
  * UserMenu is isolated in <Suspense> for PPR compatibility.
  *
  * Structure:
- *   [Left: section label]  [Center: "O seu calendário"]  [Right: Reservar CTA + Avatar]
+ *   [Left: empty]  [Right: Reservar CTA + Avatar+Logout dropdown]
  */
-export function DashboardHeader({ tenantName: _tenantName }: DashboardHeaderProps) {
+export function DashboardHeader() {
   return (
     <header
       className="sticky top-0 z-20 h-14 flex items-center justify-between px-6
                  bg-[rgba(245,243,239,0.80)] backdrop-blur-md
                  border-b border-spa-border"
     >
-      {/* ── Left: section label ──────────────────────────────────── */}
-      <p
-        className="text-[13px] text-spa-muted tracking-wide hidden lg:block"
-        style={{ fontFamily: 'var(--font-sans)' }}
-      >
-        O seu calendário
-      </p>
-
-      {/* ── Center: brand title (visible on mobile / md) ─────────── */}
-      <h1
-        className="text-[17px] leading-none tracking-wide capitalize lg:absolute lg:left-1/2 lg:-translate-x-1/2"
-        style={{ fontFamily: 'var(--font-serif)' }}
-      >
-        Lourdes Estética
-      </h1>
+      {/* ── Left: spacer ─────────────────────────────────────── */}
+      <div />
 
       {/* ── Right: actions ──────────────────────────────────────── */}
       <div className="flex items-center gap-3 ml-auto">
@@ -51,7 +33,7 @@ export function DashboardHeader({ tenantName: _tenantName }: DashboardHeaderProp
           <span>Reservar</span>
         </Link>
 
-        {/* User avatar — streamed */}
+        {/* User avatar with logout dropdown — streamed */}
         <Suspense fallback={<UserMenuSkeleton />}>
           <UserMenu />
         </Suspense>

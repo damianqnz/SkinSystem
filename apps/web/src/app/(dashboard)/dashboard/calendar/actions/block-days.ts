@@ -1,11 +1,13 @@
 'use server';
 
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import 'server-only';
 
 import { z } from 'zod';
 import { and, eq, gte, lt, not, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db }              from '@/infrastructure/db';
+import { profiles } from '@/infrastructure/db/schema/organizations';
 import { appointments }    from '@/domains/booking/schema';
 import { catalogServices } from '@/infrastructure/db/schema/catalog';
 import { blockedIntervals } from '@/infrastructure/db/schema/calendar';
@@ -48,8 +50,14 @@ export async function blockDaysAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { status: 'error', message: 'No autorizado' };
 
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { status: 'error', message: 'Organización no encontrada' };
+  let orgId = user.user_metadata?.organization_id as string | undefined;
+  // Fallback: profiles table (profiles.id === auth.users.id)
+  if (!orgId) {
+    const profileRows = await db.select({ organizationId: profiles.organizationId })
+      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
+    orgId = profileRows[0]?.organizationId;
+  }
+    if (!orgId) return { status: 'error', message: 'Organización no encontrada' };
 
   const { fromDate: from, toDate: to, reason: blockReason } = parsed.data;
   if (to < from) return { status: 'error', message: '"Hasta" debe ser posterior a "Desde"' };

@@ -1,0 +1,109 @@
+/**
+ * @file _i18n/es.ts
+ * @description Spanish labels for the consumer booking funnel.
+ *              Used for tenants whose default audience is ES-speaking
+ *              (Lourdes) and as a fallback for unknown locales.
+ */
+
+import type { BookingLabels } from './types';
+
+export const es: BookingLabels = {
+  header: {
+    title: 'Reserva Online',
+    back:  'Volver al inicio',
+  },
+  steps: {
+    service:  'Servicio',
+    calendar: 'Horario',
+    auth:     'Acceso',
+    confirm:  'Confirmar',
+  },
+  common: {
+    back:    'Volver',
+    minutes: 'min',
+  },
+  service: {
+    heading:      '¿Qué tratamiento deseas?',
+    empty:        'No hay servicios disponibles en este momento',
+    select:       'Seleccionar →',
+    fallbackName: 'Tratamiento',
+    deposit:      'Depósito {percent}% · {amount} ahora',
+  },
+  calendar: {
+    heading: 'Elige fecha y hora',
+    empty:   'No hay horarios disponibles',
+    monthNames: [
+      'Enero','Febrero','Marzo','Abril','Mayo','Junio',
+      'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre',
+    ],
+    dayHeaders: ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'],
+  },
+  auth: {
+    headingOptions:         'Iniciar sesión para reservar',
+    subtitleOptions:        'Accede o crea una cuenta para continuar',
+    google:                 'Continuar con Google',
+    email:                  'Continuar con Email',
+    createProfile:          'Crear perfil',
+    continueGuest:          'Continuar como invitado',
+    or:                     'o',
+    headingLogin:           'Inicia sesión',
+    subtitleLogin:          'Accede a tu cuenta para reservar',
+    headingRegister:        'Crear perfil',
+    subtitleRegister:       'Crea tu cuenta para gestionar tus citas',
+    back:                   '← Volver',
+    emailLabel:             'Email',
+    passwordLabel:          'Contraseña',
+    fullNameLabel:          'Nombre completo',
+    emailPlaceholder:       'ana@email.com',
+    passwordPlaceholder:    '••••••••',
+    passwordMinPlaceholder: 'Mín. 6 caracteres',
+    fullNamePlaceholder:    'Ana García',
+    enter:                  'Entrar',
+    createAccount:          'Crear cuenta',
+    noAccount:              '¿No tienes cuenta?',
+    createNow:              'Crear perfil',
+    errorCredentials:       'Email o contraseña incorrectos',
+  },
+  confirm: {
+    heading:            'Confirma tu reserva',
+    dateTime:           'Fecha y hora',
+    reservedAs:         'Reservado como',
+    policyFallback:     'Al reservar aceptas la política de cancelación.',
+    stripeSecure:       'Pago seguro con Stripe',
+    payButton:          'Pagar {amount}',
+    bookButton:         'Confirmar reserva',
+    payButtonGuest:     'Pagar {amount} →',
+    bookButtonGuest:    'Confirmar reserva →',
+    redirecting:        'Redirigiendo al pago…',
+    nameLabel:          'Nombre completo',
+    phoneLabel:         'Teléfono',
+    emailLabel:         'Email',
+    addressLabel:       'Dirección',
+    noteLabel:          'Nota (opcional)',
+    namePlaceholder:    'Ana García',
+    phonePlaceholder:   '+34 600 000 000',
+    emailPlaceholder:   'ana@email.com',
+    addressPlaceholder: 'Calle, número, ciudad',
+    notePlaceholder:    'Alergias, preferencias, información relevante...',
+    emailHelp:          'Recibirás la confirmación en este email.',
+    acceptTerms:        'Acepto los términos y condiciones',
+    viewPolicy:         'Ver política',
+    termsRequiredError: 'Debes aceptar los términos para continuar.',
+    conflictError:      'Este horario acaba de ser reservado. Elige otro.',
+  },
+  summary: {
+    heading:           'Resumen',
+    subtotalOnline:    'Subtotal online',
+    couponPlaceholder: 'Código de descuento',
+    couponApply:       'Aplicar',
+    totalNow:          'Total ahora',
+    localBalance:      'Saldo a pagar en local',
+  },
+  notices: {
+    cancelledPayment: 'Tu pago fue cancelado. Puedes elegir otro horario o intentarlo de nuevo.',
+    oauthError:       'Error al autenticarse con Google. Por favor inténtalo de nuevo o continúa como invitado.',
+  },
+  metadata: {
+    title: 'Reservar cita — {name}',
+  },
+};
