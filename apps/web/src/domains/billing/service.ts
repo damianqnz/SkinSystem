@@ -28,6 +28,12 @@ export type BookingSessionInput = {
   /** Passed into Stripe metadata so webhook can release the Redis slot lock */
   slotStartISO?:     string;
   lockedBySession?:  string;
+  /**
+   * Override the computed deposit amount.
+   * When provided, used directly instead of `priceCents * depositPercent / 100`.
+   * Must already account for surcharges and coupons.
+   */
+  overrideAmountCents?: number;
 };
 
 export type BookingSessionResult = {
@@ -74,7 +80,13 @@ export async function createBookingSession(
 
     const org = orgRows[0];
     if (!org) return { data: null, error: { message: 'Organization not found', code: 'NOT_FOUND' } };
-    if (!org.stripeAccountId) {
+
+    const isTestMode = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ?? false;
+
+    // In production, a connected Stripe account is mandatory for fiscal isolation.
+    // In test mode, allow a direct platform charge so the full flow can be tested
+    // without completing Stripe Connect onboarding.
+    if (!org.stripeAccountId && !isTestMode) {
       return { data: null, error: { message: 'Specialist has not connected Stripe', code: 'STRIPE_NOT_CONNECTED' } };
     }
 
@@ -96,9 +108,13 @@ export async function createBookingSession(
     const svc = svcRows[0];
     if (!svc) return { data: null, error: { message: 'Service not found', code: 'NOT_FOUND' } };
 
-    const amountCents   = calcDepositAmount(svc.priceCents, svc.depositPercent);
-    const applicationFee = calcApplicationFee(amountCents);
-    const serviceName   = resolveServiceName(svc.nameI18n, input.locale ?? 'es');
+    // Use override amount (surcharges + coupons already applied) or fall back to deposit calc
+    const amountCents = input.overrideAmountCents !== undefined
+      ? input.overrideAmountCents
+      : calcDepositAmount(svc.priceCents, svc.depositPercent);
+
+    const applicationFee = org.stripeAccountId ? calcApplicationFee(amountCents) : 0;
+    const serviceName    = resolveServiceName(svc.nameI18n, input.locale ?? 'es');
 
     if (amountCents <= 0) {
       return { data: null, error: { message: 'Deposit amount is zero — no payment needed', code: 'ZERO_AMOUNT' } };
@@ -106,6 +122,20 @@ export async function createBookingSession(
 
     // ── 3. Create Stripe Checkout Session ─────────────────
     const stripeLocale = (input.locale === 'pt' ? 'pt' : input.locale === 'en' ? 'en' : 'es') as 'es' | 'pt' | 'en';
+
+    // Build payment_intent_data — with or without Connect transfer
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const paymentIntentData: Record<string, any> = {
+      metadata: {
+        organizationId: input.organizationId,
+        appointmentId:  input.appointmentId,
+        serviceId:      input.serviceId,
+      },
+      ...(org.stripeAccountId ? {
+        transfer_data:          { destination: org.stripeAccountId },
+        application_fee_amount: applicationFee,
+      } : {}),
+    };
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -119,24 +149,14 @@ export async function createBookingSession(
           unit_amount:  amountCents,
           product_data: {
             name:        serviceName,
-            description: svc.depositPercent < 100
-              ? `Depósito ${svc.depositPercent}% · Total ${(svc.priceCents / 100).toFixed(2)} ${svc.currency}`
+            description: amountCents < svc.priceCents
+              ? `Pago parcial · Total ${(svc.priceCents / 100).toFixed(2)} ${svc.currency}`
               : undefined,
           },
         },
       }],
 
-      payment_intent_data: {
-        // Fiscal isolation: funds go to specialist's own Stripe account
-        transfer_data: { destination: org.stripeAccountId },
-        // Platform fee deducted before transfer
-        application_fee_amount: applicationFee,
-        metadata: {
-          organizationId: input.organizationId,
-          appointmentId:  input.appointmentId,
-          serviceId:      input.serviceId,
-        },
-      },
+      payment_intent_data: paymentIntentData,
 
       customer_email: input.customerEmail,
 

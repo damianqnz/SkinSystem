@@ -1,9 +1,9 @@
 'use server';
 
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { revalidatePath }             from 'next/cache';
 import { z }                          from 'zod';
 import { eq, and }                    from 'drizzle-orm';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { db }                         from '@/infrastructure/db';
 import { bookingSettings }            from '@/domains/booking/schema';
 import { getPaymentHistory }          from '@/domains/billing/service-history';
@@ -12,21 +12,12 @@ import type { Result }                from '@/shared/types/result';
 
 // ── Auth helper ───────────────────────────────────────────────
 
-async function resolveOrgId(): Promise<{ orgId: string } | { error: string }> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autorizado' };
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { error: 'Organización no encontrada' };
-  return { orgId };
-}
-
 // ── Toggle: online payments ───────────────────────────────────
 
 export async function toggleOnlinePaymentAction(
   enabled: boolean,
 ): Promise<{ error?: string }> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { error: auth.error };
 
   try {
@@ -47,7 +38,7 @@ export async function toggleOnlinePaymentAction(
 export async function toggleAdvancePaymentAction(
   required: boolean,
 ): Promise<{ error?: string }> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { error: auth.error };
 
   try {
@@ -73,7 +64,7 @@ const rangeSchema = z.object({
 export async function getPaymentHistoryAction(
   raw: unknown,
 ): Promise<Result<PaymentHistoryRow[]>> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = rangeSchema.safeParse(raw);

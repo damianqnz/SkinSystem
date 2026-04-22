@@ -1,10 +1,13 @@
 'use server';
+import { eq } from 'drizzle-orm';
 
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import 'server-only';
 
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { db } from '@/infrastructure/db';
+import { profiles } from '@/infrastructure/db/schema/organizations';
 import { customers } from '@/domains/customers/schema';
 
 // ── Public types ──────────────────────────────────────────────
@@ -32,8 +35,14 @@ export async function createCustomerAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { status: 'error', message: 'No autorizado' };
 
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { status: 'error', message: 'Organización no encontrada' };
+  let orgId = user.user_metadata?.organization_id as string | undefined;
+  // Fallback: profiles table (profiles.id === auth.users.id)
+  if (!orgId) {
+    const profileRows = await db.select({ organizationId: profiles.organizationId })
+      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
+    orgId = profileRows[0]?.organizationId;
+  }
+    if (!orgId) return { status: 'error', message: 'Organización no encontrada' };
 
   const rawEmail = (formData.get('email') as string | null) ?? '';
   const parsed = createSchema.safeParse({

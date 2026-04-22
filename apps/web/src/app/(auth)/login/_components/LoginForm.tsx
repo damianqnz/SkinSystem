@@ -24,6 +24,7 @@ export function LoginForm({ next, t }: LoginFormProps) {
   const errorMsg = state?.error
     ? t.errors[state.error as keyof typeof t.errors] ?? t.errors.generic
     : null;
+  const showBookCta = state?.error === 'no_account';
 
   return (
     <MagicCard
@@ -138,6 +139,27 @@ export function LoginForm({ next, t }: LoginFormProps) {
             {t.forgot}
           </a>
         </p>
+
+        {/* ── No-account CTA (only after a `no_account` error) ── */}
+        <AnimatePresence>
+          {showBookCta && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="mt-4 text-center font-sans text-xs text-stone-500"
+            >
+              {t.noAccountCtaLead}{' '}
+              <a
+                href="/book"
+                className="font-medium text-stone-800 underline-offset-4 transition-colors hover:text-stone-950 hover:underline"
+              >
+                {t.noAccountCtaAction}
+              </a>
+            </motion.p>
+          )}
+        </AnimatePresence>
       </form>
     </MagicCard>
   );

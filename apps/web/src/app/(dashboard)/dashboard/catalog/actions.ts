@@ -2,6 +2,9 @@
 
 import { revalidatePath }              from 'next/cache';
 import { z }                           from 'zod';
+import { eq }                          from 'drizzle-orm';
+import { db }                          from '@/infrastructure/db';
+import { profiles }                    from '@/infrastructure/db/schema/organizations';
 import { createSupabaseServerClient }  from '@/infrastructure/supabase/server';
 import {
   createCategory, updateCategory,
@@ -27,8 +30,14 @@ async function getOrgId(): Promise<{ orgId: string } | { error: string }> {
 
   // organization_id is stored in user.user_metadata or we derive it from the session
   // For multi-tenant: each user belongs to exactly one org via profiles table
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { error: 'Organización no encontrada en sesión' };
+  // Fast path: JWT metadata
+  const metaOrgId = user.user_metadata?.organization_id as string | undefined;
+  if (metaOrgId) return { orgId: metaOrgId };
+  // Fallback: profiles table (profiles.id === auth.users.id)
+  const profileRows = await db.select({ organizationId: profiles.organizationId })
+    .from(profiles).where(eq(profiles.id, user.id)).limit(1);
+  const orgId = profileRows[0]?.organizationId;
+  if (!orgId) return { error: 'Organización no encontrada' };
   return { orgId };
 }
 

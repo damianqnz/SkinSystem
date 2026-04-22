@@ -1,8 +1,11 @@
 'use server';
 import 'server-only';
 
-import { createServerClient } from '@supabase/ssr';
-import { cookies }            from 'next/headers';
+import { eq }                            from 'drizzle-orm';
+import { createServerClient }            from '@supabase/ssr';
+import { cookies }                       from 'next/headers';
+import { db }                            from '@/infrastructure/db';
+import { profiles }                      from '@/infrastructure/db/schema/organizations';
 import { getCustomerAppointmentHistory } from '@/domains/customers/service-appointments';
 import type { Result }              from '@/shared/types/result';
 import type { AppointmentHistoryData } from '@/domains/customers/service-appointments';
@@ -20,8 +23,14 @@ export async function getCustomerAppointmentsAction(
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return { data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } };
 
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { data: null, error: { message: 'No organization', code: 'UNAUTHORIZED' } };
+  let orgId = user.user_metadata?.organization_id as string | undefined;
+  // Fallback: profiles table (profiles.id === auth.users.id)
+  if (!orgId) {
+    const profileRows = await db.select({ organizationId: profiles.organizationId })
+      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
+    orgId = profileRows[0]?.organizationId;
+  }
+    if (!orgId) return { data: null, error: { message: 'No organization', code: 'UNAUTHORIZED' } };
 
   return getCustomerAppointmentHistory(orgId, customerId);
 }

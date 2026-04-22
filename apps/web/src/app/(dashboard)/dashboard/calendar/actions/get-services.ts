@@ -1,9 +1,11 @@
 'use server';
-
 import 'server-only';
 
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
-import { getActiveServices } from '@/domains/catalog/service';
+import { eq }                            from 'drizzle-orm';
+import { db }                            from '@/infrastructure/db';
+import { profiles }                      from '@/infrastructure/db/schema/organizations';
+import { createSupabaseServerClient }    from '@/infrastructure/supabase/server';
+import { getActiveServices }             from '@/domains/catalog/service';
 import type { Result } from '@/shared/types/result';
 import type { I18nField } from '@/domains/catalog/schema';
 
@@ -31,8 +33,14 @@ export async function getServicesAction(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { data: null, error: { message: 'No autorizado', code: 'AUTH_ERROR' } };
 
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { data: null, error: { message: 'Organización no encontrada', code: 'NOT_FOUND' } };
+  let orgId = user.user_metadata?.organization_id as string | undefined;
+  // Fallback: profiles table (profiles.id === auth.users.id)
+  if (!orgId) {
+    const profileRows = await db.select({ organizationId: profiles.organizationId })
+      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
+    orgId = profileRows[0]?.organizationId;
+  }
+    if (!orgId) return { data: null, error: { message: 'Organización no encontrada', code: 'NOT_FOUND' } };
 
   const result = await getActiveServices(orgId);
   if (result.error) return { data: null, error: result.error };

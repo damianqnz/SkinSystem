@@ -7,6 +7,7 @@ import { revalidatePath }     from 'next/cache';
 import { createServerClient } from '@supabase/ssr';
 import { cookies }            from 'next/headers';
 import { db }                 from '@/infrastructure/db';
+import { profiles } from '@/infrastructure/db/schema/organizations';
 import { customers }          from '@/infrastructure/db/schema/customers';
 import type { Result }        from '@/shared/types/result';
 
@@ -39,8 +40,14 @@ export async function updateCustomerAction(
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
   if (authErr || !user) return { data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } };
 
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { data: null, error: { message: 'No organization', code: 'UNAUTHORIZED' } };
+  let orgId = user.user_metadata?.organization_id as string | undefined;
+  // Fallback: profiles table (profiles.id === auth.users.id)
+  if (!orgId) {
+    const profileRows = await db.select({ organizationId: profiles.organizationId })
+      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
+    orgId = profileRows[0]?.organizationId;
+  }
+    if (!orgId) return { data: null, error: { message: 'No organization', code: 'UNAUTHORIZED' } };
 
   const parsed = schema.safeParse(raw);
   if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Invalid input', code: 'VALIDATION_ERROR' } };

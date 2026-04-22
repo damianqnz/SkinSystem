@@ -1,9 +1,9 @@
 'use server';
 
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { revalidatePath }             from 'next/cache';
 import { z }                          from 'zod';
 import { eq, and }                    from 'drizzle-orm';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { db }                         from '@/infrastructure/db';
 import { coupons }                    from '@/domains/booking/schema';
 import type { Result }                from '@/shared/types/result';
@@ -24,21 +24,12 @@ export type CouponRow = {
 
 // ── Auth helper ───────────────────────────────────────────────
 
-async function resolveOrgId(): Promise<{ orgId: string } | { error: string }> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autorizado' };
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { error: 'Organización no encontrada' };
-  return { orgId };
-}
-
 function revalidate() { revalidatePath('/dashboard/billing'); }
 
 // ── Get ───────────────────────────────────────────────────────
 
 export async function getCouponsAction(): Promise<Result<CouponRow[]>> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const rows = await db
@@ -67,7 +58,7 @@ const couponSchema = z.object({
 // ── Create ────────────────────────────────────────────────────
 
 export async function createCouponAction(raw: unknown): Promise<Result<CouponRow>> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = couponSchema.safeParse(raw);
@@ -98,7 +89,7 @@ export async function createCouponAction(raw: unknown): Promise<Result<CouponRow
 // ── Update ────────────────────────────────────────────────────
 
 export async function updateCouponAction(id: string, raw: unknown): Promise<Result<CouponRow>> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = couponSchema.safeParse(raw);
@@ -123,7 +114,7 @@ export async function updateCouponAction(id: string, raw: unknown): Promise<Resu
 // ── Toggle active ─────────────────────────────────────────────
 
 export async function toggleCouponAction(id: string, isActive: boolean): Promise<{ error?: string }> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { error: auth.error };
 
   await db.update(coupons)
@@ -137,7 +128,7 @@ export async function toggleCouponAction(id: string, isActive: boolean): Promise
 // ── Delete ────────────────────────────────────────────────────
 
 export async function deleteCouponAction(id: string): Promise<{ error?: string }> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { error: auth.error };
 
   await db.delete(coupons)

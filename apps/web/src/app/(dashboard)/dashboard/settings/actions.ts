@@ -1,6 +1,6 @@
 'use server';
 
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { getStripe }                  from '@/shared/lib/stripe';
 import { setStripeAccountId }         from '@/domains/organizations/service';
 import { db }                         from '@/infrastructure/db';
@@ -15,16 +15,6 @@ export type StripeConnectState =
   | { status: 'error'; message: string };
 
 // ── Helper: resolve orgId from authenticated session ──────────
-
-async function resolveOrgId(): Promise<{ orgId: string } | { error: string }> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autorizado' };
-
-  const orgId = user.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { error: 'Organización no encontrada en sesión' };
-  return { orgId };
-}
 
 // ── createStripeConnectAccount ────────────────────────────────
 
@@ -47,7 +37,7 @@ export async function createStripeConnectAccount(
   _prev: StripeConnectState,
   _raw:  unknown,
 ): Promise<StripeConnectState> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
   const stripe   = getStripe();
@@ -104,7 +94,7 @@ export async function refreshStripeOnboardingLink(
   _prev: StripeConnectState,
   _raw:  unknown,
 ): Promise<StripeConnectState> {
-  const auth = await resolveOrgId();
+  const auth = await resolveTenantOrgId();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
   const stripe  = getStripe();

@@ -18,7 +18,7 @@ import { createSupabaseMiddlewareClient } from '@/infrastructure/supabase/middle
 
 const SUPPORTED_LOCALES = ['es', 'pt', 'en'] as const;
 type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
-const DEFAULT_LOCALE: SupportedLocale = 'es';
+const DEFAULT_LOCALE: SupportedLocale = 'pt';
 
 /** Subdomains that are never treated as tenant slugs. */
 const RESERVED_SUBDOMAINS = new Set(['www', 'auth', 'api', 'admin', 'app']);
@@ -56,20 +56,45 @@ function extractTenantSlug(hostname: string): string | null {
 }
 
 /**
+ * Maps a raw browser language tag to one of the supported locales.
+ *
+ * Rules:
+ *  - Any Spanish variant (`es`, `es-AR`, `es-MX`, …) → `'es'`
+ *  - Any Portuguese variant (`pt`, `pt-BR`, `pt-PT`, …) → `'pt'`
+ *  - Anything else (English, French, German, …) → `'en'`
+ *  - Empty/invalid input → `null` (caller decides the fallback)
+ */
+function mapBrowserLangToLocale(raw: string): SupportedLocale | null {
+  const tag = raw.trim().toLowerCase();
+  if (!tag) return null;
+  const primary = tag.split('-')[0];
+  if (primary === 'es') return 'es';
+  if (primary === 'pt') return 'pt';
+  return 'en';
+}
+
+/**
  * Resolves the user's preferred locale.
- * Priority: cookie → Accept-Language header → system default.
+ * Priority: cookie (manual choice) → Accept-Language header → default (`pt`).
+ *
+ * Only the exact values `'es' | 'pt' | 'en'` are persisted in the cookie,
+ * since that value comes from our own Server Action (Zod-validated).
  */
 function detectLocale(request: NextRequest): SupportedLocale {
+  // 1. Respect the user's manual selection (persisted via Server Action).
   const fromCookie = request.cookies.get('NEXT_LOCALE')?.value;
   if (fromCookie && SUPPORTED_LOCALES.includes(fromCookie as SupportedLocale)) {
     return fromCookie as SupportedLocale;
   }
 
+  // 2. Fall back to the browser's first Accept-Language entry.
   const acceptLang = request.headers.get('accept-language') ?? '';
-  const preferred = acceptLang.split(',')[0]?.split('-')[0] ?? '';
-  return SUPPORTED_LOCALES.includes(preferred as SupportedLocale)
-    ? (preferred as SupportedLocale)
-    : DEFAULT_LOCALE;
+  const firstTag = acceptLang.split(',')[0] ?? '';
+  const mapped = mapBrowserLangToLocale(firstTag);
+  if (mapped) return mapped;
+
+  // 3. No signal → default locale (pt).
+  return DEFAULT_LOCALE;
 }
 
 // ── Proxy ─────────────────────────────────────────────────────

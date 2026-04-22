@@ -1,10 +1,12 @@
 'use server';
 
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import 'server-only';
 
 import { z } from 'zod';
 import { and, eq, gte, lt, inArray, isNull } from 'drizzle-orm';
 import { db }                        from '@/infrastructure/db';
+import { profiles } from '@/infrastructure/db/schema/organizations';
 import { availabilityRules }         from '@/infrastructure/db/schema/calendar';
 import { appointments }              from '@/domains/booking/schema';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
@@ -34,8 +36,15 @@ export async function getAvailableTimesAction(dateStr: string): Promise<Result<s
 
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const orgId = user?.user_metadata?.organization_id as string | undefined;
-  if (!orgId) return { data: null, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } };
+  if (!user) return { data: null, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } };
+  let orgId = user.user_metadata?.organization_id as string | undefined;
+  // Fallback: profiles table (profiles.id === auth.users.id)
+  if (!orgId) {
+    const profileRows = await db.select({ organizationId: profiles.organizationId })
+      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
+    orgId = profileRows[0]?.organizationId;
+  }
+    if (!orgId) return { data: null, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } };
 
   const { date } = parsed.data;
   // Use noon UTC to safely derive day-of-week regardless of timezone offset
