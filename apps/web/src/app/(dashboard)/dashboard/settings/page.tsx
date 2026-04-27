@@ -3,14 +3,20 @@ import { notFound }                 from 'next/navigation';
 import { getOrganizationBySlug }    from '@/domains/organizations/service';
 import { getOrganizationSettings }  from '@/domains/organizations/service';
 import { StripeConnectCard }        from './_components/StripeConnectCard';
+import {
+  settingsTranslations,
+  pickSettingsLocale,
+} from '@/shared/lib/i18n/settings';
 
 interface SettingsPageProps {
   searchParams: Promise<{ stripe?: string }>;
 }
 
 export default async function SettingsPage({ searchParams }: SettingsPageProps) {
-  const hdrs  = await headers();
-  const slug  = hdrs.get('x-tenant-slug') ?? '';
+  const hdrs   = await headers();
+  const slug   = hdrs.get('x-tenant-slug') ?? '';
+  const locale = pickSettingsLocale(hdrs.get('x-locale'));
+  const t      = settingsTranslations[locale];
 
   const { stripe: stripeParam } = await searchParams;
 
@@ -25,18 +31,19 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
     <div className="max-w-2xl mx-auto space-y-8">
       {/* Page heading */}
       <div>
-        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">Ajustes</h1>
-        <p className="text-sm text-stone-400 mt-1">Configuración de tu espacio en SkinSystem</p>
+        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t.page.title}</h1>
+        <p className="text-sm text-stone-400 mt-1">{t.page.subtitle}</p>
       </div>
 
       {/* Stripe Connect Card */}
       <section>
         <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-3 px-1">
-          Pagos
+          {t.page.sectionPayments}
         </h2>
         <StripeConnectCard
           stripeAccountId={settings?.stripeAccountId ?? null}
           stripeOnboarded={settings?.stripeOnboarded ?? false}
+          locale={locale}
           stripeParam={stripeParam ?? null}
         />
       </section>
@@ -44,19 +51,19 @@ export default async function SettingsPage({ searchParams }: SettingsPageProps) 
       {/* Placeholder sections */}
       <section>
         <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-3 px-1">
-          Perfil del negocio
+          {t.page.sectionBusiness}
         </h2>
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6">
-          <p className="text-sm text-stone-400 italic">Próximamente — nombre, logo, dirección.</p>
+          <p className="text-sm text-stone-400 italic">{t.page.placeholderBusiness}</p>
         </div>
       </section>
 
       <section>
         <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-3 px-1">
-          Notificaciones
+          {t.page.sectionNotifications}
         </h2>
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6">
-          <p className="text-sm text-stone-400 italic">Próximamente — WhatsApp, email, recordatorios.</p>
+          <p className="text-sm text-stone-400 italic">{t.page.placeholderNotifications}</p>
         </div>
       </section>
     </div>

@@ -343,3 +343,13 @@
 - [NEXT] Rellenar credenciales reales de Stripe + Upstash Redis en .env.local para prueba end-to-end.
 - [NEXT] Implementar WhatsApp (Evolution API) post-confirmación.
 - [NEXT] NewAppointmentFAB en /calendar: conectar al mismo createBookingAction para reservas desde el panel.
+
+### 🗓️ 2026-04-27: Stripe Connect UX — Overlay + Polling + i18n
+- [DONE] CREADO: `shared/lib/i18n/settings.ts` — traducciones ES/PT/EN para Settings page y StripeConnectCard. Helper `pickSettingsLocale()`. Patrón coherente con `auth.ts`.
+- [DONE] REFACTOR: `StripeConnectCard.tsx` — recibe `locale` prop. Todos los strings consumidos vía `settingsTranslations[locale]`. Sub-componentes (StatusBadge, ConnectedState, PendingState, DisconnectedState) reciben `t` tipado.
+- [DONE] AÑADIDO: `RedirectingOverlay` — full-screen `bg-stone-950/70 backdrop-blur-md` con Loader2 + Cormorant heading + StripeLogo. AnimatePresence fade + scale. Visible mientras `connectPending|refreshPending|status==='redirect'`. Texto i18n: "Te estamos llevando a Stripe…".
+- [DONE] AÑADIDO: Polling post-onboarding — cuando `?stripe=success` y `stripeOnboarded=false`, dispara `router.refresh()` cada 2s hasta 5 intentos (10s total). Mitiga race condition con webhook `account.updated`. Toasts: `verifying` (info) → `connected` (success) | `verifyTimeout` (info).
+- [DONE] `settings/page.tsx` — lee `x-locale` header → `pickSettingsLocale` → pasa locale al card. Page headings y placeholder sections también traducidos.
+- [DEBT-I18N] El proyecto tiene `next-intl@4.9.1` instalado pero NO usado. Patrón actual mezcla: (a) typed object en `shared/lib/i18n/*.ts` (auth, settings), (b) ternarios inline en componentes, (c) objeto `L` local (HomeCareGenerator), (d) hardcoded ES. `STANDARDS.md §4` describe target con `next-intl` + `src/messages/*.json` que no existen. Pendiente: migración unificada.
+- [DONE] tsc --noEmit: 0 errores.
+- [NEXT] Validar webhook con `stripe listen --forward-to localhost:3000/api/webhooks/stripe` y confirmar UX completa onboarding → return → polling → connected.

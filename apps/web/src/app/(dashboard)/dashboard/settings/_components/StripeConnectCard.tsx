@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useActionState } from 'react';
+import { useEffect, useState, useActionState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, AlertCircle, ExternalLink,
   Loader2, RefreshCw, ArrowRight,
@@ -13,9 +13,13 @@ import {
   refreshStripeOnboardingLink,
 } from '../actions';
 import type { StripeConnectState } from '../actions';
+import {
+  settingsTranslations,
+  type SettingsLocale,
+  type SettingsT,
+} from '@/shared/lib/i18n/settings';
 
 // ── Stripe wordmark (monochrome SVG) ──────────────────────────
-// Official Stripe wordmark, rendered in stone color
 function StripeLogo({ className }: { className?: string }) {
   return (
     <svg
@@ -39,6 +43,7 @@ function StripeLogo({ className }: { className?: string }) {
 interface StripeConnectCardProps {
   stripeAccountId:  string | null;
   stripeOnboarded:  boolean;
+  locale:           SettingsLocale;
   /** Passed via URL search param after redirect back from Stripe */
   stripeParam?:     string | null;
 }
@@ -47,106 +52,200 @@ const IDLE: StripeConnectState = { status: 'idle' };
 
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
+// Webhook race-condition mitigation: poll every 2s up to 5 times (10s).
+const POLL_INTERVAL_MS = 2_000;
+const POLL_MAX_ATTEMPTS = 5;
+
 export function StripeConnectCard({
   stripeAccountId,
   stripeOnboarded,
+  locale,
   stripeParam,
 }: StripeConnectCardProps) {
   const router = useRouter();
+  const t = settingsTranslations[locale];
 
   const isConnected = stripeOnboarded && !!stripeAccountId;
   const isPending   = !!stripeAccountId && !stripeOnboarded;
 
-  // Show success toast when returning from Stripe onboarding
-  useEffect(() => {
-    if (stripeParam === 'success') {
-      toast.success('Cuenta Stripe vinculada. Verificando estado…');
-    }
-    if (stripeParam === 'refresh') {
-      toast.info('El enlace de onboarding expiró. Genera uno nuevo.');
-    }
-  }, [stripeParam]);
-
-  // ── Connect action ─────────────────────────────────────────
+  // ── Connect / refresh actions ──────────────────────────────
   const [connectState, connectDispatch, connectPending] =
     useActionState<StripeConnectState, unknown>(createStripeConnectAccount, IDLE);
 
-  // ── Refresh action ─────────────────────────────────────────
   const [refreshState, refreshDispatch, refreshPending] =
     useActionState<StripeConnectState, unknown>(refreshStripeOnboardingLink, IDLE);
 
-  // Handle redirects from actions
+  // ── Polling state (post-onboarding return) ─────────────────
+  const [isPolling, setIsPolling]       = useState(false);
+  const [pollAttempts, setPollAttempts] = useState(0);
+
+  // Trigger verification flow when returning from Stripe
+  useEffect(() => {
+    if (stripeParam === 'refresh') {
+      toast.info(t.stripe.toast.linkExpired);
+      return;
+    }
+    if (stripeParam === 'success') {
+      if (stripeOnboarded) {
+        toast.success(t.stripe.toast.connected);
+      } else {
+        toast.info(t.stripe.toast.verifying);
+        setPollAttempts(0);
+        setIsPolling(true);
+        router.refresh();
+      }
+    }
+    // Intentional: react to query param + initial onboarding state only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stripeParam]);
+
+  // Polling loop — re-runs each time stripeOnboarded prop updates
+  useEffect(() => {
+    if (!isPolling) return;
+
+    if (stripeOnboarded) {
+      setIsPolling(false);
+      toast.success(t.stripe.toast.connected);
+      return;
+    }
+    if (pollAttempts >= POLL_MAX_ATTEMPTS) {
+      setIsPolling(false);
+      toast.info(t.stripe.toast.verifyTimeout);
+      return;
+    }
+
+    const id = setTimeout(() => {
+      setPollAttempts((n) => n + 1);
+      router.refresh();
+    }, POLL_INTERVAL_MS);
+
+    return () => clearTimeout(id);
+  }, [isPolling, stripeOnboarded, pollAttempts, router, t.stripe.toast.connected, t.stripe.toast.verifyTimeout]);
+
+  // Handle action results
   useEffect(() => {
     if (connectState.status === 'redirect') router.push(connectState.url);
-    if (connectState.status === 'error')    toast.error(connectState.message);
-  }, [connectState]);
+    if (connectState.status === 'error')    toast.error(t.stripe.toast.actionError);
+  }, [connectState, router, t.stripe.toast.actionError]);
 
   useEffect(() => {
     if (refreshState.status === 'redirect') router.push(refreshState.url);
-    if (refreshState.status === 'error')    toast.error(refreshState.message);
-  }, [refreshState]);
+    if (refreshState.status === 'error')    toast.error(t.stripe.toast.actionError);
+  }, [refreshState, router, t.stripe.toast.actionError]);
+
+  // Show overlay while a Stripe redirect is in-flight
+  const isRedirecting =
+    connectPending || refreshPending ||
+    connectState.status === 'redirect' ||
+    refreshState.status === 'redirect';
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, ease: EASE }}
-      className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden"
-    >
-      {/* Header */}
-      <div className="flex items-start justify-between px-6 py-5 border-b border-stone-50">
-        <div className="flex items-center gap-4">
-          {/* Stripe logo — monochrome */}
-          <div className="w-12 h-12 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
-            <StripeLogo className="w-8 text-white" />
+    <>
+      <AnimatePresence>
+        {isRedirecting && <RedirectingOverlay t={t} />}
+      </AnimatePresence>
+
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: EASE }}
+        className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 py-5 border-b border-stone-50">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-stone-900 flex items-center justify-center flex-shrink-0">
+              <StripeLogo className="w-8 text-white" />
+            </div>
+            <div>
+              <h3 className="font-cormorant text-[17px] font-semibold text-stone-800">
+                {t.stripe.cardTitle}
+              </h3>
+              <p className="text-xs text-stone-400 mt-0.5">{t.stripe.cardSubtitle}</p>
+            </div>
           </div>
-          <div>
-            <h3 className="font-cormorant text-[17px] font-semibold text-stone-800">
-              Stripe Connect
-            </h3>
-            <p className="text-xs text-stone-400 mt-0.5">Plataforma de pagos · Connect Standard</p>
-          </div>
+
+          <StatusBadge connected={isConnected} pending={isPending} t={t} />
         </div>
 
-        {/* Status badge */}
-        <StatusBadge connected={isConnected} pending={isPending} />
-      </div>
+        {/* Body */}
+        <div className="px-6 py-5">
+          {isConnected ? (
+            <ConnectedState accountId={stripeAccountId!} t={t} />
+          ) : isPending ? (
+            <PendingState
+              onRefresh={() => (refreshDispatch as (p: unknown) => void)({})}
+              isPending={refreshPending}
+              t={t}
+            />
+          ) : (
+            <DisconnectedState
+              onConnect={() => (connectDispatch as (p: unknown) => void)({})}
+              isPending={connectPending}
+              t={t}
+            />
+          )}
+        </div>
 
-      {/* Body */}
-      <div className="px-6 py-5">
-        {isConnected ? (
-          <ConnectedState accountId={stripeAccountId!} />
-        ) : isPending ? (
-          <PendingState
-            onRefresh={() => (refreshDispatch as (p: unknown) => void)({})}
-            isPending={refreshPending}
-          />
-        ) : (
-          <DisconnectedState
-            onConnect={() => (connectDispatch as (p: unknown) => void)({})}
-            isPending={connectPending}
-          />
-        )}
-      </div>
+        {/* Footer */}
+        <div className="px-6 py-3 bg-stone-50/60 border-t border-stone-100 flex items-center gap-2">
+          <span className="text-[10px] text-stone-400 leading-relaxed">
+            {t.stripe.footer}
+          </span>
+        </div>
+      </motion.div>
+    </>
+  );
+}
 
-      {/* Footer — info strip */}
-      <div className="px-6 py-3 bg-stone-50/60 border-t border-stone-100 flex items-center gap-2">
-        <span className="text-[10px] text-stone-400 leading-relaxed">
-          Los pagos se transfieren directamente a tu cuenta bancaria. SkinSystem cobra una comisión de plataforma del 10%.
-        </span>
-      </div>
+// ── Redirecting overlay ───────────────────────────────────────
+
+function RedirectingOverlay({ t }: { t: SettingsT }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+      role="status"
+      aria-live="polite"
+      className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-md flex items-center justify-center px-6"
+    >
+      <motion.div
+        initial={{ scale: 0.96, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        transition={{ duration: 0.22, ease: EASE }}
+        className="text-center max-w-sm"
+      >
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 ring-1 ring-white/20 mb-5">
+          <Loader2 size={28} className="animate-spin text-white" />
+        </div>
+        <h3 className="font-cormorant text-2xl text-white font-semibold">
+          {t.stripe.overlay.title}
+        </h3>
+        <p className="text-sm text-white/60 mt-2 leading-relaxed">
+          {t.stripe.overlay.subtitle}
+        </p>
+        <div className="mt-6 flex items-center justify-center gap-2 text-white/40">
+          <span className="w-1 h-1 rounded-full bg-amber-300" />
+          <StripeLogo className="w-10" />
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
 
 // ── Sub-components ────────────────────────────────────────────
 
-function StatusBadge({ connected, pending }: { connected: boolean; pending: boolean }) {
+function StatusBadge({
+  connected, pending, t,
+}: { connected: boolean; pending: boolean; t: SettingsT }) {
   if (connected) {
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-medium">
         <CheckCircle2 size={12} />
-        Conectado
+        {t.stripe.badge.connected}
       </span>
     );
   }
@@ -154,25 +253,25 @@ function StatusBadge({ connected, pending }: { connected: boolean; pending: bool
     return (
       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-[11px] font-medium">
         <AlertCircle size={12} />
-        Pendiente
+        {t.stripe.badge.pending}
       </span>
     );
   }
   return (
     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-stone-100 text-stone-500 text-[11px] font-medium">
-      No conectado
+      {t.stripe.badge.disconnected}
     </span>
   );
 }
 
-function ConnectedState({ accountId }: { accountId: string }) {
+function ConnectedState({ accountId, t }: { accountId: string; t: SettingsT }) {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <InfoRow label="ID de cuenta" value={`••••${accountId.slice(-6)}`} mono />
-        <InfoRow label="Tipo" value="Standard" />
-        <InfoRow label="Transferencias" value="Automáticas" />
-        <InfoRow label="Moneda" value="EUR" />
+        <InfoRow label={t.stripe.connected.labelAccountId} value={`••••${accountId.slice(-6)}`} mono />
+        <InfoRow label={t.stripe.connected.labelType}      value={t.stripe.connected.valueType} />
+        <InfoRow label={t.stripe.connected.labelTransfers} value={t.stripe.connected.valueTransfers} />
+        <InfoRow label={t.stripe.connected.labelCurrency}  value="EUR" />
       </div>
 
       <a
@@ -182,31 +281,26 @@ function ConnectedState({ accountId }: { accountId: string }) {
         className="inline-flex items-center gap-2 text-xs text-stone-500 hover:text-stone-800 transition-colors"
       >
         <ExternalLink size={12} />
-        Ver Dashboard de Stripe
+        {t.stripe.connected.viewDashboard}
       </a>
     </div>
   );
 }
 
 function PendingState({
-  onRefresh,
-  isPending,
+  onRefresh, isPending, t,
 }: {
   onRefresh: () => void;
   isPending: boolean;
+  t: SettingsT;
 }) {
   return (
     <div className="space-y-4">
-      <p className="text-sm text-stone-500 leading-relaxed">
-        Tu cuenta de Stripe fue creada pero el proceso de verificación no se completó.
-        Haz clic abajo para continuar donde lo dejaste.
-      </p>
+      <p className="text-sm text-stone-500 leading-relaxed">{t.stripe.pending.body}</p>
 
       <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-100">
         <AlertCircle size={14} className="text-amber-500 flex-shrink-0" />
-        <p className="text-xs text-amber-700">
-          Completa el onboarding para activar los cobros a clientas.
-        </p>
+        <p className="text-xs text-amber-700">{t.stripe.pending.notice}</p>
       </div>
 
       <button
@@ -215,32 +309,25 @@ function PendingState({
         className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-600 hover:bg-stone-50 disabled:opacity-60 transition-colors"
       >
         {isPending ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-        Continuar verificación
+        {t.stripe.pending.ctaContinue}
       </button>
     </div>
   );
 }
 
 function DisconnectedState({
-  onConnect,
-  isPending,
+  onConnect, isPending, t,
 }: {
   onConnect: () => void;
   isPending: boolean;
+  t: SettingsT;
 }) {
   return (
     <div className="space-y-5">
-      <p className="text-sm text-stone-500 leading-relaxed">
-        Conecta tu cuenta bancaria a través de Stripe para recibir pagos de tus clientas directamente.
-        El proceso tarda menos de 5 minutos.
-      </p>
+      <p className="text-sm text-stone-500 leading-relaxed">{t.stripe.disconnected.body}</p>
 
       <ul className="space-y-2">
-        {[
-          'Pagos con tarjeta, Apple Pay y Google Pay',
-          'Transferencias automáticas a tu cuenta bancaria',
-          'Panel de control de cobros propio',
-        ].map((item) => (
+        {t.stripe.disconnected.bullets.map((item) => (
           <li key={item} className="flex items-center gap-2 text-xs text-stone-500">
             <span className="w-1 h-1 rounded-full bg-amber-400 flex-shrink-0" />
             {item}
@@ -258,7 +345,7 @@ function DisconnectedState({
         ) : (
           <>
             <StripeLogo className="w-10 text-white" />
-            <span>Conectar con Stripe</span>
+            <span>{t.stripe.disconnected.ctaConnect}</span>
             <ArrowRight size={15} className="ml-auto group-hover:translate-x-0.5 transition-transform" />
           </>
         )}
