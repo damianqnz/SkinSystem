@@ -41,10 +41,25 @@
       "sourceType": "github",
       "computedHash": "1ab2387f6e694718a4f1b5acf2a4ab16e1b884c3428adf5f6b26d830f00826cf"
     },
+    "stripe-best-practices": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "f0aac866fab408c8bf28f3acacbbf61539cea81b3aeb030fceb64be1ccddaf9e"
+    },
+    "stripe-projects": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "74b5f9e1e24d7662000c28d6572e438ac71847d60ea0a8704b088441355e3371"
+    },
     "supabase-postgres-best-practices": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "computedHash": "f4cd7570115d97af6bcb2946eb891a958c8d04a43b479871c9ccadbc670ad058"
+    },
+    "upgrade-stripe": {
+      "source": "docs.stripe.com",
+      "sourceType": "well-known",
+      "computedHash": "df1c52c17aff54490e81e98979f302564988fbddaaf59e74c2d1bd4b103a7d2e"
     }
   }
 }
