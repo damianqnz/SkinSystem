@@ -1,20 +1,33 @@
 'use client';
 
-const STEPS = ['Servicio', 'Horario', 'Confirmar'];
+import { bookT } from '../_i18n';
+
+type Step = 'service' | 'calendar' | 'auth' | 'confirm';
+
+const STEP_KEYS: Step[] = ['service', 'calendar', 'auth', 'confirm'];
 
 interface StepIndicatorProps {
-  current: 1 | 2 | 3;
+  current:      Step;
+  showAuthStep: boolean;
+  locale:       string;
 }
 
-export function StepIndicator({ current }: StepIndicatorProps) {
+export function StepIndicator({ current, showAuthStep, locale }: StepIndicatorProps) {
+  const t = bookT(locale);
+
+  const steps: { key: Step; label: string }[] = STEP_KEYS
+    .filter((k) => showAuthStep || k !== 'auth')
+    .map((k) => ({ key: k, label: t.steps[k] }));
+
+  const currentIndex = steps.findIndex((s) => s.key === current);
+
   return (
     <div className="flex items-center justify-center gap-0 mb-8">
-      {STEPS.map((label, i) => {
-        const n     = (i + 1) as 1 | 2 | 3;
-        const done  = n < current;
-        const active = n === current;
+      {steps.map((step, i) => {
+        const done   = i < currentIndex;
+        const active = i === currentIndex;
         return (
-          <div key={n} className="flex items-center">
+          <div key={step.key} className="flex items-center">
             {/* Node */}
             <div className="flex flex-col items-center gap-1.5">
               <div
@@ -25,19 +38,19 @@ export function StepIndicator({ current }: StepIndicatorProps) {
                             'bg-stone-100 text-stone-400',
                 ].join(' ')}
               >
-                {done ? '✓' : n}
+                {done ? '✓' : i + 1}
               </div>
-              <span className={['text-[10px] font-medium uppercase tracking-wider',
+              <span className={['text-[10px] font-medium uppercase tracking-wider whitespace-nowrap',
                 active ? 'text-stone-700' : 'text-stone-400'].join(' ')}>
-                {label}
+                {step.label}
               </span>
             </div>
 
             {/* Connector */}
-            {i < STEPS.length - 1 && (
+            {i < steps.length - 1 && (
               <div
                 className={[
-                  'w-16 h-px mx-2 mb-4 transition-colors',
+                  'w-10 h-px mx-1.5 mb-4 transition-colors',
                   done ? 'bg-amber-400' : 'bg-stone-200',
                 ].join(' ')}
               />

@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  cacheComponents: true,
+  // cacheComponents removed — incompatible with real-time multi-tenant data.
+  // Dynamic pages (those calling headers/cookies) are already opt-out of
+  // Next.js Full Route Cache without this flag.
   // Allow subdomains to receive HMR in local development
   allowedDevOrigins: [
     'lourdes.lvh.me',

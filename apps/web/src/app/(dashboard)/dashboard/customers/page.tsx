@@ -1,74 +1,22 @@
 /**
- * /dashboard/customers — CRM overview.
- *
- * Server Component. Fetches customers + visit stats from Supabase,
- * serialises dates to ISO strings, then hands off to the Client
- * search/table shell for real-time filtering.
+ * /dashboard/customers — Empty-state panel.
+ * Shown in the right pane when no customer is selected.
+ * On mobile this page is never visible (sidebar takes full width).
  */
 
-import { Suspense } from 'react';
-import { headers } from 'next/headers';
-
-import { getOrganizationBySlug }  from '@/domains/organizations/service';
-import { getCustomersWithStats }  from '@/domains/customers/service';
-import type { CustomerRow }       from './_components/CustomersTable';
-import { CustomerSearch, CustomersTableSkeleton } from './_components/CustomerSearch';
-
-// ── Inner async component (suspendable) ──────────────────────
-async function CustomersContent({ orgId, locale }: { orgId: string; locale: string }) {
-  const result = await getCustomersWithStats(orgId);
-
-  const rows: CustomerRow[] = (result.data ?? []).map((c) => ({
-    id:             c.id,
-    fullName:       c.fullName,
-    email:          c.email,
-    phone:          c.phone,
-    isGuest:        c.isGuest,
-    createdAtIso:   c.createdAt instanceof Date ? c.createdAt.toISOString() : String(c.createdAt),
-    lastVisitAtIso: c.lastVisitAt
-      ? (c.lastVisitAt instanceof Date ? c.lastVisitAt.toISOString() : String(c.lastVisitAt))
-      : null,
-    visitCount: Number(c.visitCount ?? 0),
-  }));
-
-  return <CustomerSearch customers={rows} locale={locale} />;
-}
-
-// ── Page ──────────────────────────────────────────────────────
-export default async function CustomersPage() {
-  const h      = await headers();
-  const slug   = h.get('x-tenant-slug') ?? '';
-  const locale = h.get('x-locale')      ?? 'es';
-
-  const orgResult = await getOrganizationBySlug(slug);
-  if (!orgResult.data) {
-    return (
-      <p className="font-sans text-sm text-[var(--color-spa-muted)] p-6">
-        Organización &quot;{slug}&quot; no encontrada.
-      </p>
-    );
-  }
-
-  const orgId = orgResult.data.id;
-
+export default function CustomersPage() {
   return (
-    <div className="space-y-6">
-      {/* ── Page heading ──────────────────────────────── */}
-      <div className="flex items-end justify-between">
-        <div className="space-y-0.5">
-          <p className="font-sans text-[10px] uppercase tracking-[0.18em] text-[var(--color-spa-muted)]">
-            {locale === 'en' ? 'CRM' : 'CRM'}
-          </p>
-          <h1 className="font-serif text-3xl font-light tracking-wide text-[var(--color-spa-stone)]">
-            {locale === 'en' ? 'Clients' : locale === 'pt' ? 'Clientes' : 'Gestión de Clientes'}
-          </h1>
-        </div>
+    <div className="flex flex-col items-center justify-center h-full min-h-[60vh] px-8 text-center">
+      <div className="space-y-3 max-w-xs">
+        {/* Gold decorative dot */}
+        <div className="w-2 h-2 rounded-full bg-[#D4AF37] mx-auto" />
+        <h2 className="font-serif text-2xl font-light text-stone-700">
+          Selecciona un cliente
+        </h2>
+        <p className="font-sans text-sm text-stone-400 leading-relaxed">
+          Elige un cliente de la lista para ver su perfil, historial y citas.
+        </p>
       </div>
-
-      {/* ── Table (streams via Suspense) ──────────────── */}
-      <Suspense fallback={<CustomersTableSkeleton />}>
-        <CustomersContent orgId={orgId} locale={locale} />
-      </Suspense>
     </div>
   );
 }

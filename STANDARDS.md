@@ -11,7 +11,7 @@ This document is the SkinSystem Technical Charter. It coordinates the tools in `
 - **kebab-case**: File system folders and URL slugs.
 
 ## 2. Coding Rules & Validation
-- **Modularity**: Functions must be < 50 lines.
+- **Modularity**: One responsibility per file. Soft limit: 150 lines. If a file exceeds 150 lines, it's a signal of multiple responsibilities — split at that point, not before. Exceptions: Drizzle schema files, translation `.json` files, and config files.
 - **Thin Controllers**: Server Actions and API routes only validate and delegate. Business logic stays in `src/domains/`.
 - **Result Pattern**: All functions MUST return `{ data: T | null; error: AppError | null }`.
 - **Zod Law**: Mandatory validation for all data inputs and Server Action payloads.

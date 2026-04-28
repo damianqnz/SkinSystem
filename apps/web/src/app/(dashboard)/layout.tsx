@@ -1,11 +1,15 @@
 import { Suspense, type ReactNode } from 'react';
 import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { Cormorant_Garamond, Outfit } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { TenantProvider } from '@/shared/providers/TenantProvider';
+import { SidebarProvider } from '@/shared/components/dashboard/SidebarContext';
 import { Sidebar } from '@/shared/components/dashboard/Sidebar';
+import { MainOffset } from '@/shared/components/dashboard/MainOffset';
 import { BottomBar } from '@/shared/components/dashboard/BottomBar';
 import { DashboardHeader } from '@/shared/components/dashboard/DashboardHeader';
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import '../globals.css';
 
 // ── Fonts (self-hosted by Next.js, zero CLS) ──────────────────────────────
@@ -33,30 +37,64 @@ async function DashboardShell({ children }: { children: ReactNode }) {
   const tenantSlug  = headersList.get('x-tenant-slug') ?? '';
   const locale      = headersList.get('x-locale') ?? 'es';
 
+  // ── RBAC gate ─────────────────────────────────────────────────
+  // Any user reaching this layout was already authenticated by the proxy.
+  // Here we enforce that they are ALSO staff of this tenant
+  // (profiles row with matching organization_id + is_active).
+  // Customers (authenticated via /me, stored in `public.customers`,
+  // no `profiles` row) are bounced to their own dashboard.
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) {
+    switch (auth.code) {
+      case 'NO_AUTH':
+        // Proxy should catch this first; redundant defense in depth.
+        redirect('/login');
+      case 'NOT_MEMBER':
+        // Authenticated but not staff here → they're a customer (or staff
+        // of another tenant). Send them to their own space.
+        redirect('/me');
+      case 'INACTIVE':
+      case 'FORBIDDEN':
+      case 'NO_TENANT':
+      case 'ORG_NOT_FOUND':
+      default:
+        // Any other anomaly → send home. Avoids rendering the admin shell
+        // for a user we can't positively identify as staff.
+        redirect('/me');
+    }
+  }
+
   // Capitalize slug for display: "lourdes" → "Lourdes"
   const tenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);
 
   return (
-    <TenantProvider tenantSlug={tenantSlug} locale={locale}>
-      {/* Desktop sidebar (fixed-positioned, out of flow) */}
-      <Sidebar tenantName={tenantName} />
+    <TenantProvider
+      tenantSlug={tenantSlug}
+      locale={locale}
+      userId={auth.userId}
+      role={auth.role}
+    >
+      <SidebarProvider>
+        {/* Desktop sidebar (fixed-positioned, out of flow) */}
+        <Sidebar tenantName={tenantName} />
 
-      {/* Main column — offset by sidebar width on md+ */}
-      <div className="flex flex-col min-h-screen md:pl-60">
-        <DashboardHeader tenantName={tenantName} />
+        {/* Main column — offset adjusts when sidebar collapses */}
+        <MainOffset>
+          <DashboardHeader />
 
-        <main className="flex-1 p-6 pb-20 md:pb-6 bg-(--color-spa-bg)">
-          <Suspense
-            fallback={
-              <div className="flex items-center justify-center h-40">
-                <span className="w-5 h-5 rounded-full border-2 border-[#D4AF37] border-t-transparent animate-spin" />
-              </div>
-            }
-          >
-            {children}
-          </Suspense>
-        </main>
-      </div>
+          <main className="flex-1 p-6 pb-20 md:pb-6 bg-(--color-spa-bg)">
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center h-40">
+                  <span className="w-5 h-5 rounded-full border-2 border-[#D4AF37] border-t-transparent animate-spin" />
+                </div>
+              }
+            >
+              {children}
+            </Suspense>
+          </main>
+        </MainOffset>
+      </SidebarProvider>
 
       {/* Mobile bottom navigation (Thumb Zone) */}
       <BottomBar />
