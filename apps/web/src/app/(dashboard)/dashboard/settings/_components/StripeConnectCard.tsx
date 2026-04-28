@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useActionState } from 'react';
+import { useEffect, useRef, useActionState, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   CheckCircle2, AlertCircle, ExternalLink,
   Loader2, RefreshCw, ArrowRight,
@@ -47,6 +47,40 @@ const IDLE: StripeConnectState = { status: 'idle' };
 
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
+// ── Redirecting overlay ───────────────────────────────────────
+
+function RedirectingOverlay() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+      role="status"
+      aria-live="polite"
+      className="fixed inset-0 z-50 bg-stone-950/70 backdrop-blur-md flex items-center justify-center px-6"
+    >
+      <motion.div
+        initial={{ scale: 0.96, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.96, opacity: 0 }}
+        transition={{ duration: 0.22, ease: EASE }}
+        className="text-center max-w-sm"
+      >
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/10 ring-1 ring-white/20 mb-5">
+          <Loader2 size={28} className="animate-spin text-white" />
+        </div>
+        <h3 className="font-cormorant text-2xl text-white font-semibold">
+          Te estamos llevando a Stripe
+        </h3>
+        <p className="text-sm text-white/60 mt-2 leading-relaxed">
+          Conexión segura con la pasarela de pagos…
+        </p>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export function StripeConnectCard({
   stripeAccountId,
   stripeOnboarded,
@@ -57,15 +91,30 @@ export function StripeConnectCard({
   const isConnected = stripeOnboarded && !!stripeAccountId;
   const isPending   = !!stripeAccountId && !stripeOnboarded;
 
-  // Show success toast when returning from Stripe onboarding
+  const pollingStarted = useRef(false);
+
+  // On return from Stripe: refresh immediately + poll until webhook confirms
   useEffect(() => {
-    if (stripeParam === 'success') {
-      toast.success('Cuenta Stripe vinculada. Verificando estado…');
-    }
     if (stripeParam === 'refresh') {
       toast.info('El enlace de onboarding expiró. Genera uno nuevo.');
+      return;
     }
-  }, [stripeParam]);
+    if (stripeParam !== 'success') return;
+    if (isConnected) {
+      toast.success('¡Stripe conectado con éxito! Los pagos están activos.');
+      router.replace('/dashboard/settings/brand');
+      return;
+    }
+    if (pollingStarted.current) return;
+    pollingStarted.current = true;
+
+    toast.info('Confirmando verificación con Stripe…');
+    router.refresh();
+
+    const timers = [1500, 3500, 7000].map((ms) => setTimeout(() => router.refresh(), ms));
+    return () => timers.forEach(clearTimeout);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mount-only: stripeParam is URL-derived and won't change
 
   // ── Connect action ─────────────────────────────────────────
   const [connectState, connectDispatch, connectPending] =
@@ -86,7 +135,14 @@ export function StripeConnectCard({
     if (refreshState.status === 'error')    toast.error(refreshState.message);
   }, [refreshState]);
 
+  const isRedirecting =
+    connectPending || refreshPending ||
+    connectState.status === 'redirect' ||
+    refreshState.status === 'redirect';
+
   return (
+    <>
+    <AnimatePresence>{isRedirecting && <RedirectingOverlay />}</AnimatePresence>
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
@@ -118,12 +174,16 @@ export function StripeConnectCard({
           <ConnectedState accountId={stripeAccountId!} />
         ) : isPending ? (
           <PendingState
-            onRefresh={() => (refreshDispatch as (p: unknown) => void)({})}
+            onRefresh={() => startTransition(() =>
+              (refreshDispatch as (p: unknown) => void)({ returnPath: '/dashboard/settings' })
+            )}
             isPending={refreshPending}
           />
         ) : (
           <DisconnectedState
-            onConnect={() => (connectDispatch as (p: unknown) => void)({})}
+            onConnect={() => startTransition(() =>
+              (connectDispatch as (p: unknown) => void)({ returnPath: '/dashboard/settings' })
+            )}
             isPending={connectPending}
           />
         )}
@@ -136,6 +196,7 @@ export function StripeConnectCard({
         </span>
       </div>
     </motion.div>
+    </>
   );
 }
 

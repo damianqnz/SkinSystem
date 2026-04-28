@@ -3,7 +3,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Tabs   from '@radix-ui/react-tabs';
 import { X, ExternalLink, BookOpen, MessageCircle, Phone, ArrowRight, Check, Loader2 } from 'lucide-react';
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { IntegrationLogo } from './IntegrationLogos';
@@ -36,7 +36,9 @@ export function IntegrationModal({ integration, connected, onClose }: Integratio
 
   function handleConnect() {
     if (isStripe) {
-      (stripeDispatch as (p: unknown) => void)({});
+      startTransition(() => {
+        (stripeDispatch as (p: unknown) => void)({ returnPath: '/dashboard/integrations' });
+      });
       return;
     }
     toast.info('Esta integração estará disponível em breve.');
