@@ -1,0 +1,158 @@
+{
+  "calendar": {
+    "view": {
+      "day": "Dia",
+      "week": "Semana",
+      "month": "Mês",
+      "team": "Equipa"
+    },
+    "slot": {
+      "block": "Bloquear horário",
+      "schedule": "Agendar consulta",
+      "chooseAction": "O que deseja fazer?",
+      "blockDescription": "Marcar este horário como indisponível",
+      "scheduleDescription": "Criar uma consulta manual para um cliente",
+      "outsideNote": "Horário fora da agenda — só consultas especiais"
+    },
+    "block": {
+      "title": "Bloquear horário",
+      "from": "Desde (hs)",
+      "to": "Até (hs)",
+      "reasonLabel": "Motivo",
+      "confirm": "Confirmar bloqueio",
+      "success": "Horário bloqueado com sucesso",
+      "reason": {
+        "illness": "Doença",
+        "vacation": "Férias",
+        "training": "Formação",
+        "other": "Evento"
+      }
+    }
+  },
+  "customers": {
+    "status": {
+      "nuevo": "Novo",
+      "recurrente": "Recorrente",
+      "riesgo": "Risco de fuga",
+      "inactivo": "Inativo",
+      "perdido": "Perdido"
+    },
+    "options": {
+      "import": "Importar clientes",
+      "export": "Exportar clientes"
+    },
+    "import": {
+      "title": "Vamos importar os seus clientes?",
+      "subtitle": "Escolha como quer importar a sua lista de contactos.",
+      "googleContacts": "Google Contacts",
+      "googleDesc": "Importe diretamente sem limites",
+      "comingSoon": "Em breve",
+      "csvFile": "Ficheiro CSV",
+      "csvDesc": "Carregue um ficheiro .csv (máx. 3 MB)",
+      "dropzone": "Arraste o CSV aqui ou clique para selecionar",
+      "sizeError": "O ficheiro excede 3 MB",
+      "preview": "Pré-visualização — primeiras 5 filas",
+      "importBtn": "Importar {count} clientes",
+      "importing": "Importando...",
+      "success": "{count} clientes importados com sucesso",
+      "partial": "{imported} importados, {skipped} ignorados",
+      "close": "Fechar",
+      "back": "Voltar"
+    }
+  },
+  "booking": {
+    "header": {
+      "title": "Reserva Online",
+      "back":  "Voltar ao início"
+    },
+    "steps": {
+      "service":  "Serviço",
+      "calendar": "Horário",
+      "auth":     "Acesso",
+      "confirm":  "Confirmar"
+    },
+    "common": {
+      "back":    "Voltar",
+      "minutes": "min"
+    },
+    "service": {
+      "heading":      "Que tratamento deseja?",
+      "empty":        "Não há serviços disponíveis neste momento",
+      "select":       "Selecionar →",
+      "fallbackName": "Tratamento",
+      "deposit":      "Depósito {percent}% · {amount} agora"
+    },
+    "calendar": {
+      "heading": "Escolha a data e hora",
+      "empty":   "Não há horários disponíveis"
+    },
+    "auth": {
+      "headingOptions":         "Entre para reservar",
+      "subtitleOptions":        "Aceda ou crie uma conta para continuar",
+      "google":                 "Continuar com Google",
+      "email":                  "Continuar com Email",
+      "createProfile":          "Criar perfil",
+      "continueGuest":          "Continuar como convidado",
+      "or":                     "ou",
+      "headingLogin":           "Iniciar sessão",
+      "subtitleLogin":          "Aceda à sua conta para reservar",
+      "headingRegister":        "Criar perfil",
+      "subtitleRegister":       "Crie a sua conta para gerir as suas marcações",
+      "back":                   "← Voltar",
+      "emailLabel":             "Email",
+      "passwordLabel":          "Palavra-passe",
+      "fullNameLabel":          "Nome completo",
+      "emailPlaceholder":       "ana@email.com",
+      "passwordPlaceholder":    "••••••••",
+      "passwordMinPlaceholder": "Mín. 6 caracteres",
+      "fullNamePlaceholder":    "Ana Silva",
+      "enter":                  "Entrar",
+      "createAccount":          "Criar conta",
+      "noAccount":              "Não tem conta?",
+      "createNow":              "Criar perfil",
+      "errorCredentials":       "Email ou palavra-passe incorretos"
+    },
+    "confirm": {
+      "heading":            "Confirme a sua reserva",
+      "dateTime":           "Data e hora",
+      "reservedAs":         "Reservado como",
+      "policyFallback":     "Ao reservar aceita a política de cancelamento.",
+      "stripeSecure":       "Pagamento seguro com Stripe",
+      "payButton":          "Pagar {amount}",
+      "bookButton":         "Confirmar reserva",
+      "payButtonGuest":     "Pagar {amount} →",
+      "bookButtonGuest":    "Confirmar reserva →",
+      "redirecting":        "A redirecionar para o pagamento…",
+      "nameLabel":          "Nome completo",
+      "phoneLabel":         "Telefone",
+      "emailLabel":         "Email",
+      "addressLabel":       "Morada",
+      "noteLabel":          "Nota (opcional)",
+      "namePlaceholder":    "Ana Silva",
+      "phonePlaceholder":   "+351 900 000 000",
+      "emailPlaceholder":   "ana@email.com",
+      "addressPlaceholder": "Rua, número, cidade",
+      "notePlaceholder":    "Alergias, preferências, informação relevante...",
+      "emailHelp":          "Irá receber a confirmação neste email.",
+      "acceptTerms":        "Aceito os termos e condições",
+      "viewPolicy":         "Ver política",
+      "termsRequiredError": "Tem de aceitar os termos para continuar.",
+      "conflictError":      "Este horário acabou de ser reservado. Escolha outro."
+    },
+    "summary": {
+      "heading":           "Resumo",
+      "subtotalOnline":    "Subtotal online",
+      "couponPlaceholder": "Código de desconto",
+      "couponApply":       "Aplicar",
+      "totalNow":          "Total agora",
+      "localBalance":      "Saldo a pagar no local"
+    },
+    "notices": {
+      "cancelledPayment": "O seu pagamento foi cancelado. Pode escolher outro horário ou tentar novamente.",
+      "oauthError":       "Erro ao autenticar com Google. Tente novamente ou continue como convidado."
+    },
+    "metadata": {
+      "title": "Reservar marcação — {name}"
+    }
+  }
+}

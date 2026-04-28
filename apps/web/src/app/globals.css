@@ -1,6 +1,9 @@
 /* ── Tailwind v4 ─────────────────────────────────────────────────── */
 @import "tailwindcss";
 
+/* Class-based dark mode — driven by .dark on <html> (set by PublicLayout) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* Tell Tailwind where to scan for class names (monorepo) */
 @source "../../../src/**/*.{ts,tsx}";
 @source "../../../../../packages/ui/src/**/*.{ts,tsx}";
@@ -30,6 +33,15 @@
   --text-main:  #1C1917;
   --accent-spa: #D4D4D8;
   --border:     #E7E5E4;
+  --muted:      #78716C;
+}
+
+/* Dark CSS vars — activated by .dark class (set by PublicLayout based on themeConfig) */
+html.dark {
+  --bg-spa:     #0c0a09;
+  --text-main:  #f5f5f4;
+  --accent-spa: #D4AF37;
+  --border:     #292524;
   --muted:      #78716C;
 }
 
@@ -109,7 +121,8 @@ body {
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--border);
-  padding: 0.75rem 0;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
   font-family: var(--font-sans, 'Outfit', sans-serif);
   font-size: 0.9375rem;
   line-height: 1.5;
