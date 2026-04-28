@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, type ReactNode } from 'react';
-import type { UserRole } from '@/shared/lib/resolve-tenant-org-id';
+import type { UserRole } from '@/shared/lib/resolve-tenant-types';
 
 // ── Types ─────────────────────────────────────────────────────
 
