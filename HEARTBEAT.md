@@ -9,6 +9,15 @@
 ## Special Configurations
 - **Subdomain Local Dev:** Use `lvh.me:3000` for testing subdomains.
 
+### 🗓️ 2026-04-28: Admin Tooling — Supabase Service Role Client + Password Reset Script
+- [DONE] src/infrastructure/supabase/admin.ts — `createSupabaseAdminClient()` con `'server-only'`. Lee `NEXT_PUBLIC_SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY`. `autoRefreshToken: false`, `persistSession: false`, `detectSessionInUrl: false`. Bypassa RLS — uso restringido a scripts/cron/super-admin actions.
+- [DONE] scripts/reset-user-password.ts — CLI admin para reset de password por UID. Validación Zod (UUID + password fuerte: min 8, A-Z, a-z, 0-9, símbolo). Result pattern `{data, error}`. `auth.admin.updateUserById()`.
+- [USAGE] `pnpm tsx apps/web/scripts/reset-user-password.ts <uid> <newPassword>`
+- [TEST USER] uid `b1000000-0000-0000-0000-000000000001` (lourdes@skinsystem.pt) — la password se pasa por CLI, NUNCA se commitea.
+- [SECURITY] Service role key solo en `.env.local` / vault del runtime. No exponer al cliente.
+- [NOTE] tsc --noEmit: 0 errores. Lint: el único warning nuevo (`SUPABASE_SERVICE_ROLE_KEY` no declarado en turbo.json) sigue el patrón pre-existente de STRIPE_SECRET_KEY / UPSTASH_*.
+
+
 ### 🗓️ 2026-04-14: Logic Definition Phase
 - [DONE] Definition of Reservation and Cancellation Workflows.
 - [DONE] Protection logic against double booking (Race conditions).
