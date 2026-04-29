@@ -123,7 +123,18 @@ export function StripeConnectCard({
   // Tracks whether Stripe onboarding is open in a new tab
   const [stripeTabOpen, setStripeTabOpen] = useState(false);
 
-  const pollingStarted = useRef(false);
+  const pollingStarted    = useRef(false);
+  // True when this page is rendered inside the new tab Stripe redirected to
+  const isStripeReturnTab = useRef(stripeParam === 'success');
+
+  // Close the new tab as soon as the webhook confirms onboarding
+  useEffect(() => {
+    if (!isStripeReturnTab.current || !isConnected) return;
+    // window.close() works because this tab was opened with window.open()
+    window.close();
+    // Fallback: if browser blocks the close, show a message
+    toast.success('¡Configuración completada! Puedes cerrar esta pestaña.');
+  }, [isConnected]);
 
   // ── Return from Stripe (?stripe=success / ?stripe=refresh) ──
   useEffect(() => {
@@ -133,11 +144,11 @@ export function StripeConnectCard({
     }
     if (stripeParam !== 'success') return;
 
-    if (isConnected) {
-      toast.success('¡Stripe conectado con éxito! Los pagos están activos.');
-      router.replace('/dashboard/settings');
-      return;
-    }
+    // isConnected=true: webhook already arrived before page loaded
+    // The isStripeReturnTab effect above handles window.close()
+    if (isConnected) return;
+
+    // isConnected=false: webhook pending — poll until it arrives
     if (pollingStarted.current) return;
     pollingStarted.current = true;
 
