@@ -3,7 +3,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Tabs   from '@radix-ui/react-tabs';
 import { X, ExternalLink, BookOpen, MessageCircle, Phone, ArrowRight, Check, Loader2 } from 'lucide-react';
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, startTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { IntegrationLogo } from './IntegrationLogos';
@@ -26,9 +26,22 @@ export function IntegrationModal({ integration, connected, onClose }: Integratio
     useActionState<StripeConnectState, unknown>(createStripeConnectAccount, IDLE);
 
   useEffect(() => {
-    if (stripeState.status === 'redirect') router.push(stripeState.url);
-    if (stripeState.status === 'error')    toast.error(stripeState.message);
-  }, [stripeState, router]);
+    if (stripeState.status === 'error') {
+      toast.error(stripeState.message);
+      return;
+    }
+    if (stripeState.status === 'redirect') {
+      // Open Stripe onboarding in a new tab so the user stays in context
+      const newTab = window.open(stripeState.url, '_blank', 'noopener,noreferrer');
+      if (newTab) {
+        onClose();
+        toast.success('Stripe abierto en nueva pestaña. Completa el proceso allí.');
+      } else {
+        // Popup blocked by browser — fall back to same-tab redirect
+        router.push(stripeState.url);
+      }
+    }
+  }, [stripeState, router, onClose]);
 
   if (!integration) return null;
 
@@ -36,7 +49,9 @@ export function IntegrationModal({ integration, connected, onClose }: Integratio
 
   function handleConnect() {
     if (isStripe) {
-      (stripeDispatch as (p: unknown) => void)({});
+      startTransition(() => {
+        (stripeDispatch as (p: unknown) => void)({ returnPath: '/dashboard/integrations' });
+      });
       return;
     }
     toast.info('Esta integração estará disponível em breve.');
