@@ -1,27 +1,34 @@
-import { Suspense }                 from 'react';
-import { headers }                  from 'next/headers';
-import { notFound }                 from 'next/navigation';
-import { getOrganizationBySlug }    from '@/domains/organizations/service';
-import { getOrganizationSettings }  from '@/domains/organizations/service';
-import { IntegrationsClient }       from './_components/IntegrationsClient';
+import { Suspense }                from 'react';
+import { headers }                 from 'next/headers';
+import { notFound }                from 'next/navigation';
+import { getOrganizationBySlug }   from '@/domains/organizations/service';
+import { getOrganizationSettings } from '@/domains/organizations/service';
+import { IntegrationsClient }      from './_components/IntegrationsClient';
 
 /**
  * /dashboard/integrations — Integration marketplace
  *
- * Server component: resolves Stripe connection state from DB,
- * passes it down to the client so cards show "Conectado" immediately
- * without a loading state.
+ * Reads ?stripe=success|refresh after returning from Stripe onboarding
+ * and passes it to the client so it can start the confirmation polling loop.
  */
-export default async function IntegrationsPage() {
+export default async function IntegrationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ stripe?: string }>;
+}) {
   return (
     <Suspense fallback={<IntegrationsSkeleton />}>
-      <IntegrationsContent />
+      <IntegrationsContent searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function IntegrationsContent() {
-  const hdrs = await headers();
+async function IntegrationsContent({
+  searchParams,
+}: {
+  searchParams: Promise<{ stripe?: string }>;
+}) {
+  const [hdrs, params] = await Promise.all([headers(), searchParams]);
   const slug = hdrs.get('x-tenant-slug') ?? '';
 
   const orgResult = await getOrganizationBySlug(slug);
@@ -32,7 +39,10 @@ async function IntegrationsContent() {
   const stripeConnected = !!(settings?.stripeAccountId && settings.stripeOnboarded);
 
   return (
-    <IntegrationsClient stripeConnected={stripeConnected} />
+    <IntegrationsClient
+      stripeConnected={stripeConnected}
+      stripeParam={params.stripe ?? null}
+    />
   );
 }
 
