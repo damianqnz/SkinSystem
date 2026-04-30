@@ -154,5 +154,74 @@
     "metadata": {
       "title": "Reservar cita — {name}"
     }
+  },
+  "integrations": {
+    "stripe": {
+      "title":               "Stripe",
+      "tagline":             "Plataforma de pagos · Connect Standard",
+      "platformFeeNote":     "Los pagos se transfieren directamente a tu cuenta bancaria. SkinSystem cobra una comisión de plataforma del 10%.",
+      "status": {
+        "connected":         "Conectado",
+        "pending":           "Pendiente",
+        "disconnected":      "No conectado"
+      },
+      "disconnected": {
+        "heading":           "Conecta tu cuenta bancaria",
+        "body":              "Conecta tu cuenta bancaria a través de Stripe para recibir pagos de tus clientas directamente. El proceso tarda menos de 5 minutos.",
+        "bullets": {
+          "methods":         "Pagos con tarjeta, Apple Pay y Google Pay",
+          "transfers":       "Transferencias automáticas a tu cuenta bancaria",
+          "dashboard":       "Panel de control de cobros propio"
+        }
+      },
+      "pending": {
+        "heading":           "Verificación pendiente",
+        "body":              "Tu cuenta de Stripe fue creada pero el proceso de verificación no se completó. Continúa donde lo dejaste para activar los cobros.",
+        "warning":           "Completa el onboarding para activar los cobros a clientas."
+      },
+      "connected": {
+        "heading":           "Pagos activos",
+        "body":              "Tu cuenta de Stripe está verificada y los cobros llegan directamente a tu banco.",
+        "accountIdLabel":    "ID de cuenta",
+        "typeLabel":         "Tipo",
+        "typeValue":         "Standard",
+        "transfersLabel":    "Transferencias",
+        "transfersValue":    "Automáticas",
+        "openDashboard":     "Abrir Dashboard de Stripe"
+      },
+      "actions": {
+        "connectIdle":       "Conectar con Stripe",
+        "connectLoading":    "Conectando…",
+        "continueIdle":      "Continuar verificación",
+        "continueLoading":   "Generando enlace…",
+        "disconnect":        "Desconectar Stripe"
+      },
+      "newTabBanner": {
+        "title":             "Stripe abierto en otra pestaña",
+        "description":       "Completa el proceso allí y vuelve aquí. Esta página se actualizará automáticamente."
+      },
+      "disconnectDialog": {
+        "title":             "¿Desconectar Stripe?",
+        "description":       "Tu cuenta de Stripe seguirá intacta en dashboard.stripe.com con todo el historial de pagos. Solo dejaremos de enviar nuevos cobros aquí: la página de reservas dejará de aceptar pagos online hasta que vuelvas a conectar.",
+        "confirm":           "Sí, desconectar",
+        "cancel":            "Cancelar",
+        "loading":           "Desconectando…",
+        "success":           "Stripe desconectado de SkinSystem.",
+        "errorForbidden":    "Solo el propietario puede desconectar Stripe.",
+        "errorGeneric":      "No se pudo desconectar. Inténtalo de nuevo."
+      },
+      "errors": {
+        "popupBlocked":      "Tu navegador bloqueó la ventana emergente. Te redirigiremos en esta misma pestaña.",
+        "linkExpired":       "El enlace de Stripe expiró. Genera uno nuevo.",
+        "generic":           "Error al conectar con Stripe. Inténtalo de nuevo."
+      },
+      "callback": {
+        "successTitle":      "¡Cuenta verificada!",
+        "successBody":       "Puedes cerrar esta pestaña. Tu panel de SkinSystem ya está actualizado.",
+        "refreshTitle":      "El enlace expiró",
+        "refreshBody":       "Vuelve a SkinSystem y genera un enlace nuevo para continuar.",
+        "backToIntegrations":"Volver a Integraciones"
+      }
+    }
   }
 }

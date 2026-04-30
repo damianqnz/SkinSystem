@@ -8,11 +8,12 @@ import type { Result } from '@/shared/types/result';
 export type OrgSummary = { id: string; name: string; slug: string; locale: string };
 
 export type OrgSettings = OrgSummary & {
-  stripeAccountId:  string | null;
-  stripeOnboarded:  boolean;
-  defaultCurrency:  string;
-  primaryEmail:     string | null;
-  logoUrl:          string | null;
+  stripeAccountId:       string | null;
+  stripeOnboarded:       boolean;
+  stripeChargesEnabled:  boolean;
+  defaultCurrency:       string;
+  primaryEmail:          string | null;
+  logoUrl:               string | null;
 };
 
 const SLUG_COLS = {
@@ -23,15 +24,16 @@ const SLUG_COLS = {
 };
 
 const SETTINGS_COLS = {
-  id:               organizations.id,
-  name:             organizations.name,
-  slug:             organizations.slug,
-  locale:           organizations.locale,
-  stripeAccountId:  organizations.stripeAccountId,
-  stripeOnboarded:  organizations.stripeOnboarded,
-  defaultCurrency:  organizations.defaultCurrency,
-  primaryEmail:     organizations.primaryEmail,
-  logoUrl:          organizations.logoUrl,
+  id:                    organizations.id,
+  name:                  organizations.name,
+  slug:                  organizations.slug,
+  locale:                organizations.locale,
+  stripeAccountId:       organizations.stripeAccountId,
+  stripeOnboarded:       organizations.stripeOnboarded,
+  stripeChargesEnabled:  organizations.stripeChargesEnabled,
+  defaultCurrency:       organizations.defaultCurrency,
+  primaryEmail:          organizations.primaryEmail,
+  logoUrl:               organizations.logoUrl,
 };
 
 // ── Resolvers ─────────────────────────────────────────────────
@@ -96,21 +98,56 @@ export async function setStripeAccountId(
 
 /**
  * Mark org as Stripe-onboarded.
- * Called from the `account.updated` webhook when `details_submitted = true`.
+ * Called from the `account.updated` webhook. `chargesEnabled` mirrors
+ * Stripe's own `account.charges_enabled` field so the UI can show
+ * "verification in progress" vs "ready to charge".
  */
 export async function markStripeOnboarded(
-  orgId:   string,
-  onboarded: boolean = true,
+  orgId:           string,
+  onboarded:       boolean = true,
+  chargesEnabled?: boolean,
 ): Promise<Result<{ id: string }>> {
   try {
+    const patch: { stripeOnboarded: boolean; updatedAt: Date; stripeChargesEnabled?: boolean } = {
+      stripeOnboarded: onboarded,
+      updatedAt:       new Date(),
+    };
+    if (chargesEnabled !== undefined) patch.stripeChargesEnabled = chargesEnabled;
+
     const rows = await db
       .update(organizations)
-      .set({ stripeOnboarded: onboarded, updatedAt: new Date() })
+      .set(patch)
       .where(eq(organizations.id, orgId))
       .returning({ id: organizations.id });
     if (!rows[0]) return { data: null, error: { message: 'Org not found', code: 'NOT_FOUND' } };
     return { data: { id: rows[0].id }, error: null };
   } catch {
     return { data: null, error: { message: 'Failed to update onboarding status', code: 'DB_ERROR' } };
+  }
+}
+
+/**
+ * Soft Disconnect: clears local Stripe association without revoking on Stripe.
+ * The specialist's Stripe account stays alive at dashboard.stripe.com — only
+ * SkinSystem stops routing checkouts to it.
+ */
+export async function clearStripeAccount(
+  orgId: string,
+): Promise<Result<{ id: string }>> {
+  try {
+    const rows = await db
+      .update(organizations)
+      .set({
+        stripeAccountId:      null,
+        stripeOnboarded:      false,
+        stripeChargesEnabled: false,
+        updatedAt:            new Date(),
+      })
+      .where(eq(organizations.id, orgId))
+      .returning({ id: organizations.id });
+    if (!rows[0]) return { data: null, error: { message: 'Org not found', code: 'NOT_FOUND' } };
+    return { data: { id: rows[0].id }, error: null };
+  } catch {
+    return { data: null, error: { message: 'Failed to disconnect Stripe', code: 'DB_ERROR' } };
   }
 }

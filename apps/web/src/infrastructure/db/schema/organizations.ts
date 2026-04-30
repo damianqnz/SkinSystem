@@ -20,8 +20,9 @@ export const organizations = pgTable('organizations', {
   locale:             text('locale').notNull().default('es'),
   /** CSS variable tokens: { brand_color, button_style, theme_mode } */
   themeConfig:        jsonb('theme_config').notNull().default({}),
-  stripeAccountId:    text('stripe_account_id'),
-  stripeOnboarded:    boolean('stripe_onboarded').notNull().default(false),
+  stripeAccountId:      text('stripe_account_id'),
+  stripeOnboarded:      boolean('stripe_onboarded').notNull().default(false),
+  stripeChargesEnabled: boolean('stripe_charges_enabled').notNull().default(false),
   customRedirectUrl:  text('custom_redirect_url'),
   autoRedirect:       boolean('auto_redirect').notNull().default(false),
   isActive:           boolean('is_active').notNull().default(true),

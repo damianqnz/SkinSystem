@@ -154,5 +154,74 @@
     "metadata": {
       "title": "Book an appointment — {name}"
     }
+  },
+  "integrations": {
+    "stripe": {
+      "title":               "Stripe",
+      "tagline":             "Payment platform · Connect Standard",
+      "platformFeeNote":     "Payments are transferred directly to your bank account. SkinSystem charges a 10% platform fee.",
+      "status": {
+        "connected":         "Connected",
+        "pending":           "Pending",
+        "disconnected":      "Not connected"
+      },
+      "disconnected": {
+        "heading":           "Connect your bank account",
+        "body":              "Connect your bank account through Stripe to receive payments from your clients directly. The setup takes less than 5 minutes.",
+        "bullets": {
+          "methods":         "Card payments, Apple Pay and Google Pay",
+          "transfers":       "Automatic transfers to your bank account",
+          "dashboard":       "Your own payments dashboard"
+        }
+      },
+      "pending": {
+        "heading":           "Verification pending",
+        "body":              "Your Stripe account was created but verification isn't finished yet. Pick up where you left off to activate charges.",
+        "warning":           "Complete onboarding to start accepting client payments."
+      },
+      "connected": {
+        "heading":           "Payments live",
+        "body":              "Your Stripe account is verified and payouts go straight to your bank.",
+        "accountIdLabel":    "Account ID",
+        "typeLabel":         "Type",
+        "typeValue":         "Standard",
+        "transfersLabel":    "Transfers",
+        "transfersValue":    "Automatic",
+        "openDashboard":     "Open Stripe Dashboard"
+      },
+      "actions": {
+        "connectIdle":       "Connect with Stripe",
+        "connectLoading":    "Connecting…",
+        "continueIdle":      "Continue verification",
+        "continueLoading":   "Generating link…",
+        "disconnect":        "Disconnect Stripe"
+      },
+      "newTabBanner": {
+        "title":             "Stripe opened in another tab",
+        "description":       "Finish the process there and return here. We'll refresh automatically."
+      },
+      "disconnectDialog": {
+        "title":             "Disconnect Stripe?",
+        "description":       "Your Stripe account stays untouched at dashboard.stripe.com with all your payout history. We'll just stop routing new charges here: your booking page will stop accepting online payments until you reconnect.",
+        "confirm":           "Yes, disconnect",
+        "cancel":            "Cancel",
+        "loading":           "Disconnecting…",
+        "success":           "Stripe disconnected from SkinSystem.",
+        "errorForbidden":    "Only the owner can disconnect Stripe.",
+        "errorGeneric":      "We couldn't disconnect. Please try again."
+      },
+      "errors": {
+        "popupBlocked":      "Your browser blocked the popup. We'll redirect in this tab instead.",
+        "linkExpired":       "The Stripe link expired. Generate a new one.",
+        "generic":           "Couldn't connect to Stripe. Please try again."
+      },
+      "callback": {
+        "successTitle":      "Account verified!",
+        "successBody":       "You can close this tab. Your SkinSystem dashboard is already up to date.",
+        "refreshTitle":      "The link expired",
+        "refreshBody":       "Head back to SkinSystem and generate a new link to continue.",
+        "backToIntegrations":"Back to integrations"
+      }
+    }
   }
 }
