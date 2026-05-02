@@ -15,6 +15,7 @@
 - [x] Phase 28 — Tenant-resolution unification for dashboard actions (DONE — see 2026-04-22 entry).
 - [x] Phase 29 — Dashboard RBAC gate (staff-only), role propagation to TenantProvider (DONE — see 2026-04-22 entry).
 - [x] Phase 30 — Unified `/login` (staff + customers) + public navbar `UserMenu` (DONE — see 2026-04-22 entry).
+- [x] Phase 31 — Stripe Connect refactor → `/dashboard/integrations/stripe` (Setmore pattern, Parallel + Intercepting Routes, Soft Disconnect) (DONE — see 2026-04-30 entry).
 - [ ] Pending: /settings/profile — personal profile editor (stub page created).
 - [x] Phase 31 — `/settings/general` per-staff dashboard locale (PT/ES/EN) with DB+cookie persistence (DONE — see 2026-05-02 entry).
 
@@ -42,6 +43,48 @@
   - Backfill: call `setDashboardLocaleAction(<best-guess>)` once during the staff onboarding flow so legacy accounts get a non-null `profiles.locale` and recover instantly across devices.
   - Manual UAT (PT/ES/EN switch + cross-staff isolation in the same browser + cross-device recovery) is the verification gate that remains — the codebase changes are type-safe and logically isolated.
 - **Next**: Stripe Connect Express onboarding.
+
+### 🗓️ 2026-04-30: Phase 31 — Stripe Connect refactor (`/dashboard/integrations/stripe`)
+- **Goal**: lift the Stripe Connect flow out of `/dashboard/settings` (where it was an orphaned card) and centralise it under `/dashboard/integrations` with the Setmore-style "modal-on-list" UX. Owner-only end-to-end (WF-08).
+- **Routing (Next.js 16 Parallel + Intercepting)** — `apps/web/src/app/(dashboard)/dashboard/integrations/`:
+  - `layout.tsx` (NEW) — accepts `{ children, modal }` named slot.
+  - `@modal/default.tsx` (NEW) — returns `null` for unmatched URLs.
+  - `@modal/(.)stripe/page.tsx` (NEW) — intercepted segment; renders `<StripeConnectModal />` inside a Radix Dialog shell that does `router.back()` on close. Soft `router.push('/dashboard/integrations/stripe')` from the integrations card pops it over the list without remounting.
+  - `@modal/(.)stripe/_modal-shell.tsx` (NEW, private file) — `'use client'` shell, mounts the dialog overlay + close button + `Dialog.Title sr-only` for a11y.
+  - `stripe/page.tsx` (NEW) — full-page fallback for deep links / hard reloads. Same `<StripeConnectModal />` server component, plus a "Volver a Integraciones" link.
+  - `stripe/callback/page.tsx` (NEW) — landing page Stripe redirects the popup to. Reads `?status=success|refresh`, mounts `<StripeCallbackBridge />` to `postMessage` the parent tab and `window.close()`. Visible fallback for "no opener" cases.
+  - `stripe/callback/_callback-bridge.tsx` (NEW) — `'use client'`. Validates origin matches `window.location.origin`; falls through silently when there's no opener.
+- **Server Actions** — moved to the billing domain per Domain Isolation (`STANDARDS.md §2`):
+  - `src/domains/billing/actions/stripe-connect.ts` (NEW) — `createStripeConnectAccount`, `refreshStripeOnboardingLink`, `disconnectStripeAccount`. All three call `resolveTenantOrgId(['owner', 'super_admin'])` so plain `staff` get `{ error, code: 'FORBIDDEN' }` server-side. `return_url` / `refresh_url` now point to `${baseUrl}/dashboard/integrations/stripe/callback?status=…` (was `/dashboard/settings?stripe=…`).
+  - `disconnectStripeAccount` is a **Soft Disconnect**: `UPDATE organizations SET stripe_account_id = NULL, stripe_onboarded = false, stripe_charges_enabled = false WHERE id = orgId`. Does NOT call `stripe.oauth.deauthorize` — the specialist's account stays alive at dashboard.stripe.com with full payout history.
+  - `src/domains/organizations/service.ts` — added `clearStripeAccount(orgId)` helper + extended `markStripeOnboarded` to accept `chargesEnabled`. `OrgSettings` type gains `stripeChargesEnabled: boolean`. `SETTINGS_COLS` selects the new column.
+- **Schema migration** — `apps/web/supabase/migrations/20260430_stripe_charges_enabled.sql` (NEW): `ALTER TABLE organizations ADD COLUMN IF NOT EXISTS stripe_charges_enabled boolean NOT NULL DEFAULT false`. Drizzle schema mirrors the column. To apply: Supabase MCP `apply_migration` (per `drizzle.config.ts` policy: migrations are managed via Supabase MCP, drizzle-kit is type-only).
+- **Webhook update** — `app/api/webhooks/stripe/route.ts` `handleAccountUpdated` now passes `account.charges_enabled` to `markStripeOnboarded`, so `stripe_charges_enabled` mirrors Stripe's own flag.
+- **UI components** — all under `_components/`:
+  - `StripeConnectModal.tsx` (NEW, server) — single source of truth. Reads `stripeAccountId + stripeOnboarded + stripeChargesEnabled` and picks one of three states: `disconnected` / `pending` / `connected`. Shared by both the intercepted modal and the full-page fallback so DB stays canonical.
+  - `StripeConnectControls.tsx` (NEW, client) — composes the action button + new-tab banner + postMessage listener. Owns the `popupOpen` state.
+  - `StripeConnectButton.tsx` (NEW, client) — `useActionState`. `variant: 'connect' | 'continue'` flips between `createStripeConnectAccount` / `refreshStripeOnboardingLink`. On `redirect` → `window.open(url, '_blank', 'noopener,noreferrer')`; if popup is blocked → toast + `router.push(url)`.
+  - `StripeNewTabBanner.tsx` (NEW, client) — Setmore-style "Stripe abierto en otra pestaña" amber banner. Self-dismisses on `STRIPE_CONNECT_MESSAGE_TYPE` postMessage.
+  - `StripeConnectListener.tsx` (NEW, client) — origin-checked `message` listener; on success → `router.refresh()` so the modal re-reads DB state.
+  - `StripeDisconnectDialog.tsx` (NEW, client) — Radix `AlertDialog` for the Soft Disconnect confirmation. Calls `disconnectStripeAccount`; surfaces `code: 'FORBIDDEN'` as a distinct error toast.
+- **Existing surfaces wired to the new flow**:
+  - `IntegrationsClient.tsx` — Stripe card now does `router.push('/dashboard/integrations/stripe')`. All other integrations keep the lightweight `useState` modal.
+  - `IntegrationModal.tsx` — Stripe-specific code paths and the `useActionState` import removed; modal is now a pure "Em breve" info card for the non-Stripe entries.
+- **Cleanup**:
+  - `apps/web/src/app/(dashboard)/dashboard/settings/_components/StripeConnectCard.tsx` — DELETED (orphaned since the card was unused on the settings page).
+  - `apps/web/src/app/(dashboard)/dashboard/settings/actions.ts` — DELETED. The two actions migrated to `domains/billing/actions/stripe-connect.ts`.
+- **i18n** — full ES/PT/EN keys under `integrations.stripe.*` in `messages/{es,en,pt}.json` (status badges, three card states, action labels, new-tab banner, AlertDialog copy, Stripe errors, callback success/refresh). Loader at `_i18n/stripe.ts` mirrors the JSON shape via `typeof esMessages['integrations']['stripe']` so client + server share the same typed dictionary.
+- **Threat model**:
+  1. `staff` tries to disconnect Stripe → `resolveTenantOrgId(['owner','super_admin'])` returns `code: 'FORBIDDEN'`; UI shows the localised "Solo el propietario puede desconectar Stripe." error.
+  2. Cross-origin postMessage from a malicious iframe → ignored (`event.origin !== window.location.origin`).
+  3. Popup-blocker — falls back to in-tab redirect with a toast.
+  4. Hard reload at `/dashboard/integrations/stripe` — the intercepting segment is bypassed; full-page fallback renders the same server component, same DB state.
+- **Verification**: `pnpm check-types` (which runs `next typegen && tsc --noEmit`) → **EXIT=0, 0 errors**. `pnpm lint` → 65 warnings (1 fewer than baseline, all pre-existing in unrelated files).
+- **Follow-ups** (not blocking):
+  - Apply the `stripe_charges_enabled` migration via Supabase MCP `apply_migration` in dev + prod databases.
+  - Add a `frontend-design` plugin pass on `StripeConnectButton.tsx` and `StripeDisconnectDialog.tsx` for mobile 375px polish.
+  - Consider migrating the local `_i18n/stripe.ts` shim to a real `next-intl` namespace once the rest of the dashboard adopts `useTranslations`.
+- **Next**: continue with /settings/profile + /settings/general.
 
 ### 🗓️ 2026-04-22: Phase 30 — Unified `/login` + Public Navbar `UserMenu`
 - **Problem (two halves)**:

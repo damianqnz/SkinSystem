@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, Check } from 'lucide-react';
 import { IntegrationLogo }  from './IntegrationLogos';
@@ -24,8 +25,20 @@ function isConnected(id: Integration['id'], stripeConnected: boolean): boolean {
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
 export function IntegrationsClient({ stripeConnected }: IntegrationsClientProps) {
+  const router = useRouter();
   const [search,   setSearch]   = useState('');
   const [selected, setSelected] = useState<Integration | null>(null);
+
+  // Stripe owns its own dedicated route (Parallel + Intercepting). Soft
+  // navigation pops the modal-on-list; hard reload lands on the full page.
+  // Other integrations keep the lightweight in-page modal.
+  function openIntegration(integration: Integration) {
+    if (integration.id === 'stripe') {
+      router.push('/dashboard/integrations/stripe');
+      return;
+    }
+    setSelected(integration);
+  }
 
   const term = search.trim().toLowerCase();
 
@@ -103,7 +116,7 @@ export function IntegrationsClient({ stripeConnected }: IntegrationsClientProps)
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.22, ease: EASE, delay: i * 0.04 }}
-                    onClick={() => setSelected(integration)}
+                    onClick={() => openIntegration(integration)}
                     className="group relative text-left bg-white rounded-2xl border border-stone-100
                                shadow-sm p-5 hover:border-stone-200 hover:shadow-md
                                transition-all duration-150 cursor-pointer"

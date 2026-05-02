@@ -2,60 +2,29 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Tabs   from '@radix-ui/react-tabs';
-import { X, ExternalLink, BookOpen, MessageCircle, Phone, ArrowRight, Check, Loader2 } from 'lucide-react';
-import { useActionState, useEffect, startTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { X, BookOpen, MessageCircle, Phone, ArrowRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { IntegrationLogo } from './IntegrationLogos';
-import { createStripeConnectAccount } from '../../settings/actions';
-import type { StripeConnectState } from '../../settings/actions';
 import type { Integration } from './integrations-data';
 
 interface IntegrationModalProps {
-  integration:    Integration | null;
-  connected:      boolean;
-  onClose:        () => void;
+  integration: Integration | null;
+  connected:   boolean;
+  onClose:     () => void;
 }
 
-const IDLE: StripeConnectState = { status: 'idle' };
-
+/**
+ * Lightweight info modal for "Em breve" integrations (Facebook, Google
+ * Analytics, GTM, Maps, Instagram). Stripe uses its own dedicated route
+ * (`/dashboard/integrations/stripe`) with Parallel + Intercepting routes;
+ * see `IntegrationsClient.openIntegration` for the dispatch.
+ */
 export function IntegrationModal({ integration, connected, onClose }: IntegrationModalProps) {
-  const router = useRouter();
-
-  const [stripeState, stripeDispatch, stripePending] =
-    useActionState<StripeConnectState, unknown>(createStripeConnectAccount, IDLE);
-
-  useEffect(() => {
-    if (stripeState.status === 'error') {
-      toast.error(stripeState.message);
-      return;
-    }
-    if (stripeState.status === 'redirect') {
-      // Open Stripe onboarding in a new tab so the user stays in context
-      const newTab = window.open(stripeState.url, '_blank', 'noopener,noreferrer');
-      if (newTab) {
-        onClose();
-        toast.success('Stripe abierto en nueva pestaña. Completa el proceso allí.');
-      } else {
-        // Popup blocked by browser — fall back to same-tab redirect
-        router.push(stripeState.url);
-      }
-    }
-  }, [stripeState, router, onClose]);
-
-  if (!integration) return null;
-
-  const isStripe = integration.id === 'stripe';
-
   function handleConnect() {
-    if (isStripe) {
-      startTransition(() => {
-        (stripeDispatch as (p: unknown) => void)({ returnPath: '/dashboard/integrations' });
-      });
-      return;
-    }
     toast.info('Esta integração estará disponível em breve.');
   }
+
+  if (!integration) return null;
 
   return (
     <Dialog.Root open={!!integration} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -144,37 +113,19 @@ export function IntegrationModal({ integration, connected, onClose }: Integratio
 
               {/* Right: action panel */}
               <div className="w-44 flex-shrink-0 border-l border-stone-100 px-5 py-5 flex flex-col gap-5">
-                {/* Connect / Connected button */}
                 {connected ? (
-                  <div className="flex flex-col gap-2">
-                    <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-medium">
-                      <Check size={12} />
-                      Conectado
-                    </span>
-                    {isStripe && (
-                      <a
-                        href="https://dashboard.stripe.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl border border-stone-200 text-xs text-stone-500 hover:bg-stone-50 transition-colors"
-                      >
-                        <ExternalLink size={11} />
-                        Dashboard
-                      </a>
-                    )}
-                  </div>
+                  <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-medium">
+                    <Check size={12} />
+                    Conectado
+                  </span>
                 ) : (
                   <button
                     onClick={handleConnect}
-                    disabled={stripePending}
                     className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded-xl
                                bg-stone-900 text-white text-xs font-medium
-                               hover:bg-stone-800 disabled:opacity-60 transition-colors"
+                               hover:bg-stone-800 transition-colors"
                   >
-                    {stripePending
-                      ? <Loader2 size={12} className="animate-spin" />
-                      : <><span>Conectar</span><ArrowRight size={11} /></>
-                    }
+                    <span>Conectar</span><ArrowRight size={11} />
                   </button>
                 )}
 

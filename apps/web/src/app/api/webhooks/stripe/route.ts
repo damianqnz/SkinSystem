@@ -211,6 +211,6 @@ async function handleAccountUpdated(account: Stripe.Account) {
     return;
   }
 
-  await markStripeOnboarded(rows[0].id, true);
-  console.info(`[stripe webhook] org ${rows[0].id} marked as Stripe-onboarded`);
+  await markStripeOnboarded(rows[0].id, true, account.charges_enabled === true);
+  console.info(`[stripe webhook] org ${rows[0].id} marked as Stripe-onboarded (charges=${account.charges_enabled})`);
 }
