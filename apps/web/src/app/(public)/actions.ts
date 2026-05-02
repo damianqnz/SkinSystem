@@ -70,6 +70,11 @@ export async function signOutAction(): Promise<void> {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
 
+  // Drop the staff-only dashboard locale mirror so the next user on this
+  // browser doesn't inherit the previous staff's language preference.
+  const cookieStore = await cookies();
+  cookieStore.delete('DASHBOARD_LOCALE');
+
   revalidatePath('/', 'layout');
   redirect('/');
 }

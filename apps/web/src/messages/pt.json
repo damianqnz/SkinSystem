@@ -154,5 +154,19 @@
     "metadata": {
       "title": "Reservar marcação — {name}"
     }
+  },
+  "settings": {
+    "general": {
+      "title":          "Geral",
+      "description":    "Configure as preferências da sua conta.",
+      "sectionLabel":   "Geral",
+      "languageLabel":  "Idioma preferido",
+      "languageHelper": "Escolha o idioma do painel. A sua preferência fica guardada na sua conta.",
+      "optionPt":       "Português",
+      "optionEs":       "Español",
+      "optionEn":       "English",
+      "toastSuccess":   "Idioma atualizado",
+      "toastError":     "Não foi possível atualizar o idioma"
+    }
   }
 }

@@ -74,7 +74,7 @@ function mapBrowserLangToLocale(raw: string): SupportedLocale | null {
 }
 
 /**
- * Resolves the user's preferred locale.
+ * Resolves the user's preferred locale for the public segment.
  * Priority: cookie (manual choice) → Accept-Language header → default (`pt`).
  *
  * Only the exact values `'es' | 'pt' | 'en'` are persisted in the cookie,
@@ -95,6 +95,24 @@ function detectLocale(request: NextRequest): SupportedLocale {
 
   // 3. No signal → default locale (pt).
   return DEFAULT_LOCALE;
+}
+
+/**
+ * Resolves the locale for the dashboard segment.
+ * Priority: DASHBOARD_LOCALE cookie (per-staff mirror) → NEXT_LOCALE cookie
+ * (last manual public choice on this browser) → Accept-Language → default.
+ *
+ * The DASHBOARD_LOCALE cookie is written by the login action (from
+ * `profiles.locale`) and by `setDashboardLocaleAction`. It is intentionally
+ * separate from `NEXT_LOCALE` so two staff sharing a browser do NOT inherit
+ * each other's preference, and the public site language stays untouched.
+ */
+function detectDashboardLocale(request: NextRequest): SupportedLocale {
+  const dashboardCookie = request.cookies.get('DASHBOARD_LOCALE')?.value;
+  if (dashboardCookie && SUPPORTED_LOCALES.includes(dashboardCookie as SupportedLocale)) {
+    return dashboardCookie as SupportedLocale;
+  }
+  return detectLocale(request);
 }
 
 // ── Proxy ─────────────────────────────────────────────────────
@@ -118,14 +136,17 @@ export async function proxy(request: NextRequest) {
   if (!tenantSlug) return response;
 
   // ── 3. Inject headers for Server Components ───────────────────
-  const locale = detectLocale(request);
+  const isDashboardRoute =
+    pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
+
+  const locale = isDashboardRoute
+    ? detectDashboardLocale(request)
+    : detectLocale(request);
 
   response.headers.set('x-tenant-slug', tenantSlug);
   response.headers.set('x-locale', locale);
 
   // ── 4. Dashboard auth guard ───────────────────────────────────
-  const isDashboardRoute =
-    pathname.startsWith('/dashboard') || pathname.startsWith('/admin');
 
   if (isDashboardRoute && !user) {
     const isLocal = hostname.includes('lvh.me') || hostname.includes('localhost');
@@ -146,7 +167,9 @@ export async function proxy(request: NextRequest) {
   }
 
   // ── 5. Persist locale cookie if not yet set ───────────────────
-  if (!request.cookies.get('NEXT_LOCALE')) {
+  // Only seed NEXT_LOCALE from public-segment requests so the dashboard's
+  // staff-scoped preference never contaminates the consumer-facing locale.
+  if (!isDashboardRoute && !request.cookies.get('NEXT_LOCALE')) {
     response.cookies.set('NEXT_LOCALE', locale, {
       path: '/',
       sameSite: 'lax',

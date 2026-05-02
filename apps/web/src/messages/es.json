@@ -154,5 +154,19 @@
     "metadata": {
       "title": "Reservar cita — {name}"
     }
+  },
+  "settings": {
+    "general": {
+      "title":          "General",
+      "description":    "Configura las preferencias de tu cuenta.",
+      "sectionLabel":   "General",
+      "languageLabel":  "Idioma preferido",
+      "languageHelper": "Selecciona el idioma del panel. Tu preferencia se guarda en tu cuenta.",
+      "optionPt":       "Português",
+      "optionEs":       "Español",
+      "optionEn":       "English",
+      "toastSuccess":   "Idioma actualizado",
+      "toastError":     "No se pudo actualizar el idioma"
+    }
   }
 }

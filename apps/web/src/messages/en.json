@@ -154,5 +154,19 @@
     "metadata": {
       "title": "Book an appointment — {name}"
     }
+  },
+  "settings": {
+    "general": {
+      "title":          "General",
+      "description":    "Configure your account preferences.",
+      "sectionLabel":   "General",
+      "languageLabel":  "Preferred language",
+      "languageHelper": "Pick the language for your dashboard. Your preference is saved to your account.",
+      "optionPt":       "Português",
+      "optionEs":       "Español",
+      "optionEn":       "English",
+      "toastSuccess":   "Language updated",
+      "toastError":     "Could not update the language"
+    }
   }
 }
