@@ -39,7 +39,7 @@ yarn-error.log*
 *.pfx
 .npmrc
 
-# Claude Code / AI tooling — no exponer metadata interna del asistente
+#AI tooling 
 CLAUDE.md
 AGENTS.md
 HEARTBEAT.md
