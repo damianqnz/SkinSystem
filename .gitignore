@@ -39,7 +39,7 @@ yarn-error.log*
 *.pfx
 .npmrc
 
-# Claude Code / AI tooling — no exponer metadata interna del asistente
+# Local project docs — internal only
 CLAUDE.md
 AGENTS.md
 HEARTBEAT.md
@@ -49,3 +49,8 @@ skills-lock.json
 .claude/settings.local.json
 .claude/skills/
 .agents/
+
+# Temp files
+old_*.tsx
+old_*.ts
+old_*.js
