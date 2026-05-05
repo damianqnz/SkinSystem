@@ -37,6 +37,7 @@ yarn-error.log*
 *.key
 *.p12
 *.pfx
+.npmrc
 
 # Claude Code / AI tooling — no exponer metadata interna del asistente
 CLAUDE.md
