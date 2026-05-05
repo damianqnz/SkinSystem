@@ -49,8 +49,3 @@ skills-lock.json
 .claude/settings.local.json
 .claude/skills/
 .agents/
-
-# Archivos backup generados por refactors de IA
-old_*.tsx
-old_*.ts
-old_*.js
