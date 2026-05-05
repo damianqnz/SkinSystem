@@ -1,6 +1,7 @@
 import { Suspense }                    from 'react';
 import { headers }                     from 'next/headers';
 import { notFound }                    from 'next/navigation';
+import { getSettingsT }                from '../_i18n';
 import { eq, and, isNull }             from 'drizzle-orm';
 import { getOrganizationBySlug }       from '@/domains/organizations/service';
 import { db }                          from '@/infrastructure/db';
@@ -25,6 +26,7 @@ export default async function BrandSettingsPage() {
 async function BrandContent() {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
+  const t      = getSettingsT(hdrs.get('x-locale') ?? 'pt');
 
   const orgResult = await getOrganizationBySlug(slug);
   if (orgResult.error || !orgResult.data) notFound();
@@ -74,8 +76,8 @@ async function BrandContent() {
     <div className="space-y-8">
       {/* Page heading */}
       <div>
-        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">Sua marca</h1>
-        <p className="text-sm text-stone-400 mt-1">Configure a identidade visual do seu negócio.</p>
+        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t.brandPage.title}</h1>
+        <p className="text-sm text-stone-400 mt-1">{t.brandPage.description}</p>
       </div>
 
       <BrandDetailsSection

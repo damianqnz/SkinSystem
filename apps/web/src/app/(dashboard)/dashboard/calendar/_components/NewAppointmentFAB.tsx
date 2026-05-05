@@ -9,12 +9,12 @@ import type { CustomerMatch } from '../actions/search-customers';
 import type { CreatedCustomer } from '../actions/create-customer';
 
 interface NewAppointmentFABProps {
-  locale:            string;
-  date:              Date;
-  initialTime?:      string;
-  externalOpen?:     boolean;
-  onExternalClose?:  () => void;
-  initialCustomer?:  CustomerMatch;
+  locale: string;
+  date: Date;
+  initialTime?: string;
+  externalOpen?: boolean;
+  onExternalClose?: () => void;
+  initialCustomer?: CustomerMatch;
 }
 
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
@@ -23,9 +23,9 @@ export function NewAppointmentFAB({
   locale, date, initialTime, externalOpen, onExternalClose, initialCustomer,
 }: NewAppointmentFABProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const [step,         setStep]         = useState<1 | 2>(1);
-  const [customer,     setCustomer]     = useState<CustomerMatch | null>(initialCustomer ?? null);
-  const [formKey,      setFormKey]      = useState(0);
+  const [step, setStep] = useState<1 | 2>(1);
+  const [customer, setCustomer] = useState<CustomerMatch | null>(initialCustomer ?? null);
+  const [formKey, setFormKey] = useState(0);
 
   const open = externalOpen ?? internalOpen;
 
@@ -44,10 +44,6 @@ export function NewAppointmentFAB({
   return (
     <>
       {/* FAB — Thumb-Zone: fixed bottom-right */}
-      <button onClick={() => setOpen(true)} aria-label="Nueva cita"
-        className="fixed bottom-24 right-4 z-40 w-14 h-14 rounded-full bg-stone-900 text-white shadow-lg shadow-stone-900/30 flex items-center justify-center hover:bg-stone-800 active:scale-95 transition-all">
-        <Plus size={22} />
-      </button>
 
       <AnimatePresence>
         {open && (

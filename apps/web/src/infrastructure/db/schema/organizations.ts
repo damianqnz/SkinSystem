@@ -20,8 +20,9 @@ export const organizations = pgTable('organizations', {
   locale:             text('locale').notNull().default('es'),
   /** CSS variable tokens: { brand_color, button_style, theme_mode } */
   themeConfig:        jsonb('theme_config').notNull().default({}),
-  stripeAccountId:    text('stripe_account_id'),
-  stripeOnboarded:    boolean('stripe_onboarded').notNull().default(false),
+  stripeAccountId:      text('stripe_account_id'),
+  stripeOnboarded:      boolean('stripe_onboarded').notNull().default(false),
+  stripeChargesEnabled: boolean('stripe_charges_enabled').notNull().default(false),
   customRedirectUrl:  text('custom_redirect_url'),
   autoRedirect:       boolean('auto_redirect').notNull().default(false),
   isActive:           boolean('is_active').notNull().default(true),
@@ -54,7 +55,8 @@ export const profiles = pgTable('profiles', {
   fullName:       text('full_name'),
   avatarUrl:      text('avatar_url'),
   phone:          text('phone'),
-  locale:         text('locale').notNull().default('es'),
+  /** NULL = no explicit preference (fallback Accept-Language). Constrained at DB level to 'es'|'pt'|'en'. */
+  locale:         text('locale'),
   isActive:       boolean('is_active').notNull().default(true),
   createdAt:      timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:      timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

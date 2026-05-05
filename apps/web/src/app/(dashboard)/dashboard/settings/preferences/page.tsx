@@ -1,6 +1,7 @@
 import { Suspense }                    from 'react';
 import { headers }                     from 'next/headers';
 import { notFound }                    from 'next/navigation';
+import { getSettingsT }                from '../_i18n';
 import { eq }                          from 'drizzle-orm';
 import { getOrganizationBySlug }       from '@/domains/organizations/service';
 import { db }                          from '@/infrastructure/db';
@@ -21,6 +22,7 @@ export default async function PreferencesPage() {
 async function PreferencesContent() {
   const hdrs  = await headers();
   const slug  = hdrs.get('x-tenant-slug') ?? '';
+  const t     = getSettingsT(hdrs.get('x-locale') ?? 'pt');
 
   const orgResult = await getOrganizationBySlug(slug);
   if (orgResult.error || !orgResult.data) notFound();
@@ -72,10 +74,10 @@ async function PreferencesContent() {
       {/* Page heading */}
       <div>
         <h1 className="font-cormorant text-2xl font-semibold text-stone-800">
-          Preferências de agendamento
+          {t.preferencesPage.title}
         </h1>
         <p className="text-sm text-stone-400 mt-1">
-          Configure como os seus clientes fazem reservas.
+          {t.preferencesPage.description}
         </p>
       </div>
 

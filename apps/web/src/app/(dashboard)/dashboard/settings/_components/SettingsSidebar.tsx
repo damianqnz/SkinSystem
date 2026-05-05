@@ -8,6 +8,83 @@ import {
   Sliders, Star,
   PanelLeftClose, PanelLeftOpen,
 } from 'lucide-react';
+import { useTenantContext } from '@/shared/providers/TenantProvider';
+
+// ── Translations ──────────────────────────────────────────────
+
+const LABELS = {
+  pt: {
+    title:           'Definições',
+    brand:           'Sua marca',
+    profile:         'Seu perfil',
+    team:            'Sua equipa',
+    services:        'Serviços',
+    general:         'Geral',
+    brandDetails:    'Detalhes da marca',
+    appearance:      'Aparência',
+    contactDetails:  'Detalhes do contato',
+    location:        'Localização',
+    workingHours:    'Horário de trabalho',
+    links:           'Seus links',
+    manage:          'Manage',
+    preferences:     'Preferências de agendamento',
+    bookingPolicies: 'Políticas de reserva',
+    schedulingConfig:'Configuração de agendamento',
+    customization:   'Personalização',
+    visibility:      'Visibilidade da página',
+    reviews:         'Avaliações',
+    collapseMenu:    'Recolher menu',
+    expandMenu:      'Expandir menu',
+  },
+  es: {
+    title:           'Configuración',
+    brand:           'Tu marca',
+    profile:         'Tu perfil',
+    team:            'Tu equipo',
+    services:        'Servicios',
+    general:         'General',
+    brandDetails:    'Detalles de la marca',
+    appearance:      'Apariencia',
+    contactDetails:  'Detalles de contacto',
+    location:        'Ubicación',
+    workingHours:    'Horario de trabajo',
+    links:           'Tus enlaces',
+    manage:          'Gestionar',
+    preferences:     'Preferencias de agenda',
+    bookingPolicies: 'Políticas de reserva',
+    schedulingConfig:'Configuración de agenda',
+    customization:   'Personalización',
+    visibility:      'Visibilidad de la página',
+    reviews:         'Reseñas',
+    collapseMenu:    'Contraer menú',
+    expandMenu:      'Expandir menú',
+  },
+  en: {
+    title:           'Settings',
+    brand:           'Your brand',
+    profile:         'Your profile',
+    team:            'Your team',
+    services:        'Services',
+    general:         'General',
+    brandDetails:    'Brand details',
+    appearance:      'Appearance',
+    contactDetails:  'Contact details',
+    location:        'Location',
+    workingHours:    'Working hours',
+    links:           'Your links',
+    manage:          'Manage',
+    preferences:     'Scheduling preferences',
+    bookingPolicies: 'Booking policies',
+    schedulingConfig:'Scheduling config',
+    customization:   'Customization',
+    visibility:      'Page visibility',
+    reviews:         'Reviews',
+    collapseMenu:    'Collapse menu',
+    expandMenu:      'Expand menu',
+  },
+} as const;
+
+type LabelsKey = keyof typeof LABELS;
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -20,40 +97,40 @@ interface Section {
   children?: SubItem[];
 }
 
-// ── Nav config ────────────────────────────────────────────────
-
-const BRAND_SECTIONS: SubItem[] = [
-  { label: 'Detalhes da marca',   anchor: 'detalhes'     },
-  { label: 'Aparência',           anchor: 'appearance'   },
-  { label: 'Detalhes do contato', anchor: 'contato'      },
-  { label: 'Localização',         anchor: 'localizacao'  },
-  { label: 'Horário de trabalho', anchor: 'horario'      },
-  { label: 'Seus links',          anchor: 'links'        },
-];
-
-const PREF_SECTIONS: SubItem[] = [
-  { label: 'Políticas de reserva',        anchor: 'politicas'      },
-  { label: 'Configuração de agendamento', anchor: 'config'         },
-  { label: 'Personalização',             anchor: 'personalizacao' },
-  { label: 'Visibilidade da página',      anchor: 'visibilidade'   },
-];
-
-const TOP_SECTIONS: Section[] = [
-  { id: 'brand',    label: 'Sua marca',  href: '/dashboard/settings/brand',    icon: <Store size={14} />,    children: BRAND_SECTIONS },
-  { id: 'profile',  label: 'Seu perfil', href: '/dashboard/settings/profile',  icon: <User size={14} />      },
-  { id: 'team',     label: 'Sua equipa', href: '/dashboard/settings/team',     icon: <Users size={14} />     },
-  { id: 'services', label: 'Serviços',   href: '/dashboard/catalog',           icon: <Sparkles size={14} />  },
-  { id: 'general',  label: 'Geral',      href: '/dashboard/settings/general',  icon: <Settings2 size={14} /> },
-];
-
-const MANAGE_SECTIONS: Section[] = [
-  { id: 'preferences', label: 'Preferências de agendamento', href: '/dashboard/settings/preferences', icon: <Sliders size={14} />, children: PREF_SECTIONS },
-];
-
 // ── Component ─────────────────────────────────────────────────
 
 export function SettingsSidebar({ tenantSlug }: { tenantSlug: string }) {
   const path = usePathname();
+  const { locale } = useTenantContext();
+  const t = LABELS[(locale as LabelsKey)] ?? LABELS['pt'];
+
+  const BRAND_SECTIONS: SubItem[] = [
+    { label: t.brandDetails,    anchor: 'detalhes'     },
+    { label: t.appearance,      anchor: 'appearance'   },
+    { label: t.contactDetails,  anchor: 'contato'      },
+    { label: t.location,        anchor: 'localizacao'  },
+    { label: t.workingHours,    anchor: 'horario'      },
+    { label: t.links,           anchor: 'links'        },
+  ];
+
+  const PREF_SECTIONS: SubItem[] = [
+    { label: t.bookingPolicies,  anchor: 'politicas'      },
+    { label: t.schedulingConfig, anchor: 'config'         },
+    { label: t.customization,    anchor: 'personalizacao' },
+    { label: t.visibility,       anchor: 'visibilidade'   },
+  ];
+
+  const TOP_SECTIONS: Section[] = [
+    { id: 'brand',    label: t.brand,    href: '/dashboard/settings/brand',    icon: <Store size={14} />,    children: BRAND_SECTIONS },
+    { id: 'profile',  label: t.profile,  href: '/dashboard/settings/profile',  icon: <User size={14} />      },
+    { id: 'team',     label: t.team,     href: '/dashboard/settings/team',     icon: <Users size={14} />     },
+    { id: 'services', label: t.services, href: '/dashboard/catalog',           icon: <Sparkles size={14} />  },
+    { id: 'general',  label: t.general,  href: '/dashboard/settings/general',  icon: <Settings2 size={14} /> },
+  ];
+
+  const MANAGE_SECTIONS: Section[] = [
+    { id: 'preferences', label: t.preferences, href: '/dashboard/settings/preferences', icon: <Sliders size={14} />, children: PREF_SECTIONS },
+  ];
 
   function isActive(href: string) {
     if (href === '/dashboard/settings/brand') return path.startsWith('/dashboard/settings/brand') || path === '/dashboard/settings';
@@ -90,7 +167,7 @@ export function SettingsSidebar({ tenantSlug }: { tenantSlug: string }) {
           {s.children && (
             <button
               onClick={() => toggle(s.id)}
-              className="p-1.5 text-stone-400 hover:text-stone-600 transition-colors flex-shrink-0"
+              className="p-1.5 text-stone-400 hover:text-stone-600 transition-colors shrink-0"
             >
               <ChevronDown
                 size={13}
@@ -120,11 +197,11 @@ export function SettingsSidebar({ tenantSlug }: { tenantSlug: string }) {
   // ── Collapsed rail ─────────────────────────────────────────────
   if (collapsed) {
     return (
-      <aside className="w-10 flex-shrink-0 flex flex-col h-full border-r border-stone-100 bg-[#FAFAF9] ml-1 overflow-hidden transition-all duration-200">
+      <aside className="w-10 shrink-0 flex flex-col h-full border-r border-stone-100 bg-[#FAFAF9] ml-1 overflow-hidden transition-all duration-200">
         <div className="flex items-center justify-center pt-5 pb-3">
           <button
             onClick={() => setCollapsed(false)}
-            title="Expandir menu"
+            title={t.expandMenu}
             className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
           >
             <PanelLeftOpen size={15} />
@@ -136,13 +213,13 @@ export function SettingsSidebar({ tenantSlug }: { tenantSlug: string }) {
 
   // ── Expanded ───────────────────────────────────────────────────
   return (
-    <aside className="w-60 flex-shrink-0 flex flex-col h-full border-r border-stone-100 bg-[#FAFAF9] ml-1 overflow-y-auto transition-all duration-200">
+    <aside className="w-60 shrink-0 flex flex-col h-full border-r border-stone-100 bg-[#FAFAF9] ml-1 overflow-y-auto transition-all duration-200">
       {/* Header */}
       <div className="flex items-center justify-between pl-4 pr-2 pt-5 pb-3">
-        <p className="font-cormorant text-base font-semibold text-stone-800">Definições</p>
+        <p className="font-cormorant text-base font-semibold text-stone-800">{t.title}</p>
         <button
           onClick={() => setCollapsed(true)}
-          title="Recolher menu"
+          title={t.collapseMenu}
           className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
         >
           <PanelLeftClose size={14} />
@@ -155,17 +232,19 @@ export function SettingsSidebar({ tenantSlug }: { tenantSlug: string }) {
 
         {/* MANAGE divider */}
         <div className="pt-4 pb-1 px-2">
-          <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-widest">Manage</p>
+          <p className="text-[10px] font-semibold text-stone-400 uppercase tracking-widest">{t.manage}</p>
         </div>
         {MANAGE_SECTIONS.map(renderSection)}
       </nav>
 
       {/* Bottom utilities */}
       <div className="border-t border-stone-100 px-2 py-3 space-y-1">
-        <Link href="/dashboard/settings/reviews"
-          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-stone-500 hover:bg-stone-50 hover:text-stone-800 transition-colors">
+        <Link
+          href="/dashboard/settings/reviews"
+          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-stone-500 hover:bg-stone-50 hover:text-stone-800 transition-colors"
+        >
           <Star size={13} />
-          Avaliações
+          {t.reviews}
         </Link>
       </div>
     </aside>

@@ -106,7 +106,10 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
 // ── Coming-soon placeholder ───────────────────────────────────────
 function ComingSoon({ view, locale }: { view: CalendarView; locale: string }) {
-  const label = view === 'team' ? 'Equipa' : '';
+  const label =
+    view === 'team'
+      ? (locale === 'en' ? 'Team' : locale === 'pt' ? 'Equipa' : 'Equipo')
+      : '';
   const copy =
     locale === 'pt' ? `A vista «${label}» chega em breve.` :
     locale === 'en' ? `The "${label}" view is coming soon.` :

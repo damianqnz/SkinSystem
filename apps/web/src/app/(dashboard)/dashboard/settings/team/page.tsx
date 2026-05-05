@@ -1,6 +1,7 @@
 import { Suspense }                  from 'react';
 import { headers }                   from 'next/headers';
 import { notFound }                  from 'next/navigation';
+import { getSettingsT }              from '../_i18n';
 import { eq, and, inArray }          from 'drizzle-orm';
 import { getOrganizationBySlug }     from '@/domains/organizations/service';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
@@ -20,6 +21,7 @@ export default async function TeamPage() {
 async function TeamContent() {
   const hdrs  = await headers();
   const slug  = hdrs.get('x-tenant-slug') ?? '';
+  const t     = getSettingsT(hdrs.get('x-locale') ?? 'pt');
 
   const [orgResult, supabase] = await Promise.all([
     getOrganizationBySlug(slug),
@@ -64,10 +66,8 @@ async function TeamContent() {
     <div className="space-y-8">
       {/* Page heading */}
       <div>
-        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">Sua equipa</h1>
-        <p className="text-sm text-stone-400 mt-1">
-          Gerencie os membros da sua equipa e os seus acessos.
-        </p>
+        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t.teamPage.title}</h1>
+        <p className="text-sm text-stone-400 mt-1">{t.teamPage.description}</p>
       </div>
 
       <TeamSection

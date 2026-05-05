@@ -154,5 +154,84 @@
     "metadata": {
       "title": "Reservar marcação — {name}"
     }
+  },
+  "integrations": {
+    "stripe": {
+      "title": "Stripe Payments",
+      "tagline": "Aceite pagamentos de forma segura na sua página de reservas.",
+      "platformFeeNote": "O SkinSystem aplica uma comissão de plataforma sobre cada transação processada.",
+      "status": { "connected": "Conectado", "pending": "Pendente", "disconnected": "Desconectado" },
+      "disconnected": {
+        "heading": "Aceite pagamentos com Stripe",
+        "body": "Conecte a sua conta Stripe para aceitar pagamentos online.",
+        "bullets": {
+          "methods": "Cartões, transferências e métodos de pagamento locais",
+          "transfers": "Pagamentos diretos para a sua conta bancária",
+          "dashboard": "Painel Stripe para gerir transações"
+        }
+      },
+      "pending": {
+        "heading": "Configuração em progresso",
+        "body": "Conclua a verificação no Stripe para ativar os pagamentos.",
+        "warning": "A sua conta está pendente de verificação. Continue no Stripe para a ativar."
+      },
+      "connected": {
+        "heading": "Stripe conectado",
+        "body": "A sua conta Stripe está ativa e a aceitar pagamentos.",
+        "accountIdLabel": "ID da conta",
+        "typeLabel": "Tipo",
+        "typeValue": "Express",
+        "transfersLabel": "Transferências",
+        "transfersValue": "Ativadas",
+        "openDashboard": "Abrir painel Stripe"
+      },
+      "actions": {
+        "connectIdle": "Conectar com Stripe",
+        "connectLoading": "A redirecionar…",
+        "continueIdle": "Continuar verificação",
+        "continueLoading": "A redirecionar…",
+        "disconnect": "Desconectar"
+      },
+      "errors": {
+        "generic": "Erro ao conectar com Stripe:",
+        "popupBlocked": "O browser bloqueou a janela popup. Permita popups e tente novamente.",
+        "linkExpired": "O link expirou. Inicie o processo novamente."
+      },
+      "newTabBanner": {
+        "title": "Stripe abriu num novo separador",
+        "description": "Conclua a configuração lá e volte aqui quando terminar."
+      },
+      "disconnectDialog": {
+        "title": "Desconectar Stripe?",
+        "description": "Os pagamentos online ficarão desativados até voltar a conectar.",
+        "confirm": "Sim, desconectar",
+        "loading": "A desconectar…",
+        "cancel": "Cancelar",
+        "success": "Stripe desconectado com sucesso",
+        "errorForbidden": "Não tem permissão para desconectar o Stripe.",
+        "errorGeneric": "Erro ao desconectar. Tente novamente."
+      },
+      "callback": {
+        "successTitle": "Stripe conectado!",
+        "successBody": "A sua conta está ativa. Pode fechar este separador.",
+        "refreshTitle": "Link expirado",
+        "refreshBody": "Este link já não é válido. Volte ao painel e inicie o processo novamente.",
+        "backToIntegrations": "Voltar às integrações"
+      }
+    }
+  },
+  "settings": {
+    "general": {
+      "title":          "Geral",
+      "description":    "Configure as preferências da sua conta.",
+      "sectionLabel":   "Geral",
+      "languageLabel":  "Idioma preferido",
+      "languageHelper": "Escolha o idioma do painel. A sua preferência fica guardada na sua conta.",
+      "optionPt":       "Português",
+      "optionEs":       "Español",
+      "optionEn":       "English",
+      "toastSuccess":   "Idioma atualizado",
+      "toastError":     "Não foi possível atualizar o idioma"
+    }
   }
 }

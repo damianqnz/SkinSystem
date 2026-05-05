@@ -48,7 +48,6 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
     if (stripeParam !== 'success') return;
 
     if (stripeConnected) {
-      // Webhook already confirmed before the page rendered
       toast.success('¡Stripe conectado con éxito! Los pagos están activos.');
       router.replace('/dashboard/integrations');
       return;
@@ -72,6 +71,17 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
     toast.success('¡Stripe conectado con éxito! Los pagos están activos.');
     router.replace('/dashboard/integrations');
   }, [stripeConnected, confirming, router]);
+
+  // ── Navigation ───────────────────────────────────────────────
+  // Stripe owns its own dedicated route (Parallel + Intercepting).
+  // Other integrations use the lightweight in-page modal.
+  function openIntegration(integration: Integration) {
+    if (integration.id === 'stripe') {
+      router.push('/dashboard/integrations/stripe');
+      return;
+    }
+    setSelected(integration);
+  }
 
   // ── Search / filter ──────────────────────────────────────────
   const term = search.trim().toLowerCase();
@@ -167,7 +177,7 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.22, ease: EASE, delay: i * 0.04 }}
-                    onClick={() => setSelected(integration)}
+                    onClick={() => openIntegration(integration)}
                     className="group relative text-left bg-white rounded-2xl border border-stone-100
                                shadow-sm p-5 hover:border-stone-200 hover:shadow-md
                                transition-all duration-150 cursor-pointer"

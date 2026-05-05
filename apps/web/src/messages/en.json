@@ -154,5 +154,84 @@
     "metadata": {
       "title": "Book an appointment — {name}"
     }
+  },
+  "integrations": {
+    "stripe": {
+      "title": "Stripe Payments",
+      "tagline": "Accept payments securely on your booking page.",
+      "platformFeeNote": "SkinSystem applies a platform fee on each processed transaction.",
+      "status": { "connected": "Connected", "pending": "Pending", "disconnected": "Disconnected" },
+      "disconnected": {
+        "heading": "Accept payments with Stripe",
+        "body": "Connect your Stripe account to accept online payments.",
+        "bullets": {
+          "methods": "Cards, transfers and local payment methods",
+          "transfers": "Direct payments to your bank account",
+          "dashboard": "Stripe dashboard to manage transactions"
+        }
+      },
+      "pending": {
+        "heading": "Setup in progress",
+        "body": "Complete verification on Stripe to activate payments.",
+        "warning": "Your account is pending verification. Continue on Stripe to activate it."
+      },
+      "connected": {
+        "heading": "Stripe connected",
+        "body": "Your Stripe account is active and accepting payments.",
+        "accountIdLabel": "Account ID",
+        "typeLabel": "Type",
+        "typeValue": "Express",
+        "transfersLabel": "Transfers",
+        "transfersValue": "Enabled",
+        "openDashboard": "Open Stripe dashboard"
+      },
+      "actions": {
+        "connectIdle": "Connect with Stripe",
+        "connectLoading": "Redirecting…",
+        "continueIdle": "Continue verification",
+        "continueLoading": "Redirecting…",
+        "disconnect": "Disconnect"
+      },
+      "errors": {
+        "generic": "Error connecting to Stripe:",
+        "popupBlocked": "The browser blocked the popup. Allow popups and try again.",
+        "linkExpired": "The link expired. Start the process again."
+      },
+      "newTabBanner": {
+        "title": "Stripe opened in a new tab",
+        "description": "Complete the setup there and come back here when done."
+      },
+      "disconnectDialog": {
+        "title": "Disconnect Stripe?",
+        "description": "Online payments will be disabled until you reconnect.",
+        "confirm": "Yes, disconnect",
+        "loading": "Disconnecting…",
+        "cancel": "Cancel",
+        "success": "Stripe disconnected successfully",
+        "errorForbidden": "You do not have permission to disconnect Stripe.",
+        "errorGeneric": "Error disconnecting. Please try again."
+      },
+      "callback": {
+        "successTitle": "Stripe connected!",
+        "successBody": "Your account is active. You can close this tab.",
+        "refreshTitle": "Link expired",
+        "refreshBody": "This link is no longer valid. Go back to the dashboard and start the process again.",
+        "backToIntegrations": "Back to integrations"
+      }
+    }
+  },
+  "settings": {
+    "general": {
+      "title":          "General",
+      "description":    "Configure your account preferences.",
+      "sectionLabel":   "General",
+      "languageLabel":  "Preferred language",
+      "languageHelper": "Pick the language for your dashboard. Your preference is saved to your account.",
+      "optionPt":       "Português",
+      "optionEs":       "Español",
+      "optionEn":       "English",
+      "toastSuccess":   "Language updated",
+      "toastError":     "Could not update the language"
+    }
   }
 }

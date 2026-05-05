@@ -1,13 +1,16 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { db } from '@/infrastructure/db';
 import { profiles, organizations } from '@/infrastructure/db/schema/organizations';
 import { customers } from '@/infrastructure/db/schema/customers';
+
+const DASHBOARD_LOCALES = ['es', 'pt', 'en'] as const;
+type DashboardLocale = (typeof DASHBOARD_LOCALES)[number];
 
 // ── Validation ────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -89,7 +92,7 @@ export async function loginAction(
 
   // 6. Staff first: do they have a `profiles` row in THIS tenant?
   const [staffRow] = await db
-    .select({ isActive: profiles.isActive })
+    .select({ isActive: profiles.isActive, locale: profiles.locale })
     .from(profiles)
     .where(and(eq(profiles.id, user.id), eq(profiles.organizationId, orgRow.id)))
     .limit(1);
@@ -99,6 +102,19 @@ export async function loginAction(
       // Sign out an inactive staff before bouncing.
       await supabase.auth.signOut();
       return { error: 'no_account' };
+    }
+    // Hydrate DASHBOARD_LOCALE cookie from the staff's per-user preference.
+    // NULL = no preference yet → don't set the cookie (proxy falls back to
+    // NEXT_LOCALE / Accept-Language). Different staff sharing a browser will
+    // therefore each see their own language after each login.
+    if (staffRow.locale && (DASHBOARD_LOCALES as readonly string[]).includes(staffRow.locale)) {
+      const cookieStore = await cookies();
+      cookieStore.set('DASHBOARD_LOCALE', staffRow.locale as DashboardLocale, {
+        path:     '/',
+        sameSite: 'lax',
+        secure:   process.env.NODE_ENV === 'production',
+        maxAge:   60 * 60 * 24 * 365,
+      });
     }
     redirect(resolveRedirectUrl(next, orgRow.slug, '/dashboard'));
   }

@@ -6,6 +6,7 @@ import * as Switch from '@radix-ui/react-switch';
 import { X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createCategoryAction, updateCategoryAction } from '../actions';
+import { useCatalogT } from '../_i18n';
 import type { CatalogActionState } from '../actions';
 import type { CategoryWithServices } from '@/domains/catalog/service';
 
@@ -17,10 +18,10 @@ interface CategoryDrawerProps {
 }
 
 type I18n = { es: string; en: string; pt: string };
-
 const IDLE: CatalogActionState = { status: 'idle' };
 
 export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryDrawerProps) {
+  const t      = useCatalogT();
   const isEdit = !!category;
 
   const [nameI18n, setNameI18n] = useState<I18n>({ es: '', en: '', pt: '' });
@@ -39,8 +40,7 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
       } else {
         setNameI18n({ es: '', en: '', pt: '' });
         setDescI18n({ es: '', en: '', pt: '' });
-        setIsActive(true);
-        setTab('es');
+        setIsActive(true); setTab('es');
       }
     }
   }, [open, category]);
@@ -49,14 +49,8 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
   const [state, dispatch, isPending] = useActionState<CatalogActionState, unknown>(action, IDLE);
 
   useEffect(() => {
-    if (state.status === 'success') {
-      toast.success(state.message);
-      onSuccess();
-      onClose();
-    }
-    if (state.status === 'error') {
-      toast.error(state.message);
-    }
+    if (state.status === 'success') { toast.success(state.message); onSuccess(); onClose(); }
+    if (state.status === 'error')   toast.error(state.message);
   }, [state]);
 
   function handleSubmit(e: React.FormEvent) {
@@ -70,14 +64,13 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
     <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/25 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
-
         <Dialog.Content
           className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-200"
           aria-describedby={undefined}
         >
-          <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100 flex-shrink-0">
+          <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100 shrink-0">
             <Dialog.Title className="font-cormorant text-lg font-semibold text-stone-800">
-              {isEdit ? 'Editar Categoría' : 'Nueva Categoría'}
+              {isEdit ? t.editCategory : t.newCategoryTitle}
             </Dialog.Title>
             <Dialog.Close asChild>
               <button className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors text-stone-400">
@@ -87,35 +80,29 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
           </div>
 
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-
             <section>
-              <p className="field-label mb-3">Nombre de categoría</p>
+              <p className="field-label mb-3">{t.categoryNameLabel}</p>
               <div className="flex gap-1 mb-3">
                 {(['es','en','pt'] as const).map((l) => (
-                  <button
-                    key={l} type="button"
-                    onClick={() => setTab(l)}
-                    className={[
-                      'px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors',
+                  <button key={l} type="button" onClick={() => setTab(l)}
+                    className={['px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors',
                       tab === l ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-500 hover:bg-stone-200',
-                    ].join(' ')}
-                  >
+                    ].join(' ')}>
                     {l.toUpperCase()}
                   </button>
                 ))}
               </div>
               <input
-                type="text"
-                value={nameI18n[tab]}
+                type="text" value={nameI18n[tab]}
                 onChange={(e) => setNameI18n((p) => ({ ...p, [tab]: e.target.value }))}
-                placeholder={`Ej: Faciales, Peinados…`}
+                placeholder={t.categoryNamePlaceholder}
                 className="input-editorial w-full mb-3"
                 required={tab === 'es'}
               />
               <textarea
                 value={descI18n[tab]}
                 onChange={(e) => setDescI18n((p) => ({ ...p, [tab]: e.target.value }))}
-                placeholder="Descripción breve (opcional)"
+                placeholder={t.categoryDescPlaceholder}
                 rows={2}
                 className="input-editorial w-full resize-none text-sm"
               />
@@ -123,33 +110,27 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
 
             <section className="flex items-center justify-between py-3 border-t border-stone-100">
               <div>
-                <p className="text-sm font-medium text-stone-700">Categoría activa</p>
-                <p className="text-[11px] text-stone-400">Aparece en la página de reservas</p>
+                <p className="text-sm font-medium text-stone-700">{t.categoryActiveLabel}</p>
+                <p className="text-[11px] text-stone-400">{t.categoryActiveHint}</p>
               </div>
-              <Switch.Root
-                checked={isActive}
-                onCheckedChange={setIsActive}
-                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-stone-200"
-              >
+              <Switch.Root checked={isActive} onCheckedChange={setIsActive}
+                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-stone-200">
                 <Switch.Thumb className="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0.5" />
               </Switch.Root>
             </section>
           </form>
 
-          <div className="px-6 py-4 border-t border-stone-100 flex gap-3 flex-shrink-0">
-            <button
-              type="button" onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-600 hover:bg-stone-50 transition-colors"
-            >
-              Cancelar
+          <div className="px-6 py-4 border-t border-stone-100 flex gap-3 shrink-0">
+            <button type="button" onClick={onClose}
+              className="flex-1 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-600 hover:bg-stone-50 transition-colors">
+              {t.cancel}
             </button>
             <button
               onClick={handleSubmit as unknown as React.MouseEventHandler<HTMLButtonElement>}
               disabled={isPending}
-              className="flex-1 py-2.5 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2"
-            >
+              className="flex-1 py-2.5 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
               {isPending && <Loader2 size={14} className="animate-spin" />}
-              {isEdit ? 'Guardar' : 'Crear categoría'}
+              {isEdit ? t.saveCategoryChanges : t.createCategory}
             </button>
           </div>
         </Dialog.Content>

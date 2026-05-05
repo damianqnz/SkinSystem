@@ -4,8 +4,15 @@ import Link                  from 'next/link';
 import { usePathname }       from 'next/navigation';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn }                from '@/shared/lib/utils';
-import { NAV_ITEMS }         from './nav-items';
+import { getNavItems }       from './nav-items';
 import { useSidebarCtx }     from './SidebarContext';
+import { useTenantContext }  from '@/shared/providers/TenantProvider';
+
+const SIDEBAR_LABELS: Record<'pt' | 'es' | 'en', { collapse: string; expand: string }> = {
+  pt: { collapse: 'Recolher menu', expand: 'Expandir menu'  },
+  es: { collapse: 'Contraer menú', expand: 'Expandir menú'  },
+  en: { collapse: 'Collapse menu', expand: 'Expand menu'    },
+};
 
 interface SidebarProps { tenantName: string }
 
@@ -30,6 +37,10 @@ export function SidebarSkeleton() {
 export function Sidebar({ tenantName }: SidebarProps) {
   const pathname  = usePathname();
   const { collapsed, toggle } = useSidebarCtx();
+  const { locale } = useTenantContext();
+
+  const navItems = getNavItems(locale);
+  const labels   = SIDEBAR_LABELS[(locale as 'pt' | 'es' | 'en')] ?? SIDEBAR_LABELS['pt'];
 
   const initials = tenantName
     .split(/\s+/)
@@ -49,7 +60,7 @@ export function Sidebar({ tenantName }: SidebarProps) {
         <div className="flex items-center justify-center pt-5 pb-4">
           <button
             onClick={toggle}
-            title="Expandir menu"
+            title={labels.expand}
             className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
           >
             <PanelLeftOpen size={15} />
@@ -58,20 +69,20 @@ export function Sidebar({ tenantName }: SidebarProps) {
 
         {/* Icon-only nav items */}
         <nav className="flex-1 flex flex-col items-center py-2 gap-1" aria-label="Navegação principal">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          {navItems.map(({ href, label, icon: Icon }) => {
             const active =
               pathname === href ||
               (href !== '/dashboard' && href !== '/dashboard/settings' && pathname.startsWith(href));
             return (
               <Link
-                key={`${href}-${label}`}
+                key={href}
                 href={href}
                 title={label}
                 className={cn(
                   'p-2 rounded-lg transition-all duration-150',
                   active
                     ? 'bg-[rgba(212,175,55,0.10)] text-[#D4AF37]'
-                    : 'text-[var(--color-spa-muted)] hover:text-[var(--color-spa-stone)] hover:bg-stone-100/80',
+                    : 'text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-100/80',
                 )}
                 aria-current={active ? 'page' : undefined}
               >
@@ -95,7 +106,7 @@ export function Sidebar({ tenantName }: SidebarProps) {
       <div className="px-5 pt-5 pb-4 border-b border-spa-border">
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center mb-3
-                     bg-[var(--color-spa-stone)] text-white text-[11px] font-medium tracking-wide"
+                     bg-(--color-spa-stone) text-white text-[11px] font-medium tracking-wide"
           style={{ fontFamily: 'var(--font-sans)' }}
           aria-hidden
         >
@@ -111,20 +122,20 @@ export function Sidebar({ tenantName }: SidebarProps) {
 
       {/* ── Navigation ─────────────────────────────────────────── */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5 no-scrollbar" aria-label="Navegação principal">
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {navItems.map(({ href, label, icon: Icon }) => {
           const active =
             pathname === href ||
             (href !== '/dashboard' && href !== '/dashboard/settings' && pathname.startsWith(href));
 
           return (
             <Link
-              key={`${href}-${label}`}
+              key={href}
               href={href}
               className={cn(
                 'relative group flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] transition-all duration-150',
                 active
                   ? 'bg-[rgba(212,175,55,0.10)] text-[#D4AF37] font-medium'
-                  : 'text-[var(--color-spa-muted)] hover:text-[var(--color-spa-stone)] hover:bg-stone-100/80',
+                  : 'text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-100/80',
               )}
               style={{ fontFamily: 'var(--font-sans)' }}
               aria-current={active ? 'page' : undefined}
@@ -154,13 +165,13 @@ export function Sidebar({ tenantName }: SidebarProps) {
       <div className="border-t border-spa-border px-3 py-4">
         <button
           onClick={toggle}
-          title="Recolher menu"
+          title={labels.collapse}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs
                      text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
           style={{ fontFamily: 'var(--font-sans)' }}
         >
           <PanelLeftClose size={13} className="shrink-0" />
-          <span>Recolher menu</span>
+          <span>{labels.collapse}</span>
         </button>
       </div>
     </aside>

@@ -2,47 +2,29 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Tabs   from '@radix-ui/react-tabs';
-import { X, ExternalLink, BookOpen, MessageCircle, Phone, ArrowRight, Check, Loader2 } from 'lucide-react';
-import { useActionState, useEffect, startTransition } from 'react';
-import { useRouter } from 'next/navigation';
+import { X, BookOpen, MessageCircle, Phone, ArrowRight, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { IntegrationLogo } from './IntegrationLogos';
-import { createStripeConnectAccount } from '../../settings/actions';
-import type { StripeConnectState } from '../../settings/actions';
 import type { Integration } from './integrations-data';
 
 interface IntegrationModalProps {
-  integration:    Integration | null;
-  connected:      boolean;
-  onClose:        () => void;
+  integration: Integration | null;
+  connected:   boolean;
+  onClose:     () => void;
 }
 
-const IDLE: StripeConnectState = { status: 'idle' };
-
+/**
+ * Lightweight info modal for "Em breve" integrations (Facebook, Google
+ * Analytics, GTM, Maps, Instagram). Stripe uses its own dedicated route
+ * (`/dashboard/integrations/stripe`) with Parallel + Intercepting routes;
+ * see `IntegrationsClient.openIntegration` for the dispatch.
+ */
 export function IntegrationModal({ integration, connected, onClose }: IntegrationModalProps) {
-  const router = useRouter();
-
-  const [stripeState, stripeDispatch, stripePending] =
-    useActionState<StripeConnectState, unknown>(createStripeConnectAccount, IDLE);
-
-  useEffect(() => {
-    if (stripeState.status === 'redirect') router.push(stripeState.url);
-    if (stripeState.status === 'error')    toast.error(stripeState.message);
-  }, [stripeState, router]);
-
-  if (!integration) return null;
-
-  const isStripe = integration.id === 'stripe';
-
   function handleConnect() {
-    if (isStripe) {
-      startTransition(() => {
-        (stripeDispatch as (p: unknown) => void)({ returnPath: '/dashboard/integrations' });
-      });
-      return;
-    }
     toast.info('Esta integração estará disponível em breve.');
   }
+
+  if (!integration) return null;
 
   return (
     <Dialog.Root open={!!integration} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -108,7 +90,7 @@ export function IntegrationModal({ integration, connected, onClose }: Integratio
                   <ul className="space-y-3">
                     {integration.about.map((item, i) => (
                       <li key={i} className="flex items-start gap-2.5 text-sm text-stone-600 leading-relaxed">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0 mt-1.5" />
                         {item}
                       </li>
                     ))}
@@ -119,7 +101,7 @@ export function IntegrationModal({ integration, connected, onClose }: Integratio
                   <ol className="space-y-3">
                     {integration.instructions.map((step, i) => (
                       <li key={i} className="flex items-start gap-3 text-sm text-stone-600 leading-relaxed">
-                        <span className="w-5 h-5 rounded-full bg-stone-100 text-stone-500 text-[11px] font-medium flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="w-5 h-5 rounded-full bg-stone-100 text-stone-500 text-[11px] font-medium flex items-center justify-center shrink-0 mt-0.5">
                           {i + 1}
                         </span>
                         {step}
@@ -130,38 +112,20 @@ export function IntegrationModal({ integration, connected, onClose }: Integratio
               </Tabs.Root>
 
               {/* Right: action panel */}
-              <div className="w-44 flex-shrink-0 border-l border-stone-100 px-5 py-5 flex flex-col gap-5">
-                {/* Connect / Connected button */}
+              <div className="w-44 shrink-0 border-l border-stone-100 px-5 py-5 flex flex-col gap-5">
                 {connected ? (
-                  <div className="flex flex-col gap-2">
-                    <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-medium">
-                      <Check size={12} />
-                      Conectado
-                    </span>
-                    {isStripe && (
-                      <a
-                        href="https://dashboard.stripe.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl border border-stone-200 text-xs text-stone-500 hover:bg-stone-50 transition-colors"
-                      >
-                        <ExternalLink size={11} />
-                        Dashboard
-                      </a>
-                    )}
-                  </div>
+                  <span className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-medium">
+                    <Check size={12} />
+                    Conectado
+                  </span>
                 ) : (
                   <button
                     onClick={handleConnect}
-                    disabled={stripePending}
                     className="inline-flex items-center justify-center gap-1.5 w-full px-3 py-2.5 rounded-xl
                                bg-stone-900 text-white text-xs font-medium
-                               hover:bg-stone-800 disabled:opacity-60 transition-colors"
+                               hover:bg-stone-800 transition-colors"
                   >
-                    {stripePending
-                      ? <Loader2 size={12} className="animate-spin" />
-                      : <><span>Conectar</span><ArrowRight size={11} /></>
-                    }
+                    <span>Conectar</span><ArrowRight size={11} />
                   </button>
                 )}
 
