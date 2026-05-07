@@ -10,9 +10,9 @@ import { resolveTenantOrgId }          from '@/shared/lib/resolve-tenant-org-id'
 import { organizationPhones }          from '@/infrastructure/db/schema/settings';
 import { availabilityRules }           from '@/infrastructure/db/schema/calendar';
 import type { Result }                 from '@/shared/types/result';
+import { UPLOAD_MAX_BYTES, ALLOWED_IMAGE_TYPES } from '@/shared/config/uploads';
 
 const ORG_MEDIA_BUCKET = 'org-media';
-const MAX_BYTES        = 5 * 1024 * 1024; // 5 MB
 
 
 function revalidate() {
@@ -252,8 +252,8 @@ export async function uploadOrgMediaAction(
   const type = formData.get('type') as 'logo' | 'banner';
 
   if (!(file instanceof File))       return { data: null, error: { message: 'Ficheiro não encontrado', code: 'VALIDATION_ERROR' } };
-  if (file.size > MAX_BYTES)         return { data: null, error: { message: 'Ficheiro superior a 5 MB', code: 'VALIDATION_ERROR' } };
-  if (!file.type.startsWith('image/')) return { data: null, error: { message: 'Tipo de ficheiro inválido', code: 'VALIDATION_ERROR' } };
+  if (file.size > UPLOAD_MAX_BYTES)  return { data: null, error: { message: 'Ficheiro superior a 5 MB', code: 'VALIDATION_ERROR' } };
+  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) return { data: null, error: { message: 'Tipo de ficheiro inválido', code: 'VALIDATION_ERROR' } };
   if (type !== 'logo' && type !== 'banner') return { data: null, error: { message: 'Tipo inválido', code: 'VALIDATION_ERROR' } };
 
   const ext  = (file.name.split('.').pop() ?? 'jpg').toLowerCase();

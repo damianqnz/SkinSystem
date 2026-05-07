@@ -5,6 +5,7 @@ import { Loader2, Upload, Trash2, ImageIcon } from 'lucide-react';
 import { toast }                              from 'sonner';
 import { updateBrandDetailsAction, uploadOrgMediaAction } from '../actions';
 import { useSettingsT } from '../../_i18n';
+import { isValidImageFile, UPLOAD_MAX_MB } from '@/shared/config/uploads';
 
 interface Props {
   orgId: string;
@@ -39,6 +40,19 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
   const bannerInput = useRef<HTMLInputElement>(null);
 
   async function handleUpload(file: File, type: 'logo' | 'banner') {
+    const validation = isValidImageFile(file);
+    if (!validation.ok) {
+      const key = validation.reason === 'TOO_LARGE' ? 'errorTooLarge' : 'errorInvalidType';
+      const entry = t[key];
+      toast.error(entry.title, {
+        description: entry.description.replace('{maxMb}', String(UPLOAD_MAX_MB)),
+        position: 'top-center',
+        duration: 6000,
+        richColors: true,
+      });
+      return;
+    }
+
     const blobUrl = URL.createObjectURL(file);
     if (type === 'logo') { setLogoUrl(blobUrl);   setUploadingLogo(true);   }
     else                 { setBannerUrl(blobUrl);  setUploadingBanner(true); }

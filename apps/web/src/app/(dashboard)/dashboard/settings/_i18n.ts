@@ -17,6 +17,8 @@ interface SettingsMessages {
     selectPlaceholder: string; about: string; aboutPlaceholder: string; save: string;
     errorUpload: string; successLogo: string; successBanner: string;
     errorUnexpected: string; successSave: string;
+    errorTooLarge:   { title: string; description: string };
+    errorInvalidType: { title: string; description: string };
     industries: readonly string[];
   };
 
@@ -143,6 +145,14 @@ const SETTINGS_I18N: Record<'pt' | 'es' | 'en', SettingsMessages> = {
       save: 'Guardar', errorUpload: 'Erro ao carregar ficheiro',
       successLogo: 'Logo atualizado', successBanner: 'Banner atualizado',
       errorUnexpected: 'Erro inesperado ao carregar ficheiro', successSave: 'Dados da marca guardados',
+      errorTooLarge: {
+        title: 'Imagem demasiado grande',
+        description: 'O ficheiro deve ser inferior a {maxMb} MB. Reduza ou comprima a imagem e tente novamente.',
+      },
+      errorInvalidType: {
+        title: 'Formato não suportado',
+        description: 'Apenas são aceites imagens JPEG, PNG, WebP, GIF, AVIF ou SVG.',
+      },
       industries: ['Beleza', 'Saúde e Bem-estar', 'Fitness', 'Educação', 'Consultoria', 'Fotografia', 'Tecnologia', 'Alimentação', 'Moda', 'Outro'],
     },
 
@@ -276,6 +286,14 @@ const SETTINGS_I18N: Record<'pt' | 'es' | 'en', SettingsMessages> = {
       save: 'Guardar', errorUpload: 'Error al subir el archivo',
       successLogo: 'Logo actualizado', successBanner: 'Banner actualizado',
       errorUnexpected: 'Error inesperado al subir el archivo', successSave: 'Datos de la marca guardados',
+      errorTooLarge: {
+        title: 'Imagen demasiado grande',
+        description: 'El archivo debe ser menor de {maxMb} MB. Redúcelo o comprímelo e inténtalo de nuevo.',
+      },
+      errorInvalidType: {
+        title: 'Formato no soportado',
+        description: 'Solo se aceptan imágenes JPEG, PNG, WebP, GIF, AVIF o SVG.',
+      },
       industries: ['Belleza', 'Salud y Bienestar', 'Fitness', 'Educación', 'Consultoría', 'Fotografía', 'Tecnología', 'Alimentación', 'Moda', 'Otro'],
     },
 
@@ -409,6 +427,14 @@ const SETTINGS_I18N: Record<'pt' | 'es' | 'en', SettingsMessages> = {
       save: 'Save', errorUpload: 'Error uploading file',
       successLogo: 'Logo updated', successBanner: 'Banner updated',
       errorUnexpected: 'Unexpected error uploading file', successSave: 'Brand details saved',
+      errorTooLarge: {
+        title: 'File too large',
+        description: 'The file must be under {maxMb} MB. Reduce or compress the image and try again.',
+      },
+      errorInvalidType: {
+        title: 'Unsupported format',
+        description: 'Only JPEG, PNG, WebP, GIF, AVIF or SVG images are accepted.',
+      },
       industries: ['Beauty', 'Health & Wellness', 'Fitness', 'Education', 'Consulting', 'Photography', 'Technology', 'Food', 'Fashion', 'Other'],
     },
 
