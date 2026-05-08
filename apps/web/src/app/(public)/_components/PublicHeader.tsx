@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link                    from 'next/link';
-import Image                   from 'next/image';
-import { LanguageSwitcher }    from './LanguageSwitcher';
+import Link from 'next/link';
+import Image from 'next/image';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import { UserMenu, type PublicSessionUser } from './UserMenu';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -11,16 +11,16 @@ import { UserMenu, type PublicSessionUser } from './UserMenu';
 interface Props {
   orgName: string;
   logoUrl: string | null;
-  locale:  string;
-  user:    PublicSessionUser | null;
+  locale: string;
+  user: PublicSessionUser | null;
 }
 
 const SECTIONS = [
-  { id: 'servicos',   label: { pt: 'Serviços',   es: 'Servicios',  en: 'Services' } },
-  { id: 'sobre',      label: { pt: 'Sobre nós',  es: 'Sobre mí',   en: 'About'    } },
-  { id: 'galeria',    label: { pt: 'Galeria',    es: 'Galería',    en: 'Gallery'  } },
-  { id: 'avaliacoes', label: { pt: 'Avaliações', es: 'Reseñas',    en: 'Reviews'  } },
-  { id: 'morada',     label: { pt: 'Morada',     es: 'Ubicación',  en: 'Location' } },
+  { id: 'servicos', label: { pt: 'Serviços', es: 'Servicios', en: 'Services' } },
+  { id: 'sobre', label: { pt: 'Sobre nós', es: 'Sobre mí', en: 'About' } },
+  { id: 'galeria', label: { pt: 'Galeria', es: 'Galería', en: 'Gallery' } },
+  { id: 'avaliacoes', label: { pt: 'Avaliações', es: 'Reseñas', en: 'Reviews' } },
+  { id: 'morada', label: { pt: 'Morada', es: 'Ubicación', en: 'Location' } },
 ] as const;
 
 const BOOK_LABEL = { pt: 'Reservar', es: 'Reservar', en: 'Book now' } as const;
@@ -75,26 +75,21 @@ export function PublicHeader({ orgName, logoUrl, locale, user }: Props) {
       <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-6">
 
         {/* Logo / Brand */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center shrink-0">
           {logoUrl ? (
             <Image
               src={logoUrl} alt={orgName}
-              width={32} height={32}
+              width={50} height={50}
               className="rounded-full object-cover"
             />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-amber-400 flex items-center justify-center">
-              <span className="text-stone-950 text-xs font-semibold font-outfit">
-                {orgName.charAt(0)}
-              </span>
-            </div>
+            <span className={[
+              'font-cormorant text-lg font-semibold hidden sm:block transition-opacity duration-300',
+              scrolled ? 'opacity-100 text-stone-900 dark:text-stone-100' : 'opacity-0',
+            ].join(' ')}>
+              {orgName}
+            </span>
           )}
-          <span className={[
-            'font-cormorant text-lg font-semibold hidden sm:block transition-opacity duration-300',
-            scrolled ? 'opacity-100 text-stone-900 dark:text-stone-100' : 'opacity-0',
-          ].join(' ')}>
-            {orgName}
-          </span>
         </div>
 
         {/* Nav links — hidden on mobile */}

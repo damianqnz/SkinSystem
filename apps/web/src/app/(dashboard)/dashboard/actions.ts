@@ -22,7 +22,7 @@ import { clearSeedData, seedTenantData } from '@/domains/booking/seed';
 
 export type SeedActionState =
   | { status: 'idle' }
-  | { status: 'success'; counts: { categories: number; services: number; customers: number; appointments: number }; removed: number }
+  | { status: 'success'; counts: { categories: number; services: number; customers: number; appointments: number; payments: number }; removed: number }
   | { status: 'error';   message: string };
 
 export async function seedTenantDataAction(): Promise<SeedActionState> {

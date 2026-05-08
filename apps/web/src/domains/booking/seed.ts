@@ -32,6 +32,26 @@ export const SEED_TAG = '__seed__';
 const dbErr = (msg: string): Result<never> =>
   ({ data: null, error: { message: msg, code: 'DB_ERROR' } });
 
+// ── Payment seed helpers ───────────────────────────────────────
+type SeedPaymentStatus = 'succeeded' | 'pending' | 'failed' | 'refunded';
+
+function fakeStripeId(): string {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let s = 'pi_3X';
+  for (let i = 0; i < 24; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+  return s;
+}
+
+function seedPmtStatus(apptStatus: AppointmentStatus): SeedPaymentStatus {
+  const r = Math.random();
+  if (apptStatus === 'no_show')   return 'succeeded';
+  if (apptStatus === 'cancelled') return r < 0.5 ? 'refunded' : 'succeeded';
+  if (r < 0.70) return 'succeeded';
+  if (r < 0.80) return 'pending';
+  if (r < 0.90) return 'failed';
+  return 'refunded';
+}
+
 // ── Static catalog blueprint ───────────────────────────────────────
 const CATEGORIES = [
   { es: 'Facial',   pt: 'Facial',   en: 'Facial' },
@@ -397,7 +417,7 @@ export async function clearSeedData(orgId: string): Promise<Result<{ removed: nu
 export async function seedTenantData(
   orgId: string,
   staffProfileId: string,
-): Promise<Result<{ categories: number; services: number; customers: number; appointments: number }>> {
+): Promise<Result<{ categories: number; services: number; customers: number; appointments: number; payments: number }>> {
   try {
     // 1. Categories
     const catRows = await db.insert(catalogCategories).values(
@@ -563,14 +583,55 @@ export async function seedTenantData(
       apptInputs.push(buildAppt(days, hour, status));
     }
 
-    await db.insert(appointments).values(apptInputs);
+    const combos = apptInputs.map((a) => {
+      const r      = Math.random();
+      const bucket = r < 0.30 ? 0 : r < 0.55 ? 1 : r < 0.75 ? 2 : r < 0.90 ? 3 : 4;
+      const base   = bucket === 4 ? Math.floor(Math.random() * 4) : bucket;
+      const red    = (base === 1 || base === 3) ? Math.round(a.priceCents * 0.20) : 0;
+      const dep    = (base === 2 || base === 3) ? 1500 : 0;
+      const coup   = bucket === 4 ? 500 : 0;
+      return { disc: red + coup, surch: dep, total: a.priceCents - (red + coup) + dep };
+    });
+
+    const apptInputsFinal = apptInputs.map((a, i) => ({
+      ...a,
+      discountCents:   combos[i]!.disc,
+      surchargesCents: combos[i]!.surch,
+      totalCents:      combos[i]!.total,
+    }));
+
+    const apptRows = await db.insert(appointments).values(apptInputsFinal).returning({
+      id:      appointments.id,
+      startAt: appointments.startAt,
+    });
+
+    const pmtValues = apptRows.map((row, i) => {
+      const a   = apptInputsFinal[i]!;
+      const sts = seedPmtStatus(a.status);
+      const at  = new Date(row.startAt);
+      at.setDate(at.getDate() - 1);
+      return {
+        organizationId:        orgId,
+        appointmentId:         row.id,
+        stripePaymentIntentId: fakeStripeId(),
+        amountCents:           a.totalCents,
+        currency:              'eur' as const,
+        status:                sts,
+        paidAt:                (sts === 'succeeded' || sts === 'refunded') ? at : null,
+        createdAt:             at,
+        updatedAt:             at,
+      };
+    });
+
+    await db.insert(payments).values(pmtValues);
 
     return {
       data: {
         categories:   catRows.length,
         services:     svcRows.length,
         customers:    custRows.length,
-        appointments: apptInputs.length,
+        appointments: apptRows.length,
+        payments:     pmtValues.length,
       },
       error: null,
     };

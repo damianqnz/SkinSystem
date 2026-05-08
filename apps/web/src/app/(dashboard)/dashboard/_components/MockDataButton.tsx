@@ -22,9 +22,9 @@ export function MockDataButton() {
     startTransition(async () => {
       const result = await seedTenantDataAction();
       if (result.status === 'success') {
-        const { categories, services, customers, appointments } = result.counts;
+        const { categories, services, customers, appointments, payments } = result.counts;
         toast.success(
-          `Datos sembrados · ${categories} categorías · ${services} servicios · ${customers} clientes · ${appointments} citas`,
+          `Datos sembrados · ${categories} categorías · ${services} servicios · ${customers} clientes · ${appointments} citas · ${payments} pagos`,
           { description: result.removed > 0 ? `Se limpiaron ${result.removed} registros previos` : undefined },
         );
         router.refresh();

@@ -1,17 +1,17 @@
-import { headers }           from 'next/headers';
-import { notFound }           from 'next/navigation';
-import type { Metadata }      from 'next';
-import { getLandingData }     from './_data/getLandingData';
-import { PublicHeader }       from './_components/PublicHeader';
+import { headers } from 'next/headers';
+import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { getLandingData } from './_data/getLandingData';
+import { PublicHeader } from './_components/PublicHeader';
 import { resolvePublicSessionUser } from '@/shared/lib/resolve-public-session';
-import { HeroSection }        from './_components/HeroSection';
-import { GalleryModal }       from './_components/GalleryModal';
-import { ServicesAccordion }  from './_components/ServicesAccordion';
-import { StickyInfoCard }     from './_components/StickyInfoCard';
-import { AboutSection }       from './_components/AboutSection';
-import { GalleryGrid }        from './_components/GalleryGrid';
-import { ReviewsSection }     from './_components/ReviewsSection';
-import { MapSection }         from './_components/MapSection';
+import { HeroSection } from './_components/HeroSection';
+import { GalleryModal } from './_components/GalleryModal';
+import { ServicesAccordion } from './_components/ServicesAccordion';
+import { StickyInfoCard } from './_components/StickyInfoCard';
+import { AboutSection } from './_components/AboutSection';
+import { GalleryGrid } from './_components/GalleryGrid';
+import { ReviewsSection } from './_components/ReviewsSection';
+import { MapSection } from './_components/MapSection';
 
 // ── SEO ───────────────────────────────────────────────────────
 
@@ -21,17 +21,17 @@ export async function generateMetadata(): Promise<Metadata> {
   const data = await getLandingData(slug);
   const name = data?.org.name ?? 'SkinSystem';
   return {
-    title:       `${name} — Reserva Online`,
+    title: `${name} — Reserva Online`,
     description: `Descobre os tratamentos exclusivos de ${name} e reserva a tua consulta online.`,
-    openGraph:   { title: `${name} — Reserva Online`, siteName: 'SkinSystem' },
+    openGraph: { title: `${name} — Reserva Online`, siteName: 'SkinSystem' },
   };
 }
 
 // ── Page ──────────────────────────────────────────────────────
 
 export default async function PublicHomePage() {
-  const hdrs   = await headers();
-  const slug   = hdrs.get('x-tenant-slug') ?? '';
+  const hdrs = await headers();
+  const slug = hdrs.get('x-tenant-slug') ?? '';
   const locale = hdrs.get('x-locale') ?? 'pt';
 
   const [data, sessionUser] = await Promise.all([
@@ -95,7 +95,7 @@ export default async function PublicHomePage() {
             {org.name}
           </p>
           <p className="text-[11px] text-stone-400 font-outfit">
-            © {new Date().getFullYear()} · Powered by SkinSystem
+            © {new Date().getFullYear()} · Powered by SkinSystem for Dev Damian Quiñonez
           </p>
         </div>
       </footer>
