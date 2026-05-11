@@ -4,8 +4,6 @@
  * @file DashboardLanguageSelector.tsx
  * @description Per-staff dashboard language selector.
  *
- *   - Floating-label visual pattern (label sits on the input border, accent
- *     blue) to match the screen mock.
  *   - Auto-saves on change via `setDashboardLocaleAction` and surfaces a
  *     Sonner toast for both success and failure paths.
  *   - The action persists into `profiles.locale` (durable, cross-device) and
@@ -16,6 +14,7 @@ import { useId, useState, useTransition } from 'react';
 import { useRouter }                       from 'next/navigation';
 import { Loader2, ChevronDown }            from 'lucide-react';
 import { toast }                           from 'sonner';
+import { useTranslations }                 from 'next-intl';
 import { setDashboardLocaleAction }        from '../actions';
 
 type Locale = 'pt' | 'es' | 'en';
@@ -23,20 +22,12 @@ type Locale = 'pt' | 'es' | 'en';
 interface Props {
   /** Resolved server-side from `x-locale` (DASHBOARD_LOCALE → fallback chain). */
   current: Locale;
-  labels: {
-    languageLabel:   string;
-    languageHelper:  string;
-    optionPt:        string;
-    optionEs:        string;
-    optionEn:        string;
-    toastSuccess:    string;
-    toastError:      string;
-  };
 }
 
 const ORDERED_LOCALES: readonly Locale[] = ['pt', 'es', 'en'];
 
-export function DashboardLanguageSelector({ current, labels }: Props) {
+export function DashboardLanguageSelector({ current }: Props) {
+  const t      = useTranslations('dashboard.settings.general');
   const selectId               = useId();
   const router                 = useRouter();
   const [value, setValue]      = useState<Locale>(current);
@@ -47,24 +38,24 @@ export function DashboardLanguageSelector({ current, labels }: Props) {
     if (next === value || pending) return;
 
     const previous = value;
-    setValue(next); // optimistic
+    setValue(next);
 
     startTransition(async () => {
       const result = await setDashboardLocaleAction(next);
       if (result.error) {
-        setValue(previous); // rollback
-        toast.error(labels.toastError);
+        setValue(previous);
+        toast.error(t('toastError'));
         return;
       }
-      toast.success(labels.toastSuccess);
+      toast.success(t('toastSuccess'));
       router.refresh();
     });
   }
 
   const optionLabels: Record<Locale, string> = {
-    pt: labels.optionPt,
-    es: labels.optionEs,
-    en: labels.optionEn,
+    pt: t('optionPt'),
+    es: t('optionEs'),
+    en: t('optionEn'),
   };
 
   return (
@@ -79,7 +70,7 @@ export function DashboardLanguageSelector({ current, labels }: Props) {
             font-outfit
           "
         >
-          {labels.languageLabel}
+          {t('languageLabel')}
         </label>
 
         <select
@@ -116,7 +107,7 @@ export function DashboardLanguageSelector({ current, labels }: Props) {
       </div>
 
       <p className="text-xs text-stone-500 font-outfit">
-        {labels.languageHelper}
+        {t('languageHelper')}
       </p>
     </div>
   );

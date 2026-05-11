@@ -4,13 +4,13 @@ import { useState, useTransition, useOptimistic } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { MoreHorizontal, UserPlus, Mail, Loader2, ShieldCheck, User, X, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import {
   inviteStaffAction,
   toggleMemberActiveAction,
   updateMemberRoleAction,
   cancelInvitationAction,
 } from '../actions';
-import { useSettingsT } from '../../_i18n';
 
 export interface TeamMember {
   id:        string;
@@ -44,29 +44,31 @@ function Avatar({ name, url, size = 'md' }: { name: string | null; url: string |
   );
 }
 
-function RoleBadge({ role, labels }: { role: 'super_admin' | 'owner' | 'staff'; labels: { owner: string; staff: string } }) {
+type TeamT = ReturnType<typeof useTranslations<'dashboard.settings.team'>>;
+
+function RoleBadge({ role, t }: { role: 'super_admin' | 'owner' | 'staff'; t: TeamT }) {
   return role === 'owner'
-    ? <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 rounded px-1.5 py-0.5 font-medium"><ShieldCheck size={10} />{labels.owner}</span>
-    : <span className="inline-flex items-center gap-1 text-[10px] bg-stone-100 text-stone-500 rounded px-1.5 py-0.5 font-medium"><User size={10} />{labels.staff}</span>;
+    ? <span className="inline-flex items-center gap-1 text-[10px] bg-amber-50 text-amber-700 rounded px-1.5 py-0.5 font-medium"><ShieldCheck size={10} />{t('roleOwner')}</span>
+    : <span className="inline-flex items-center gap-1 text-[10px] bg-stone-100 text-stone-500 rounded px-1.5 py-0.5 font-medium"><User size={10} />{t('roleStaff')}</span>;
 }
 
-function MemberRow({ member, isSelf, onToggleActive, onChangeRole, labels }: {
+function MemberRow({ member, isSelf, onToggleActive, onChangeRole, t }: {
   member: TeamMember; isSelf: boolean;
   onToggleActive: (id: string, v: boolean) => void;
   onChangeRole:   (id: string, role: 'staff' | 'owner') => void;
-  labels: ReturnType<typeof useSettingsT>['team'];
+  t: TeamT;
 }) {
   return (
     <div className={`flex items-center gap-3 px-5 py-3.5 ${!member.isActive ? 'opacity-50' : ''}`}>
       <Avatar name={member.fullName} url={member.avatarUrl} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-stone-800 truncate">
-          {member.fullName ?? labels.noMembers.split(' ')[0]}
-          {isSelf && <span className="ml-1.5 text-[10px] text-stone-400">{labels.you}</span>}
+          {member.fullName ?? '—'}
+          {isSelf && <span className="ml-1.5 text-[10px] text-stone-400">{t('you')}</span>}
         </p>
         <div className="flex items-center gap-2 mt-0.5">
-          <RoleBadge role={member.role} labels={{ owner: labels.roleOwner, staff: labels.roleStaff }} />
-          {!member.isActive && <span className="text-[10px] text-rose-500 font-medium">{labels.inactive}</span>}
+          <RoleBadge role={member.role} t={t} />
+          {!member.isActive && <span className="text-[10px] text-rose-500 font-medium">{t('inactive')}</span>}
         </div>
       </div>
 
@@ -81,18 +83,18 @@ function MemberRow({ member, isSelf, onToggleActive, onChangeRole, labels }: {
             <DropdownMenu.Content className="z-50 min-w-[160px] rounded-xl bg-white border border-stone-100 shadow-lg p-1 text-sm" align="end" sideOffset={4}>
               {member.role === 'staff' ? (
                 <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-lg text-stone-700 hover:bg-stone-50 cursor-pointer outline-none" onSelect={() => onChangeRole(member.id, 'owner')}>
-                  <ShieldCheck size={13} className="text-amber-500" />{labels.promoteToOwner}
+                  <ShieldCheck size={13} className="text-amber-500" />{t('promoteToOwner')}
                 </DropdownMenu.Item>
               ) : (
                 <DropdownMenu.Item className="flex items-center gap-2 px-3 py-2 rounded-lg text-stone-700 hover:bg-stone-50 cursor-pointer outline-none" onSelect={() => onChangeRole(member.id, 'staff')}>
-                  <User size={13} className="text-stone-400" />{labels.demoteToStaff}
+                  <User size={13} className="text-stone-400" />{t('demoteToStaff')}
                 </DropdownMenu.Item>
               )}
               <DropdownMenu.Separator className="my-1 h-px bg-stone-100" />
               <DropdownMenu.Item
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer outline-none ${member.isActive ? 'text-rose-600 hover:bg-rose-50' : 'text-emerald-700 hover:bg-emerald-50'}`}
                 onSelect={() => onToggleActive(member.id, !member.isActive)}>
-                {member.isActive ? labels.deactivate : labels.reactivate}
+                {member.isActive ? t('deactivate') : t('reactivate')}
               </DropdownMenu.Item>
             </DropdownMenu.Content>
           </DropdownMenu.Portal>
@@ -102,9 +104,8 @@ function MemberRow({ member, isSelf, onToggleActive, onChangeRole, labels }: {
   );
 }
 
-function InvitationRow({ inv, onCancel, labels }: {
-  inv: PendingInvitation; onCancel: (id: string) => void;
-  labels: ReturnType<typeof useSettingsT>['team'];
+function InvitationRow({ inv, onCancel, t }: {
+  inv: PendingInvitation; onCancel: (id: string) => void; t: TeamT;
 }) {
   const expired = inv.expiresAt < new Date();
   return (
@@ -115,13 +116,13 @@ function InvitationRow({ inv, onCancel, labels }: {
       <div className="flex-1 min-w-0">
         <p className="text-sm text-stone-700 truncate">{inv.email}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <RoleBadge role={inv.role} labels={{ owner: labels.roleOwner, staff: labels.roleStaff }} />
+          <RoleBadge role={inv.role} t={t} />
           {expired
-            ? <span className="text-[10px] text-rose-500 font-medium flex items-center gap-0.5"><Clock size={9} />{labels.expired}</span>
-            : <span className="text-[10px] text-stone-400">{labels.pending}</span>}
+            ? <span className="text-[10px] text-rose-500 font-medium flex items-center gap-0.5"><Clock size={9} />{t('expired')}</span>
+            : <span className="text-[10px] text-stone-400">{t('pending')}</span>}
         </div>
       </div>
-      <button onClick={() => onCancel(inv.id)} title={labels.cancelInvite}
+      <button onClick={() => onCancel(inv.id)} title={t('cancelInvite')}
         className="p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-50 transition-colors">
         <X size={14} />
       </button>
@@ -130,7 +131,7 @@ function InvitationRow({ inv, onCancel, labels }: {
 }
 
 export function TeamSection({ initial, currentUserId }: Props) {
-  const t = useSettingsT().team;
+  const t = useTranslations('dashboard.settings.team');
   const [members,     setMembers]     = useState<TeamMember[]>(initial.members);
   const [invitations, setInvitations] = useState<PendingInvitation[]>(initial.invitations);
   const [showInvite,  setShowInvite]  = useState(false);
@@ -146,7 +147,7 @@ export function TeamSection({ initial, currentUserId }: Props) {
         toast.error(res.error.message);
         setMembers((prev) => prev.map((m) => m.id === profileId ? { ...m, isActive: !isActive } : m));
       } else {
-        toast.success(isActive ? t.successReactivate : t.successDeactivate);
+        toast.success(isActive ? t('successReactivate') : t('successDeactivate'));
       }
     });
   }
@@ -156,7 +157,7 @@ export function TeamSection({ initial, currentUserId }: Props) {
     startTransition(async () => {
       const res = await updateMemberRoleAction({ profileId, role });
       if (res.error) { toast.error(res.error.message); setMembers(initial.members); }
-      else           { toast.success(t.successRoleUpdate); }
+      else           { toast.success(t('successRoleUpdate')); }
     });
   }
 
@@ -165,7 +166,7 @@ export function TeamSection({ initial, currentUserId }: Props) {
     startTransition(async () => {
       const res = await cancelInvitationAction(invitationId);
       if (res.error) { toast.error(res.error.message); setInvitations(initial.invitations); }
-      else           { toast.success(t.successInviteCancel); }
+      else           { toast.success(t('successInviteCancel')); }
     });
   }
 
@@ -173,7 +174,7 @@ export function TeamSection({ initial, currentUserId }: Props) {
     startTransition(async () => {
       const res = await inviteStaffAction({ email: inviteEmail, role: inviteRole });
       if (res.error) { toast.error(res.error.message); return; }
-      toast.success(t.successInviteSentPrefix + inviteEmail);
+      toast.success(t('successInviteSent', { email: inviteEmail }));
       setInviteEmail('');
       setShowInvite(false);
     });
@@ -181,15 +182,15 @@ export function TeamSection({ initial, currentUserId }: Props) {
 
   return (
     <section id="equipa" className="space-y-6">
-      <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">{t.membersTitle}</h2>
+      <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">{t('membersTitle')}</h2>
 
       <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
         {members.length === 0 ? (
-          <p className="text-sm text-stone-400 text-center py-8">{t.noMembers}</p>
+          <p className="text-sm text-stone-400 text-center py-8">{t('noMembers')}</p>
         ) : (
           members.map((m, idx) => (
             <div key={m.id} className={idx < members.length - 1 ? 'border-b border-stone-50' : ''}>
-              <MemberRow member={m} isSelf={m.id === currentUserId} labels={t}
+              <MemberRow member={m} isSelf={m.id === currentUserId} t={t}
                 onToggleActive={handleToggleActive} onChangeRole={handleChangeRole} />
             </div>
           ))
@@ -198,11 +199,11 @@ export function TeamSection({ initial, currentUserId }: Props) {
 
       {invitations.length > 0 && (
         <>
-          <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">{t.pendingInvites}</h2>
+          <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">{t('pendingInvites')}</h2>
           <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
             {invitations.map((inv, idx) => (
               <div key={inv.id} className={idx < invitations.length - 1 ? 'border-b border-stone-50' : ''}>
-                <InvitationRow inv={inv} onCancel={handleCancelInvite} labels={t} />
+                <InvitationRow inv={inv} onCancel={handleCancelInvite} t={t} />
               </div>
             ))}
           </div>
@@ -211,34 +212,34 @@ export function TeamSection({ initial, currentUserId }: Props) {
 
       {showInvite ? (
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 space-y-4">
-          <p className="text-sm font-medium text-stone-800">{t.inviteMember}</p>
+          <p className="text-sm font-medium text-stone-800">{t('inviteMember')}</p>
           <div className="flex gap-3">
             <input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder={t.emailPlaceholder}
+              placeholder={t('emailPlaceholder')}
               className="flex-1 border border-stone-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200 transition-colors"
               onKeyDown={(e) => e.key === 'Enter' && handleSendInvite()} />
             <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value as 'staff' | 'owner')}
               className="border border-stone-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-amber-300 transition-colors appearance-none">
-              <option value="staff">{t.roleStaff}</option>
-              <option value="owner">{t.roleOwner}</option>
+              <option value="staff">{t('roleStaff')}</option>
+              <option value="owner">{t('roleOwner')}</option>
             </select>
           </div>
           <div className="flex justify-end gap-2">
             <button onClick={() => { setShowInvite(false); setInviteEmail(''); }}
               className="px-4 py-2 text-sm text-stone-600 hover:bg-stone-50 rounded-xl transition-colors">
-              {t.cancel}
+              {t('cancel')}
             </button>
             <button onClick={handleSendInvite} disabled={pending || !inviteEmail}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors">
               {pending && <Loader2 size={13} className="animate-spin" />}
-              {t.sendInvite}
+              {t('sendInvite')}
             </button>
           </div>
         </div>
       ) : (
         <button onClick={() => setShowInvite(true)}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-700 hover:bg-stone-50 transition-colors">
-          <UserPlus size={15} />{t.inviteMember}
+          <UserPlus size={15} />{t('inviteMember')}
         </button>
       )}
     </section>

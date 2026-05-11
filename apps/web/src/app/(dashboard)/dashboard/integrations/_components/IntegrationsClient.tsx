@@ -5,18 +5,17 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Search, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { IntegrationLogo }  from './IntegrationLogos';
 import { IntegrationModal } from './IntegrationModal';
 import {
   INTEGRATIONS,
   INTEGRATIONS_BY_CATEGORY,
-  CATEGORY_LABELS,
 } from './integrations-data';
 import type { Integration, IntegrationCategory } from './integrations-data';
 
 interface IntegrationsClientProps {
   stripeConnected: boolean;
-  /** ?stripe=success|refresh query param forwarded from the server page */
   stripeParam?: string | null;
 }
 
@@ -26,29 +25,25 @@ function isConnected(id: Integration['id'], stripeConnected: boolean): boolean {
 }
 
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
-
-// Delays (ms) between each router.refresh() poll attempt after Stripe return
 const POLL_DELAYS = [1500, 3500, 7000] as const;
 
 export function IntegrationsClient({ stripeConnected, stripeParam }: IntegrationsClientProps) {
-  const router  = useRouter();
+  const t      = useTranslations('dashboard.integrations.ui');
+  const router = useRouter();
   const [search,   setSearch]   = useState('');
   const [selected, setSelected] = useState<Integration | null>(null);
 
-  // True while we're waiting for the webhook + DB to confirm the connection
   const [confirming, setConfirming] = useState(
     stripeParam === 'success' && !stripeConnected,
   );
 
-  // Guard: only start the polling sequence once per mount
   const pollingStarted = useRef(false);
 
-  // ── Polling logic ────────────────────────────────────────────
   useEffect(() => {
     if (stripeParam !== 'success') return;
 
     if (stripeConnected) {
-      toast.success('¡Stripe conectado con éxito! Los pagos están activos.');
+      toast.success(t('toastConnected'));
       router.replace('/dashboard/integrations');
       return;
     }
@@ -56,25 +51,21 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
     if (pollingStarted.current) return;
     pollingStarted.current = true;
 
-    toast.info('Confirmando verificación con Stripe…');
-    router.refresh(); // immediate first attempt
+    toast.info(t('toastConfirming'));
+    router.refresh();
 
     const timers = POLL_DELAYS.map((ms) => setTimeout(() => router.refresh(), ms));
     return () => timers.forEach(clearTimeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // intentionally mount-only: stripeParam comes from the URL and won't change
+  }, []);
 
-  // When a refresh causes stripeConnected to flip true, clear the banner
   useEffect(() => {
     if (!confirming || !stripeConnected) return;
     setConfirming(false);
-    toast.success('¡Stripe conectado con éxito! Los pagos están activos.');
+    toast.success(t('toastConnected'));
     router.replace('/dashboard/integrations');
-  }, [stripeConnected, confirming, router]);
+  }, [stripeConnected, confirming, router, t]);
 
-  // ── Navigation ───────────────────────────────────────────────
-  // Stripe owns its own dedicated route (Parallel + Intercepting).
-  // Other integrations use the lightweight in-page modal.
   function openIntegration(integration: Integration) {
     if (integration.id === 'stripe') {
       router.push('/dashboard/integrations/stripe');
@@ -83,7 +74,6 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
     setSelected(integration);
   }
 
-  // ── Search / filter ──────────────────────────────────────────
   const term = search.trim().toLowerCase();
 
   const filteredByCategory = useMemo(() => {
@@ -103,7 +93,7 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
 
   return (
     <>
-      {/* ── Confirmation banner (post-Stripe return) ────────── */}
+      {/* Confirmation banner */}
       {confirming && (
         <motion.div
           initial={{ opacity: 0, y: -6 }}
@@ -114,18 +104,16 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
                      bg-amber-50 border border-amber-100 text-sm text-amber-800"
         >
           <Loader2 size={14} className="animate-spin text-amber-500 shrink-0" />
-          <span>
-            Confirmando verificación con Stripe… esto puede tardar unos segundos.
-          </span>
+          <span>{t('confirmingStripe')}</span>
         </motion.div>
       )}
 
-      {/* ── Header ──────────────────────────────────────────── */}
+      {/* Header */}
       <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-cormorant text-2xl font-semibold text-stone-800">Integrações</h1>
+          <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t('title')}</h1>
           <p className="text-sm text-stone-400 mt-1">
-            {INTEGRATIONS.length} aplicações disponíveis
+            {t('available', { count: INTEGRATIONS.length })}
           </p>
         </div>
 
@@ -135,7 +123,7 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Pesquisar aplicações..."
+            placeholder={t('searchPlaceholder')}
             className="pl-8 pr-3 py-2 rounded-xl border border-stone-200 text-sm text-stone-700
                        placeholder:text-stone-400 bg-white hover:border-stone-300
                        focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200
@@ -144,28 +132,28 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
         </div>
       </div>
 
-      {/* ── No results ──────────────────────────────────────── */}
+      {/* No results */}
       {noResults && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Search size={28} className="text-stone-300 mb-4" strokeWidth={1} />
           <p className="font-cormorant text-lg font-semibold text-stone-600 mb-1">
-            Sem resultados para &ldquo;{search}&rdquo;
+            {t('noResults', { query: search })}
           </p>
           <button
             onClick={() => setSearch('')}
             className="mt-3 text-xs text-amber-600 hover:text-amber-700 underline underline-offset-2"
           >
-            Limpar pesquisa
+            {t('clearSearch')}
           </button>
         </div>
       )}
 
-      {/* ── Integration grid ────────────────────────────────── */}
+      {/* Integration grid */}
       <div className="space-y-8">
         {visibleCategories.map((cat) => (
           <section key={cat}>
             <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-4 px-0.5">
-              {CATEGORY_LABELS[cat]}
+              {t(`categories.${cat}`)}
             </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -185,7 +173,7 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
                     {connected && (
                       <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-medium">
                         <Check size={10} />
-                        Conectado
+                        {t('connected')}
                       </span>
                     )}
 
@@ -196,7 +184,7 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
                           {integration.name}
                         </p>
                         {integration.comingSoon && !connected && (
-                          <span className="text-[10px] text-amber-600 font-medium">Em breve</span>
+                          <span className="text-[10px] text-amber-600 font-medium">{t('comingSoon')}</span>
                         )}
                       </div>
                     </div>
@@ -212,7 +200,7 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
         ))}
       </div>
 
-      {/* ── Modal ───────────────────────────────────────────── */}
+      {/* Modal */}
       <IntegrationModal
         integration={selected}
         connected={selected ? isConnected(selected.id, stripeConnected) : false}

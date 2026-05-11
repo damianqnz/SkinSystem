@@ -8,6 +8,7 @@
 import { Suspense } from 'react';
 import { headers } from 'next/headers';
 import { CalendarDays, CalendarClock, Users } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
 import { getOrganizationBySlug } from '@/domains/organizations/service';
 import { getSlotsByDate }         from '@/domains/booking/service';
@@ -26,25 +27,27 @@ const SECTION_META    = 'text-[11px] uppercase tracking-[0.16em] text-spa-muted'
 const DAY_MS  = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7  * DAY_MS;
 
+const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
+
 // ── Page ──────────────────────────────────────────────────────
 
 export default async function DashboardPage() {
   const headersList = await headers();
   const slug   = headersList.get('x-tenant-slug') ?? '';
-  const locale = headersList.get('x-locale') ?? 'es';
+  const locale = headersList.get('x-locale') ?? 'pt';
 
-  // 1. Resolve slug → org UUID
+  const t = await getTranslations({ locale, namespace: 'dashboard.home' });
+
   const orgResult = await getOrganizationBySlug(slug);
   if (!orgResult.data) {
     return (
       <p className="text-sm text-spa-muted p-6" style={{ fontFamily: 'var(--font-sans)' }}>
-        No se encontró la organización &quot;{slug}&quot;.
+        {t('orgNotFound', { slug })}
       </p>
     );
   }
   const orgId = orgResult.data.id;
 
-  // 2. Fetch stats in parallel
   const today    = new Date();
   const tomorrow = new Date(today.getTime() + DAY_MS);
 
@@ -63,15 +66,8 @@ export default async function DashboardPage() {
     (c) => new Date(c.createdAt) >= weekAgo,
   ).length;
 
-  // 3. Localised date heading
-  const dateTag   = locale === 'pt' ? 'pt-PT' : locale === 'en' ? 'en-GB' : 'es-ES';
+  const dateTag   = INTL_LOCALE_MAP[locale] ?? 'pt-PT';
   const dateLabel = today.toLocaleDateString(dateTag, { weekday: 'long', day: 'numeric', month: 'long' });
-
-  const t = {
-    es: { panel: 'Panel', today: 'Citas hoy', tomorrow: 'Citas mañana', newClients: 'Clientes nuevos (7d)', upcoming: 'Próximas', appointments: 'Citas', metrics: 'Métricas rápidas' },
-    pt: { panel: 'Painel', today: 'Consultas hoje', tomorrow: 'Consultas amanhã', newClients: 'Novos clientes (7d)', upcoming: 'Próximas', appointments: 'Consultas', metrics: 'Métricas rápidas' },
-    en: { panel: 'Panel', today: 'Appointments today', tomorrow: 'Appointments tomorrow', newClients: 'New clients (7d)', upcoming: 'Upcoming', appointments: 'Appointments', metrics: 'Quick stats' },
-  }[locale === 'pt' ? 'pt' : locale === 'en' ? 'en' : 'es'];
 
   return (
     <div className="space-y-10 max-w-6xl mx-auto">
@@ -83,30 +79,30 @@ export default async function DashboardPage() {
             className={`${SECTION_HEADING} text-3xl`}
             style={{ fontFamily: 'var(--font-serif)' }}
           >
-            {t.panel}
+            {t('panel')}
           </h1>
         </div>
         <MockDataButton />
       </div>
 
       {/* ── Stats bento ──────────────────────────────────── */}
-      <section aria-label={t.metrics}>
+      <section aria-label={t('metrics')}>
         <p className={`${SECTION_META} mb-4`} style={{ fontFamily: 'var(--font-sans)' }}>
-          {t.metrics}
+          {t('metrics')}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <StatsCard
-            label={t.today}
+            label={t('today')}
             value={todayCount}
             icon={<CalendarDays size={20} strokeWidth={1.5} />}
           />
           <StatsCard
-            label={t.tomorrow}
+            label={t('tomorrow')}
             value={tomorrowCount}
             icon={<CalendarClock size={20} strokeWidth={1.5} />}
           />
           <StatsCard
-            label={t.newClients}
+            label={t('newClients')}
             value={newClientsCount}
             icon={<Users size={20} strokeWidth={1.5} />}
           />
@@ -114,15 +110,15 @@ export default async function DashboardPage() {
       </section>
 
       {/* ── Upcoming appointments ─────────────────────────── */}
-      <section aria-label={t.appointments}>
+      <section aria-label={t('appointments')}>
         <p className={`${SECTION_META} mb-1`} style={{ fontFamily: 'var(--font-sans)' }}>
-          {t.upcoming}
+          {t('upcoming')}
         </p>
         <h2
           className={`${SECTION_HEADING} text-2xl mb-5`}
           style={{ fontFamily: 'var(--font-serif)' }}
         >
-          {t.appointments}
+          {t('appointments')}
         </h2>
 
         <Suspense fallback={<AppointmentsSkeleton />}>

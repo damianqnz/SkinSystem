@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { Monitor, Smartphone, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 interface Props { previewUrl: string; }
 
 export function PreviewPanel({ previewUrl }: Props) {
+  const t = useTranslations('dashboard.settings.preview');
   const [device,  setDevice]  = useState<'mobile' | 'desktop'>('mobile');
   const [refresh, setRefresh] = useState(0);
 
-  /** Auto-refresh when any settings section saves */
   useEffect(() => {
     function onSaved() { setRefresh((n) => n + 1); }
     window.addEventListener('skinsystem:settings-saved', onSaved);
@@ -20,15 +21,13 @@ export function PreviewPanel({ previewUrl }: Props) {
     setRefresh((n) => n + 1);
   }
 
-  // Cache-bust: append ?_r=N so the browser always makes a fresh network
-  // request instead of serving the same URL from HTTP cache.
   const bust = (base: string) => `${base}${base.includes('?') ? '&' : '?'}_r=${refresh}`;
 
   return (
-    <aside className="hidden xl:flex flex-col w-80 flex-shrink-0 border-l border-stone-100 bg-[#FAFAF9] mr-2 h-full overflow-y-auto">
+    <aside className="hidden xl:flex flex-col w-80 shrink-0 border-l border-stone-100 bg-[#FAFAF9] mr-2 h-full overflow-y-auto">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100">
-        <p className="text-[10px] font-medium text-stone-400 uppercase tracking-widest">Visualização</p>
+        <p className="text-[10px] font-medium text-stone-400 uppercase tracking-widest">{t('viewLabel')}</p>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setDevice('mobile')}
@@ -45,7 +44,7 @@ export function PreviewPanel({ previewUrl }: Props) {
           <button
             onClick={handleRefresh}
             className="p-1.5 rounded-lg text-stone-400 hover:text-stone-600 transition-colors"
-            title="Recarregar"
+            title={t('refreshTitle')}
           >
             <RefreshCw size={13} />
           </button>
@@ -60,7 +59,6 @@ export function PreviewPanel({ previewUrl }: Props) {
       {/* Preview area */}
       <div className="flex-1 overflow-hidden flex items-start justify-center p-4">
         {device === 'mobile' ? (
-          /* Phone frame */
           <div className="relative w-[224px]">
             <div className="bg-stone-900 rounded-[28px] p-2 shadow-xl">
               <div className="bg-white rounded-[20px] overflow-hidden" style={{ height: '460px' }}>
@@ -74,11 +72,9 @@ export function PreviewPanel({ previewUrl }: Props) {
                 />
               </div>
             </div>
-            {/* Notch */}
             <div className="absolute top-3.5 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-stone-800 rounded-full" />
           </div>
         ) : (
-          /* Desktop frame */
           <div className="w-full bg-stone-200 rounded-xl overflow-hidden shadow-md">
             <div className="h-6 flex items-center gap-1.5 px-3 bg-stone-300">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-400" />
@@ -102,14 +98,10 @@ export function PreviewPanel({ previewUrl }: Props) {
       {/* Help CTA */}
       <div className="px-4 py-4 border-t border-stone-100">
         <div className="bg-stone-50 rounded-xl p-3 text-center">
-          <p className="text-[11px] font-medium text-stone-700 leading-snug">
-            Precisa de ajuda com a sua página?
-          </p>
-          <p className="text-[10px] text-stone-400 mt-0.5 leading-snug">
-            Somos pessoas reais aqui para ajudar.
-          </p>
+          <p className="text-[11px] font-medium text-stone-700 leading-snug">{t('helpHeading')}</p>
+          <p className="text-[10px] text-stone-400 mt-0.5 leading-snug">{t('helpBody')}</p>
           <button className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 hover:text-amber-800 transition-colors">
-            Conecte-se connosco
+            {t('helpCta')}
           </button>
         </div>
       </div>

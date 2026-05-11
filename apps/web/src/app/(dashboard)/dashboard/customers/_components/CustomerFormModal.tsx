@@ -8,17 +8,11 @@ import Image        from 'next/image';
 import { X, Camera, ChevronDown, Check, Search } from 'lucide-react';
 import { Country, State } from 'country-state-city';
 import { toast }    from 'sonner';
+import { useTranslations, useLocale } from 'next-intl';
 import { AddFieldMenu, type FieldType } from './AddFieldMenu';
 import { createCustomerAction }  from '../actions/create-customer';
 import { updateCustomerAction }  from '../actions/update-customer';
 import { uploadAvatarAction }    from '../actions/upload-avatar';
-
-// ── i18n ────────────────────────────────────────────────────────
-const L = {
-  es: { addTitle: 'Nuevo cliente', editTitle: 'Editar cliente', save: 'Guardar', saving: 'Guardando…', cancel: 'Cancelar', profile: 'Perfil', mainDetails: 'Detalles principales', address: 'Dirección', fullName: 'Nombre completo', phone: 'Teléfono primario', email: 'Email principal', company: 'Empresa (opcional)', country: 'País', selectCountry: 'Seleccionar país', searchCountry: 'Buscar país…', street: 'Dirección (calle, piso)', city: 'Ciudad', state: 'Estado / Provincia', selectState: 'Seleccionar provincia', postal: 'Código postal', successAdd: 'Cliente creado', successEdit: 'Cliente actualizado' },
-  pt: { addTitle: 'Novo cliente',   editTitle: 'Editar cliente', save: 'Guardar', saving: 'Guardando…', cancel: 'Cancelar', profile: 'Perfil', mainDetails: 'Detalhes principais', address: 'Endereço', fullName: 'Nome completo', phone: 'Telefone primário', email: 'Email principal', company: 'Empresa (opcional)', country: 'País', selectCountry: 'Selecionar país', searchCountry: 'Procurar país…', street: 'Endereço (rua, apt)', city: 'Cidade', state: 'Estado / Província', selectState: 'Selecionar estado', postal: 'Código postal', successAdd: 'Cliente criado', successEdit: 'Cliente atualizado' },
-  en: { addTitle: 'New client',     editTitle: 'Edit client',   save: 'Save',    saving: 'Saving…',     cancel: 'Cancel',   profile: 'Profile', mainDetails: 'Main details',      address: 'Address',   fullName: 'Full name',     phone: 'Primary phone',   email: 'Primary email', company: 'Company (optional)', country: 'Country', selectCountry: 'Select country', searchCountry: 'Search country…', street: 'Address (street, apt)', city: 'City', state: 'State / Province', selectState: 'Select state', postal: 'Postal code', successAdd: 'Client created', successEdit: 'Client updated' },
-};
 
 // ── Avatar palette ───────────────────────────────────────────────
 const PALETTES = [
@@ -32,7 +26,7 @@ function avatarPalette(name: string) {
 }
 function initials(name: string) { return name.trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase() ?? '').join('') || '?'; }
 
-// ── Phone dial codes (for country-code selector only) ────────────
+// ── Phone dial codes ─────────────────────────────────────────────
 const DIAL_CODES = [
   { iso: 'PT', code: '+351', label: '🇵🇹 +351' },
   { iso: 'ES', code: '+34',  label: '🇪🇸 +34'  },
@@ -54,19 +48,15 @@ function defaultDialCode(locale: string) {
   return '+34';
 }
 
-// ── Split stored phone into dial code + number ──────────────────
 function splitPhone(full: string | null): { dialCode: string; number: string } {
   if (!full) return { dialCode: '', number: '' };
   for (const d of DIAL_CODES.sort((a, b) => b.code.length - a.code.length)) {
-    if (full.startsWith(d.code)) {
-      return { dialCode: d.code, number: full.slice(d.code.length).trim() };
-    }
+    if (full.startsWith(d.code)) return { dialCode: d.code, number: full.slice(d.code.length).trim() };
   }
-  // Fallback: no known prefix found, return full string as number
   return { dialCode: '', number: full };
 }
 
-// ── Postal code validation by country ───────────────────────────
+// ── Postal validation ────────────────────────────────────────────
 const POSTAL_PATTERNS: Record<string, { pattern: RegExp; placeholder: string }> = {
   AR: { pattern: /^\d{4}$|^[A-Z]\d{4}[A-Z]{3}$/i, placeholder: 'C1234ABC' },
   US: { pattern: /^\d{5}(-\d{4})?$/, placeholder: '90210' },
@@ -83,15 +73,9 @@ const POSTAL_PATTERNS: Record<string, { pattern: RegExp; placeholder: string }> 
   CL: { pattern: /^\d{7}$/, placeholder: '8320000' },
 };
 
-// ── Dynamic extra field ──────────────────────────────────────────
+// ── Extra field ──────────────────────────────────────────────────
 interface ExtraField { id: string; type: FieldType; customLabel: string; value: string }
 function makeFieldId() { return `f_${Math.random().toString(36).slice(2, 8)}`; }
-
-function fieldLabel(type: FieldType, customLabel: string) {
-  if (type === 'custom') return customLabel || 'Custom';
-  const map: Record<FieldType, string> = { instagram: 'Instagram', facebook: 'Facebook', x: 'X', youtube: 'YouTube', linkedin: 'LinkedIn', tiktok: 'TikTok', website: 'Sitio web', custom: 'Custom', phone: 'Teléfono', email: 'Email' };
-  return map[type];
-}
 
 function buildSocialLinks(fields: ExtraField[]): Record<string, unknown> {
   const counts: Record<string, number> = {};
@@ -124,10 +108,10 @@ const INPUT_ERROR = 'w-full px-3 py-2 font-sans text-sm bg-white border border-r
 const LABEL = 'block font-sans text-[10px] uppercase tracking-wider text-stone-400 mb-1';
 const SECTION_TITLE = 'font-sans text-[10px] uppercase tracking-widest text-stone-400 mb-3 mt-1';
 const SELECT_TRIGGER = 'w-full flex items-center justify-between px-3 py-2 font-sans text-sm bg-white border border-stone-200 rounded-sm text-stone-800 focus:outline-none focus:border-stone-400 transition-colors data-[placeholder]:text-stone-400 cursor-pointer';
-const SELECT_CONTENT = 'z-[200] bg-white border border-stone-200 rounded-sm shadow-lg max-h-56 overflow-y-auto';
+const SELECT_CONTENT = 'z-200 bg-white border border-stone-200 rounded-sm shadow-lg max-h-56 overflow-y-auto';
 const SELECT_ITEM = 'flex items-center gap-2 px-3 py-1.5 font-sans text-sm text-stone-800 cursor-pointer hover:bg-stone-50 focus:bg-stone-50 focus:outline-none data-[highlighted]:bg-stone-50';
 
-// ── Customer shape for edit mode ─────────────────────────────────
+// ── Props ────────────────────────────────────────────────────────
 export interface CustomerFormData {
   id: string; fullName: string; email: string | null; phone: string | null;
   notes?: string | null; company?: string | null; country?: string | null;
@@ -141,24 +125,22 @@ type Props =
   | { mode: 'edit'; locale: string; open: boolean; onClose: () => void; onSuccess: (id: string) => void; customer: CustomerFormData };
 
 export function CustomerFormModal(props: Props) {
-  const { mode, locale, open, onClose, onSuccess } = props;
+  const { mode, open, onClose, onSuccess } = props;
   const customer = mode === 'edit' ? props.customer : null;
+  const t       = useTranslations('dashboard.customers.form');
+  const tProfile = useTranslations('dashboard.customers.profile');
+  const locale  = useLocale();
+  const title  = mode === 'add' ? t('addTitle') : t('editTitle');
 
-  const t = L[locale as keyof typeof L] ?? L.es;
-  const title = mode === 'add' ? t.addTitle : t.editTitle;
-
-  // ── Avatar state ────────────────────────────────────────────────
   const fileInputRef    = useRef<HTMLInputElement>(null);
   const [avatarUrl,     setAvatarUrl]     = useState<string | null>(customer?.avatarUrl ?? null);
   const [avatarFile,    setAvatarFile]    = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-  // ── Phone split ──────────────────────────────────────────────────
   const phoneParts = splitPhone(customer?.phone ?? null);
   const [dialCode,  setDialCode]  = useState(phoneParts.dialCode || defaultDialCode(locale));
   const [phoneNum,  setPhoneNum]  = useState(phoneParts.number);
 
-  // ── Core form state ──────────────────────────────────────────────
   const [fullName,     setFullName]    = useState(customer?.fullName   ?? '');
   const [email,        setEmail]       = useState(customer?.email      ?? '');
   const [company,      setCompany]     = useState(customer?.company    ?? '');
@@ -171,11 +153,9 @@ export function CustomerFormModal(props: Props) {
   const [menuOpen,     setMenuOpen]    = useState(false);
   const [pending,      startSave]      = useTransition();
 
-  // ── Country search state ─────────────────────────────────────────
   const [countrySearch, setCountrySearch] = useState('');
   const [countryOpen,   setCountryOpen]   = useState(false);
 
-  // ── Derived data ─────────────────────────────────────────────────
   const pal              = avatarPalette(fullName || 'A');
   const displayAvatarUrl = avatarPreview ?? avatarUrl;
   const allCountries     = Country.getAllCountries();
@@ -186,13 +166,13 @@ export function CustomerFormModal(props: Props) {
     if (!q) return allCountries;
     return allCountries.filter(c => c.name.toLowerCase().includes(q));
   }, [allCountries, countrySearch]);
-  const postalMeta       = countryIso ? POSTAL_PATTERNS[countryIso] : undefined;
-  const postalInvalid    = !!postalMeta && !!postal && !postalMeta.pattern.test(postal);
+  const postalMeta    = countryIso ? POSTAL_PATTERNS[countryIso] : undefined;
+  const postalInvalid = !!postalMeta && !!postal && !postalMeta.pattern.test(postal);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { toast.error('Max 2 MB'); return; }
+    if (file.size > 2 * 1024 * 1024) { toast.error(t('avatarMaxSize')); return; }
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
     e.target.value = '';
@@ -200,17 +180,28 @@ export function CustomerFormModal(props: Props) {
 
   function handleCountryChange(iso: string) {
     setCountryIso(iso);
-    setStateVal(''); // reset province when country changes
-    setPostal('');   // reset postal too (different format)
+    setStateVal('');
+    setPostal('');
   }
 
   function addField(type: FieldType) { setExtraFields(prev => [...prev, { id: makeFieldId(), type, customLabel: '', value: '' }]); }
   function removeField(id: string)   { setExtraFields(prev => prev.filter(f => f.id !== id)); }
   function updateField(id: string, patch: Partial<ExtraField>) { setExtraFields(prev => prev.map(f => f.id === id ? { ...f, ...patch } : f)); }
 
+  function fieldLabel(type: FieldType, customLabel: string): string {
+    if (type === 'custom') return customLabel || 'Custom';
+    const map: Record<FieldType, string> = {
+      instagram: 'Instagram', facebook: 'Facebook', x: 'X', youtube: 'YouTube',
+      linkedin: 'LinkedIn', tiktok: 'TikTok',
+      website: t('fieldWebsite'), custom: 'Custom',
+      phone: t('fieldPhone'), email: 'Email',
+    };
+    return map[type];
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (postalInvalid) { toast.error(`Código postal inválido para ${selectedCountry?.name ?? countryIso}`); return; }
+    if (postalInvalid) { toast.error(t('postalInvalidToast', { country: selectedCountry?.name ?? countryIso })); return; }
 
     const phone = phoneNum.trim() ? `${dialCode}${phoneNum.trim()}` : null;
     const countryName = selectedCountry?.name ?? customer?.country ?? '';
@@ -231,17 +222,15 @@ export function CustomerFormModal(props: Props) {
         if (postal)      fd.set('postalCode', postal);
         fd.set('socialLinks', JSON.stringify(socialLinks));
         if (avatarFile) fd.set('avatar', avatarFile);
-
         const res = await createCustomerAction(fd);
         if (res.error) { toast.error(res.error.message); return; }
-        toast.success(t.successAdd);
+        toast.success(t('successAdd'));
         onClose();
         onSuccess(res.data!.id);
       } else {
         const res = await updateCustomerAction({
           id: customer!.id, fullName,
-          email:      email || null,
-          phone,
+          email:      email || null, phone,
           company:    company || null,
           country:    countryName || null,
           countryIso: countryIso || null,
@@ -252,13 +241,11 @@ export function CustomerFormModal(props: Props) {
           socialLinks,
         });
         if (res.error) { toast.error(res.error.message); return; }
-
         if (avatarFile) {
           const fd = new FormData(); fd.append('avatar', avatarFile);
           await uploadAvatarAction(customer!.id, fd);
         }
-
-        toast.success(t.successEdit);
+        toast.success(t('successEdit'));
         onClose();
         onSuccess(customer!.id);
       }
@@ -271,7 +258,6 @@ export function CustomerFormModal(props: Props) {
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[2px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 duration-200" />
         <Dialog.Content className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-sm shadow-xl focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
 
-          {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100 shrink-0">
             <Dialog.Title className="font-serif text-xl font-light text-stone-900">{title}</Dialog.Title>
             <Dialog.Close asChild>
@@ -284,11 +270,11 @@ export function CustomerFormModal(props: Props) {
           <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex flex-1 min-h-0">
 
-            {/* ── Left column ──────────────────────────────────── */}
+            {/* Left column */}
             <div className="w-44 shrink-0 border-r border-stone-100 bg-stone-50 flex flex-col items-center pt-6 pb-4 px-3 gap-3">
               <button type="button" onClick={() => fileInputRef.current?.click()}
                 className="relative w-20 h-20 rounded-sm flex items-center justify-center overflow-hidden group shrink-0"
-                style={{ backgroundColor: pal.bg }} aria-label="Cambiar foto">
+                style={{ backgroundColor: pal.bg }} aria-label={tProfile('photoAriaLabel')}>
                 {displayAvatarUrl
                   ? <Image src={displayAvatarUrl} alt={fullName || '?'} fill className="object-cover" sizes="80px" />
                   : <span className="font-serif text-3xl font-light select-none" style={{ color: pal.fg }}>{initials(fullName || 'A')}</span>}
@@ -304,26 +290,22 @@ export function CustomerFormModal(props: Props) {
 
               <div className="w-full mt-auto">
                 <div className="w-full bg-white rounded-sm px-3 py-1.5 text-center font-sans text-[11px] text-stone-700 border border-stone-200">
-                  {t.profile}
+                  {t('profile')}
                 </div>
               </div>
             </div>
 
-            {/* ── Right column ─────────────────────────────────── */}
+            {/* Right column */}
             <div className="flex-1 overflow-y-auto p-5 space-y-5">
-
-              {/* Main details */}
               <section>
-                <p className={SECTION_TITLE}>{t.mainDetails}</p>
+                <p className={SECTION_TITLE}>{t('mainDetails')}</p>
                 <div className="space-y-3">
                   <div>
-                    <label className={LABEL}>{t.fullName} *</label>
+                    <label className={LABEL}>{t('fullName')} *</label>
                     <input value={fullName} onChange={e => setFullName(e.target.value)} required minLength={2} maxLength={120} className={INPUT} />
                   </div>
-
-                  {/* Phone with dial code selector */}
                   <div>
-                    <label className={LABEL}>{t.phone}</label>
+                    <label className={LABEL}>{t('phone')}</label>
                     <div className="flex gap-1.5">
                       <div className="relative">
                         <select value={dialCode} onChange={e => setDialCode(e.target.value)}
@@ -336,42 +318,36 @@ export function CustomerFormModal(props: Props) {
                         placeholder="612 345 678" className={`${INPUT} flex-1`} />
                     </div>
                   </div>
-
                   <div>
-                    <label className={LABEL}>{t.email}</label>
+                    <label className={LABEL}>{t('email')}</label>
                     <input type="email" value={email} onChange={e => setEmail(e.target.value)} maxLength={200} className={INPUT} />
                   </div>
-
                   <div>
-                    <label className={LABEL}>{t.company}</label>
+                    <label className={LABEL}>{t('company')}</label>
                     <input value={company} onChange={e => setCompany(e.target.value)} maxLength={200} className={INPUT} />
                   </div>
                 </div>
               </section>
 
-              {/* Address */}
               <section>
-                <p className={SECTION_TITLE}>{t.address}</p>
+                <p className={SECTION_TITLE}>{t('address')}</p>
                 <div className="space-y-3">
-
-                  {/* Country — Popover with search input */}
                   <div>
-                    <label className={LABEL}>{t.country}</label>
+                    <label className={LABEL}>{t('country')}</label>
                     <Popover.Root open={countryOpen} onOpenChange={(v) => { setCountryOpen(v); if (!v) setCountrySearch(''); }}>
                       <Popover.Trigger asChild>
                         <button type="button" className={`${SELECT_TRIGGER} justify-between`}>
                           <span className={selectedCountry ? 'text-stone-800' : 'text-stone-400'}>
-                            {selectedCountry ? `${selectedCountry.flag} ${selectedCountry.name}` : t.selectCountry}
+                            {selectedCountry ? `${selectedCountry.flag} ${selectedCountry.name}` : t('selectCountry')}
                           </span>
                           <ChevronDown size={14} strokeWidth={1.5} className={`text-stone-400 transition-transform duration-150 ${countryOpen ? 'rotate-180' : ''}`} />
                         </button>
                       </Popover.Trigger>
                       <Popover.Portal>
                         <Popover.Content
-                          className="z-[200] w-[var(--radix-popover-trigger-width)] bg-white border border-stone-200 rounded-sm shadow-lg"
+                          className="z-200 w-(--radix-popover-trigger-width) bg-white border border-stone-200 rounded-sm shadow-lg"
                           sideOffset={4} align="start"
                           onOpenAutoFocus={(e) => e.preventDefault()}>
-                          {/* Search */}
                           <div className="p-2 border-b border-stone-100">
                             <div className="relative">
                               <Search size={12} strokeWidth={1.5} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
@@ -379,15 +355,14 @@ export function CustomerFormModal(props: Props) {
                                 autoFocus
                                 value={countrySearch}
                                 onChange={e => setCountrySearch(e.target.value)}
-                                placeholder={t.searchCountry}
+                                placeholder={t('searchCountry')}
                                 className="w-full pl-7 pr-2 py-1.5 font-sans text-sm bg-stone-50 border border-stone-200 rounded-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-stone-400 transition-colors"
                               />
                             </div>
                           </div>
-                          {/* List */}
                           <div className="max-h-52 overflow-y-auto">
                             {filteredCountries.length === 0 ? (
-                              <p className="px-3 py-4 text-center font-sans text-sm text-stone-400">Sin resultados</p>
+                              <p className="px-3 py-4 text-center font-sans text-sm text-stone-400">{t('noResults')}</p>
                             ) : filteredCountries.map(c => (
                               <button
                                 type="button"
@@ -406,19 +381,19 @@ export function CustomerFormModal(props: Props) {
                   </div>
 
                   <div>
-                    <label className={LABEL}>{t.street}</label>
+                    <label className={LABEL}>{t('street')}</label>
                     <input value={address} onChange={e => setAddress(e.target.value)} maxLength={300} className={INPUT} />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className={LABEL}>{t.city}</label>
+                      <label className={LABEL}>{t('city')}</label>
                       <input value={city} onChange={e => setCity(e.target.value)} maxLength={100} className={INPUT} />
                     </div>
                     <div>
                       <label className={LABEL}>
-                        {t.postal}
-                        {postalInvalid && <span className="ml-1 text-red-400 normal-case">· formato inválido</span>}
+                        {t('postal')}
+                        {postalInvalid && <span className="ml-1 text-red-400 normal-case">{t('postalInvalidSuffix')}</span>}
                       </label>
                       <input
                         value={postal}
@@ -430,13 +405,12 @@ export function CustomerFormModal(props: Props) {
                     </div>
                   </div>
 
-                  {/* State/Province — dropdown if country has states, text input otherwise */}
                   <div>
-                    <label className={LABEL}>{t.state}</label>
+                    <label className={LABEL}>{t('state')}</label>
                     {states.length > 0 ? (
                       <Select.Root value={stateVal} onValueChange={setStateVal}>
                         <Select.Trigger className={SELECT_TRIGGER}>
-                          <Select.Value placeholder={t.selectState} />
+                          <Select.Value placeholder={t('selectState')} />
                           <Select.Icon><ChevronDown size={14} strokeWidth={1.5} className="text-stone-400" /></Select.Icon>
                         </Select.Trigger>
                         <Select.Portal>
@@ -459,14 +433,13 @@ export function CustomerFormModal(props: Props) {
                 </div>
               </section>
 
-              {/* Dynamic extra fields */}
               {extraFields.length > 0 && (
                 <section className="space-y-2">
                   {extraFields.map((field) => (
                     <div key={field.id} className="space-y-1">
                       {field.type === 'custom' && (
                         <input value={field.customLabel} onChange={e => updateField(field.id, { customLabel: e.target.value })}
-                          placeholder="Nombre del campo" maxLength={60} className={`${INPUT} text-[11px] py-1.5`} />
+                          placeholder={t('fieldCustomPlaceholder')} maxLength={60} className={`${INPUT} text-[11px] py-1.5`} />
                       )}
                       <div className="flex gap-1.5">
                         <div className="flex-none flex items-center px-2.5 py-2 bg-stone-50 border border-stone-200 rounded-sm">
@@ -490,15 +463,15 @@ export function CustomerFormModal(props: Props) {
 
           {/* Footer */}
           <div className="flex items-center justify-between px-5 py-4 border-t border-stone-100 shrink-0">
-            <AddFieldMenu open={menuOpen} onOpenChange={setMenuOpen} onSelect={addField} locale={locale} />
+            <AddFieldMenu open={menuOpen} onOpenChange={setMenuOpen} onSelect={addField} />
             <div className="flex gap-2">
               <button type="button" onClick={onClose}
                 className="px-4 py-2 rounded-sm border border-stone-200 font-sans text-sm text-stone-600 hover:bg-stone-50 transition-colors">
-                {t.cancel}
+                {t('cancel')}
               </button>
               <button type="submit" disabled={pending || !fullName.trim()}
                 className="px-4 py-2 rounded-sm bg-stone-900 font-sans text-sm text-white hover:bg-stone-800 disabled:opacity-40 transition-colors">
-                {pending ? t.saving : t.save}
+                {pending ? t('saving') : t('save')}
               </button>
             </div>
           </div>

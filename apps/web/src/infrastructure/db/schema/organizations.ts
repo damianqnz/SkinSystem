@@ -16,8 +16,8 @@ export const organizations = pgTable('organizations', {
   name:               text('name').notNull(),
   legalName:          text('legal_name'),
   taxId:              text('tax_id'),
-  timezone:           text('timezone').notNull().default('Europe/Madrid'),
-  locale:             text('locale').notNull().default('es'),
+  timezone:           text('timezone').notNull().default('Europe/Lisbon'),
+  locale:             text('locale').notNull().default('pt'),
   /** CSS variable tokens: { brand_color, button_style, theme_mode } */
   themeConfig:        jsonb('theme_config').notNull().default({}),
   stripeAccountId:      text('stripe_account_id'),

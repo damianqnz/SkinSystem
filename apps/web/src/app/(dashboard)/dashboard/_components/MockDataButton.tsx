@@ -4,18 +4,19 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Database, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { seedTenantDataAction } from '../actions';
 
 /**
  * Dev-only seeder trigger.
- * Renders nothing in production builds (NEXT_PUBLIC_NODE_ENV gate at runtime).
+ * Renders nothing in production builds.
  * On click → wipes previous seed data and re-injects a fresh dataset.
  */
 export function MockDataButton() {
+  const t      = useTranslations('dashboard.home');
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  // Hide outside development
   if (process.env.NODE_ENV !== 'development') return null;
 
   const handleClick = () => {
@@ -24,8 +25,8 @@ export function MockDataButton() {
       if (result.status === 'success') {
         const { categories, services, customers, appointments, payments } = result.counts;
         toast.success(
-          `Datos sembrados · ${categories} categorías · ${services} servicios · ${customers} clientes · ${appointments} citas · ${payments} pagos`,
-          { description: result.removed > 0 ? `Se limpiaron ${result.removed} registros previos` : undefined },
+          `${categories} cat · ${services} svc · ${customers} cli · ${appointments} appt · ${payments} pay`,
+          { description: result.removed > 0 ? `${result.removed} records cleared` : undefined },
         );
         router.refresh();
       } else if (result.status === 'error') {
@@ -46,15 +47,15 @@ export function MockDataButton() {
                  hover:bg-[rgba(212,175,55,0.10)] transition-colors duration-150
                  disabled:opacity-60 disabled:cursor-wait"
       style={{ fontFamily: 'var(--font-sans)' }}
-      aria-label="Cargar datos de prueba"
-      title="DEV ONLY · Reinyecta datos de prueba para este tenant"
+      aria-label="Mock data"
+      title="DEV ONLY"
     >
       {pending ? (
         <Loader2 size={12} strokeWidth={1.5} className="animate-spin" />
       ) : (
         <Database size={12} strokeWidth={1.5} className="text-[#D4AF37]" />
       )}
-      <span>{pending ? 'Sembrando…' : 'Mock data'}</span>
+      <span>{pending ? '…' : 'Mock data'}</span>
     </button>
   );
 }

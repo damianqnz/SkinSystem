@@ -1,7 +1,8 @@
 import { Suspense }                    from 'react';
 import { headers }                     from 'next/headers';
 import { notFound }                    from 'next/navigation';
-import { getSettingsT }                from '../_i18n';
+import { getTranslations }             from 'next-intl/server';
+import { DEFAULT_LOCALE }              from '@/i18n/config';
 import { eq, and, isNull }             from 'drizzle-orm';
 import { getOrganizationBySlug }       from '@/domains/organizations/service';
 import { db }                          from '@/infrastructure/db';
@@ -26,13 +27,13 @@ export default async function BrandSettingsPage() {
 async function BrandContent() {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const t      = getSettingsT(hdrs.get('x-locale') ?? 'pt');
+  const locale = hdrs.get('x-locale') ?? DEFAULT_LOCALE;
+  const t      = await getTranslations({ locale, namespace: 'dashboard.settings.brand.page' });
 
   const orgResult = await getOrganizationBySlug(slug);
   if (orgResult.error || !orgResult.data) notFound();
   const orgId = orgResult.data.id;
 
-  // Fetch org full row
   const [orgRows, phonesRows, rulesRows] = await Promise.all([
     db.select({
       id: organizations.id, name: organizations.name, slug: organizations.slug,
@@ -65,7 +66,6 @@ async function BrandContent() {
   const theme = (org.themeConfig ?? {}) as Record<string, string>;
   const links = (org.socialLinks  ?? {}) as Record<string, unknown>;
 
-  // Split primary vs additional phones
   const primaryPhone     = phonesRows.find(r => r.isPrimary);
   const additionalPhones = phonesRows.filter(r => !r.isPrimary).map(r => r.phone);
   const additionalEmails = Array.isArray(links.additionalEmails)
@@ -74,10 +74,9 @@ async function BrandContent() {
 
   return (
     <div className="space-y-8">
-      {/* Page heading */}
       <div>
-        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t.brandPage.title}</h1>
-        <p className="text-sm text-stone-400 mt-1">{t.brandPage.description}</p>
+        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t('title')}</h1>
+        <p className="text-sm text-stone-400 mt-1">{t('description')}</p>
       </div>
 
       <BrandDetailsSection

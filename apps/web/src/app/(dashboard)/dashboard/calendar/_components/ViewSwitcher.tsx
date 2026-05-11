@@ -7,10 +7,7 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { gsap } from 'gsap';
 import { useGSAP } from '@gsap/react';
-
-import esMsgs from '@/messages/es.json';
-import ptMsgs from '@/messages/pt.json';
-import enMsgs from '@/messages/en.json';
+import { useTranslations } from 'next-intl';
 
 gsap.registerPlugin(useGSAP);
 
@@ -23,55 +20,33 @@ interface ViewSwitcherProps {
 
 const VIEWS: CalendarView[] = ['day', 'week', 'month', 'team'];
 
-const MESSAGES: Record<string, typeof esMsgs> = {
-  es: esMsgs,
-  pt: ptMsgs,
-  en: enMsgs,
-};
-
-/**
- * Dropdown to switch the calendar view.
- * Routes to /calendar for day/week, and /dashboard/agenda for month.
- */
-export function ViewSwitcher({ current, locale = 'es' }: ViewSwitcherProps) {
-  const router  = useRouter();
-  const params  = useSearchParams();
+export function ViewSwitcher({ current }: ViewSwitcherProps) {
+  const t        = useTranslations('calendar.view');
+  const tHeader  = useTranslations('dashboard.calendar.header');
+  const router   = useRouter();
+  const params   = useSearchParams();
   const pathname = usePathname();
   const [pending, startTransition] = useTransition();
-  
-  const msgs = MESSAGES[locale] ?? MESSAGES.es!;
-  const t = (key: CalendarView) => msgs.calendar.view[key] ?? key;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const activeBgRef = useRef<HTMLDivElement>(null);
+  const activeBgRef  = useRef<HTMLDivElement>(null);
 
-  // Animate the active indicator background using GSAP
   useGSAP(() => {
     if (!containerRef.current || !activeBgRef.current) return;
-    
-    // Find the active button
     const activeBtn = containerRef.current.querySelector(`[data-view="${current}"]`) as HTMLElement;
     if (activeBtn) {
       gsap.to(activeBgRef.current, {
-        y: activeBtn.offsetTop,
-        height: activeBtn.offsetHeight,
-        duration: 0.3,
-        ease: "power2.out",
-        overwrite: "auto"
+        y: activeBtn.offsetTop, height: activeBtn.offsetHeight,
+        duration: 0.3, ease: 'power2.out', overwrite: 'auto',
       });
     }
   }, { scope: containerRef, dependencies: [current] });
 
   const setView = (next: CalendarView) => {
     if (next === current) return;
-    
     const sp = new URLSearchParams(Array.from(params.entries()));
     sp.set('view', next);
-    
-    // All views live within /dashboard/calendar — only ?view= changes
-    const targetPath = '/dashboard/calendar';
-    
-    startTransition(() => router.push(`${targetPath}?${sp.toString()}`, { scroll: false }));
+    startTransition(() => router.push(`/dashboard/calendar?${sp.toString()}`, { scroll: false }));
   };
 
   return (
@@ -86,9 +61,9 @@ export function ViewSwitcher({ current, locale = 'es' }: ViewSwitcherProps) {
           pending && 'opacity-60',
         )}
         style={{ fontFamily: 'var(--font-sans)' }}
-        aria-label="Alterar vista"
+        aria-label={tHeader('viewSwitcherAriaLabel')}
       >
-        <span className="text-spa-muted">Visualização do calendário</span>
+        <span className="text-spa-muted">{tHeader('viewSwitcherLabel')}</span>
         <span className="font-medium">· {t(current)}</span>
         <ChevronDown size={12} strokeWidth={1.5} className="text-spa-muted" />
       </Popover.Trigger>
@@ -105,34 +80,29 @@ export function ViewSwitcher({ current, locale = 'es' }: ViewSwitcherProps) {
                      data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95"
         >
           <div ref={containerRef} className="relative w-full">
-            {/* GSAP Animated active background */}
-            <div 
+            <div
               ref={activeBgRef}
               className="absolute left-0 right-0 rounded-sm bg-stone-50 pointer-events-none"
               style={{ top: 0, height: 0 }}
             />
-            
-            {VIEWS.map((v) => {
-              const active = v === current;
-              return (
-                <button
-                  key={v}
-                  data-view={v}
-                  type="button"
-                  onClick={() => setView(v)}
-                  className={cn(
-                    'w-full flex items-center justify-between px-3 py-2 rounded-sm relative z-10',
-                    'text-[12px] text-left transition-colors',
-                    active
-                      ? 'text-(--color-spa-stone) font-medium'
-                      : 'text-spa-muted hover:text-(--color-spa-stone)',
-                  )}
-                  style={{ fontFamily: 'var(--font-sans)' }}
-                >
-                  <span>{t(v)}</span>
-                </button>
-              );
-            })}
+            {VIEWS.map((v) => (
+              <button
+                key={v}
+                data-view={v}
+                type="button"
+                onClick={() => setView(v)}
+                className={cn(
+                  'w-full flex items-center justify-between px-3 py-2 rounded-sm relative z-10',
+                  'text-[12px] text-left transition-colors',
+                  v === current
+                    ? 'text-(--color-spa-stone) font-medium'
+                    : 'text-spa-muted hover:text-(--color-spa-stone)',
+                )}
+                style={{ fontFamily: 'var(--font-sans)' }}
+              >
+                <span>{t(v)}</span>
+              </button>
+            ))}
           </div>
         </Popover.Content>
       </Popover.Portal>

@@ -3,6 +3,8 @@ import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Cormorant_Garamond, Outfit } from 'next/font/google';
 import { Toaster } from 'sonner';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages } from 'next-intl/server';
 import { TenantProvider } from '@/shared/providers/TenantProvider';
 import { SidebarProvider } from '@/shared/components/dashboard/SidebarContext';
 import { Sidebar } from '@/shared/components/dashboard/Sidebar';
@@ -35,7 +37,8 @@ const outfit = Outfit({
 async function DashboardShell({ children }: { children: ReactNode }) {
   const headersList = await headers();
   const tenantSlug  = headersList.get('x-tenant-slug') ?? '';
-  const locale      = headersList.get('x-locale') ?? 'es';
+  const locale      = headersList.get('x-locale') ?? 'pt';
+  const messages    = await getMessages();
 
   // ── RBAC gate ─────────────────────────────────────────────────
   // Any user reaching this layout was already authenticated by the proxy.
@@ -68,6 +71,7 @@ async function DashboardShell({ children }: { children: ReactNode }) {
   const tenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);
 
   return (
+    <NextIntlClientProvider locale={locale} messages={messages}>
     <TenantProvider
       tenantSlug={tenantSlug}
       locale={locale}
@@ -99,6 +103,7 @@ async function DashboardShell({ children }: { children: ReactNode }) {
       {/* Mobile bottom navigation (Thumb Zone) */}
       <BottomBar />
     </TenantProvider>
+    </NextIntlClientProvider>
   );
 }
 

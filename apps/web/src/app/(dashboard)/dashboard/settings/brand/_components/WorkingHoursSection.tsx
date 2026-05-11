@@ -4,8 +4,8 @@ import { useState, useTransition }    from 'react';
 import * as Switch                    from '@radix-ui/react-switch';
 import { Loader2 }                    from 'lucide-react';
 import { toast }                      from 'sonner';
+import { useTranslations }            from 'next-intl';
 import { updateWorkingHoursAction }   from '../actions';
-import { useSettingsT }               from '../../_i18n';
 
 export interface DayRule {
   dayOfWeek: number;
@@ -16,7 +16,11 @@ export interface DayRule {
 
 interface Props { initial: DayRule[]; }
 
-// Day-of-week indices in Mon→Sun order (matches DAYS array in _i18n)
+// Day-of-week → named key map (matching workingHours.days.{mon,tue,...})
+const DOW_KEY: Record<number, string> = {
+  1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat', 0: 'sun',
+};
+
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 
 function defaultDay(dow: number): DayRule {
@@ -41,7 +45,8 @@ function notifyPreview() {
 }
 
 export function WorkingHoursSection({ initial }: Props) {
-  const t = useSettingsT().workingHours;
+  const t = useTranslations('dashboard.settings.brand.workingHours');
+  const days = t.raw('days') as Record<string, string>;
   const [rules,   setRules]   = useState<DayRule[]>(buildRules(initial));
   const [pending, startTransition] = useTransition();
 
@@ -53,19 +58,19 @@ export function WorkingHoursSection({ initial }: Props) {
     startTransition(async () => {
       const res = await updateWorkingHoursAction(rules);
       if (res.error) { toast.error(res.error.message); return; }
-      toast.success(t.successSave);
+      toast.success(t('successSave'));
       notifyPreview();
     });
   }
 
   return (
     <section id="horario" className="space-y-3">
-      <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">{t.sectionTitle}</h2>
-      <p className="text-xs text-stone-400">{t.sectionDesc}</p>
+      <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">{t('sectionTitle')}</h2>
+      <p className="text-xs text-stone-400">{t('sectionDesc')}</p>
 
       <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
         {rules.map((rule, idx) => {
-          const dayLabel = t.days[DAY_ORDER.indexOf(rule.dayOfWeek as typeof DAY_ORDER[number])] ?? '';
+          const dayLabel = days[DOW_KEY[rule.dayOfWeek] ?? ''] ?? '';
           return (
             <div
               key={rule.dayOfWeek}
@@ -96,7 +101,7 @@ export function WorkingHoursSection({ initial }: Props) {
                   />
                 </div>
               ) : (
-                <span className="ml-auto text-xs text-stone-400 font-medium uppercase tracking-wide">{t.closed}</span>
+                <span className="ml-auto text-xs text-stone-400 font-medium uppercase tracking-wide">{t('closed')}</span>
               )}
             </div>
           );
@@ -106,7 +111,7 @@ export function WorkingHoursSection({ initial }: Props) {
           <button onClick={handleSave} disabled={pending}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors">
             {pending && <Loader2 size={13} className="animate-spin" />}
-            {t.save}
+            {t('save')}
           </button>
         </div>
       </div>

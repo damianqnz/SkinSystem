@@ -4,6 +4,7 @@ import { useState, useEffect }                              from 'react';
 import * as Dialog                                          from '@radix-ui/react-dialog';
 import { X, Loader2 }                                       from 'lucide-react';
 import { toast }                                            from 'sonner';
+import { useTranslations }                                  from 'next-intl';
 import { createCouponAction, updateCouponAction }           from '../actions-coupons';
 import type { CouponRow }                                   from '../actions-coupons';
 
@@ -23,6 +24,7 @@ interface Props {
 // ── Component ─────────────────────────────────────────────────
 
 export function CouponModal({ open, editing, onClose, onSaved }: Props) {
+  const t = useTranslations('dashboard.billing.couponModal');
   const [code,         setCode]         = useState('');
   const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
   const [value,        setValue]        = useState('');
@@ -53,9 +55,9 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const num = parseFloat(value);
-    if (!code.trim())                      return toast.error('O código é obrigatório');
-    if (isNaN(num) || num <= 0)            return toast.error('Insira um valor de desconto válido');
-    if (discountType === 'percent' && num > 100) return toast.error('A percentagem não pode ser superior a 100');
+    if (!code.trim())                      return toast.error(t('errorCodeRequired'));
+    if (isNaN(num) || num <= 0)            return toast.error(t('errorInvalidDiscount'));
+    if (discountType === 'percent' && num > 100) return toast.error(t('errorPercentOver100'));
 
     const payload = {
       code:          code.trim().toUpperCase(),
@@ -73,7 +75,7 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
     setBusy(false);
 
     if (res.error) { toast.error(res.error.message); return; }
-    toast.success(editing ? 'Cupão atualizado' : 'Cupão criado');
+    toast.success(editing ? t('toastUpdated') : t('toastCreated'));
     onSaved(res.data!);
   }
 
@@ -88,7 +90,7 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
           {/* Header */}
           <div className="flex items-start justify-between mb-5">
             <Dialog.Title className="font-cormorant text-lg font-semibold text-stone-800 leading-tight">
-              {editing ? 'Editar cupão' : 'Novo cupão de desconto'}
+              {editing ? t('titleEdit') : t('titleCreate')}
             </Dialog.Title>
             <button onClick={onClose} className="p-1 text-stone-400 hover:text-stone-700 transition-colors -mr-1">
               <X size={16} />
@@ -99,13 +101,13 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
             {/* Code */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
-                Código do cupão
+                {t('codeLabel')}
               </label>
               <input
                 type="text"
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
-                placeholder="Ex: VERAO20"
+                placeholder={t('codePlaceholder')}
                 maxLength={30}
                 className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800
                            font-mono placeholder:font-sans placeholder:text-stone-400
@@ -117,7 +119,7 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
             {/* Discount type + value */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">Tipo de desconto</label>
+                <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('discountTypeLabel')}</label>
                 <select
                   value={discountType}
                   onChange={(e) => setDiscountType(e.target.value as 'percent' | 'fixed')}
@@ -125,13 +127,13 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
                              bg-white focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200
                              transition-colors appearance-none cursor-pointer"
                 >
-                  <option value="percent">Percentagem (%)</option>
-                  <option value="fixed">Valor fixo (€)</option>
+                  <option value="percent">{t('typePercent')}</option>
+                  <option value="fixed">{t('typeFixed')}</option>
                 </select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
-                  {discountType === 'percent' ? 'Percentagem (%)' : 'Valor (€)'}
+                  {discountType === 'percent' ? t('discountAmountLabelPercent') : t('discountAmountLabelFixed')}
                 </label>
                 <input
                   type="number"
@@ -151,7 +153,7 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
             {/* Max uses */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
-                Limite de usos <span className="normal-case text-stone-400">(opcional)</span>
+                {t('maxUsesLabel')} <span className="normal-case text-stone-400">{t('maxUsesOptional')}</span>
               </label>
               <input
                 type="number"
@@ -159,7 +161,7 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
                 step="1"
                 value={maxUses}
                 onChange={(e) => setMaxUses(e.target.value)}
-                placeholder="Ilimitado"
+                placeholder={t('maxUsesPlaceholder')}
                 className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800
                            placeholder:text-stone-400 focus:outline-none focus:border-amber-300
                            focus:ring-1 focus:ring-amber-200 transition-colors"
@@ -169,7 +171,7 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
             {/* Validity dates */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">Válido desde</label>
+                <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('validFromLabel')}</label>
                 <input
                   type="date"
                   value={validFrom}
@@ -181,7 +183,7 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
-                  Expira em <span className="normal-case text-stone-400">(opcional)</span>
+                  {t('validUntilLabel')} <span className="normal-case text-stone-400">{t('validUntilOptional')}</span>
                 </label>
                 <input
                   type="date"
@@ -203,7 +205,7 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
                 className="px-4 py-2 rounded-xl border border-stone-200 text-sm text-stone-600
                            hover:bg-stone-50 transition-colors"
               >
-                Cancelar
+                {t('cancelBtn')}
               </button>
               <button
                 type="submit"
@@ -212,7 +214,7 @@ export function CouponModal({ open, editing, onClose, onSaved }: Props) {
                            text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors"
               >
                 {busy && <Loader2 size={13} className="animate-spin" />}
-                {editing ? 'Guardar' : 'Criar cupão'}
+                {editing ? t('saveBtn') : t('createBtn')}
               </button>
             </div>
           </form>

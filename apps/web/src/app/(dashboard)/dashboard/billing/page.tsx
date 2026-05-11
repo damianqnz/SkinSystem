@@ -2,6 +2,7 @@ import { Suspense }                from 'react';
 import { headers }                 from 'next/headers';
 import { notFound }                from 'next/navigation';
 import { eq }                      from 'drizzle-orm';
+import { getTranslations }         from 'next-intl/server';
 import { getOrganizationBySlug }   from '@/domains/organizations/service';
 import { getOrganizationSettings } from '@/domains/organizations/service';
 import { db }                      from '@/infrastructure/db';
@@ -37,6 +38,8 @@ async function BillingContent() {
   const slug   = hdrs.get('x-tenant-slug') ?? '';
   const locale = hdrs.get('x-locale') ?? 'pt';
 
+  const t = await getTranslations({ locale, namespace: 'dashboard.billing' });
+
   const orgResult = await getOrganizationBySlug(slug);
   if (orgResult.error || !orgResult.data) notFound();
   const org = orgResult.data;
@@ -58,18 +61,20 @@ async function BillingContent() {
   const stripeConnected = !!(settings?.stripeAccountId && settings.stripeOnboarded);
   const bs              = bsRows[0];
 
+  const sectionError = t('sectionError');
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       {/* Page heading */}
       <div>
-        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">Pagamentos</h1>
-        <p className="text-sm text-stone-400 mt-1">Configure e gerencie os pagamentos das reservas.</p>
+        <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t('title')}</h1>
+        <p className="text-sm text-stone-400 mt-1">{t('description')}</p>
       </div>
 
       {/* Section: Payment method */}
       <section className="space-y-3">
         <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">
-          Método de pagamento
+          {t('sectionPaymentMethod')}
         </h2>
         <PaymentMethodCard
           stripeConnected={stripeConnected}
@@ -81,10 +86,10 @@ async function BillingContent() {
       <section className="space-y-3">
         <div>
           <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">
-            Pagamento na página de reservas
+            {t('sectionPaymentSettings')}
           </h2>
           <p className="text-xs text-stone-400 mt-1">
-            Gere a forma como os clientes podem pagar os seus serviços.
+            {t('sectionPaymentSettingsDesc')}
           </p>
         </div>
         <PaymentSettings
@@ -96,8 +101,9 @@ async function BillingContent() {
       {/* Section: Surcharges & reductions */}
       {surchargesResult.error ? (
         <SectionError
-          title="Taxas e reduções"
+          title={t('surcharges.sectionTitle')}
           message={surchargesResult.error.message}
+          supportMsg={sectionError}
         />
       ) : (
         <SurchargesSection initial={surchargesResult.data} />
@@ -106,8 +112,9 @@ async function BillingContent() {
       {/* Section: Coupons */}
       {couponsResult.error ? (
         <SectionError
-          title="Cupões de desconto"
+          title={t('coupons.sectionTitle')}
           message={couponsResult.error.message}
+          supportMsg={sectionError}
         />
       ) : (
         <CouponsSection initial={couponsResult.data} />
@@ -117,27 +124,25 @@ async function BillingContent() {
       <section className="space-y-3">
         <div>
           <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">
-            Histórico de pagamentos
+            {t('sectionHistory')}
           </h2>
           <p className="text-xs text-stone-400 mt-1">
-            Consulta e exporta os pagamentos por período.
+            {t('sectionHistoryDesc')}
           </p>
         </div>
-        <PaymentHistoryTable locale={locale} />
+        <PaymentHistoryTable />
       </section>
     </div>
   );
 }
 
-function SectionError({ title, message }: { title: string; message: string }) {
+function SectionError({ title, message, supportMsg }: { title: string; message: string; supportMsg: string }) {
   return (
     <section className="space-y-3">
       <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">{title}</h2>
       <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4">
         <p className="text-sm text-rose-700">{message}</p>
-        <p className="text-xs text-rose-500 mt-1">
-          Recarrega a página. Se o problema persistir, contacta o suporte.
-        </p>
+        <p className="text-xs text-rose-500 mt-1">{supportMsg}</p>
       </div>
     </section>
   );

@@ -4,6 +4,7 @@ import { useState, useEffect }                                    from 'react';
 import * as Dialog                                                from '@radix-ui/react-dialog';
 import { X, Loader2 }                                             from 'lucide-react';
 import { toast }                                                  from 'sonner';
+import { useTranslations }                                        from 'next-intl';
 import { createSurchargeAction, updateSurchargeAction }           from '../actions-surcharges';
 import type { SurchargeRow }                                      from '../actions-surcharges';
 
@@ -19,6 +20,7 @@ interface Props {
 // ── Component ─────────────────────────────────────────────────
 
 export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
+  const t = useTranslations('dashboard.billing.surchargeModal');
   const [kind,      setKind]      = useState<'taxa' | 'reducao'>('taxa');
   const [name,      setName]      = useState('');
   const [valueType, setValueType] = useState<'percent' | 'fixed'>('percent');
@@ -44,8 +46,8 @@ export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const numAmount = parseFloat(amount);
-    if (!name.trim())        return toast.error('O nome é obrigatório');
-    if (isNaN(numAmount) || numAmount <= 0) return toast.error('Insira um valor válido');
+    if (!name.trim())        return toast.error(t('errorNameRequired'));
+    if (isNaN(numAmount) || numAmount <= 0) return toast.error(t('errorInvalidValue'));
 
     setBusy(true);
     const payload = { name: name.trim(), valueType, value: numAmount, isReduction: kind === 'reducao' };
@@ -60,13 +62,13 @@ export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
       toast.error(res.error.message);
       return;
     }
-    toast.success(editing ? 'Taxa atualizada' : 'Taxa criada');
+    toast.success(editing ? t('toastUpdated') : t('toastCreated'));
     onSaved(res.data!);
   }
 
   const title = editing
-    ? `Editar ${editing.isReduction ? 'redução' : 'taxa'} adicional`
-    : 'Taxa ou redução adicional nova';
+    ? (editing.isReduction ? t('titleEditReduction') : t('titleEditTax'))
+    : t('titleCreate');
 
   return (
     <Dialog.Root open={open} onOpenChange={(v) => !v && onClose()}>
@@ -99,7 +101,7 @@ export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
                       ? 'border-stone-800 bg-stone-900 text-white'
                       : 'border-stone-200 text-stone-600 hover:border-stone-300'}`}
                 >
-                  {k === 'taxa' ? 'Taxa' : 'Redução'}
+                  {k === 'taxa' ? t('kindTax') : t('kindReduction')}
                 </button>
               ))}
             </div>
@@ -107,13 +109,13 @@ export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
             {/* Name */}
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
-                Nome da {kind === 'taxa' ? 'taxa' : 'redução'}
+                {kind === 'taxa' ? t('nameLabelTax') : t('nameLabelReduction')}
               </label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={kind === 'taxa' ? 'Ex: IVA, Taxa de serviço…' : 'Ex: Desconto especial…'}
+                placeholder={kind === 'taxa' ? t('placeholderTax') : t('placeholderReduction')}
                 className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800
                            placeholder:text-stone-400 focus:outline-none focus:border-amber-300
                            focus:ring-1 focus:ring-amber-200 transition-colors"
@@ -123,7 +125,7 @@ export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
             {/* Value type + Amount */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">Tipo de valor</label>
+                <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('valueTypeLabel')}</label>
                 <select
                   value={valueType}
                   onChange={(e) => setValueType(e.target.value as 'percent' | 'fixed')}
@@ -131,13 +133,13 @@ export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
                              bg-white focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200
                              transition-colors appearance-none cursor-pointer"
                 >
-                  <option value="percent">Porcentagem (%)</option>
-                  <option value="fixed">Quantia fixa</option>
+                  <option value="percent">{t('typePercent')}</option>
+                  <option value="fixed">{t('typeFixed')}</option>
                 </select>
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">
-                  {valueType === 'percent' ? 'Percentagem (%)' : 'Valor (€)'}
+                  {valueType === 'percent' ? t('amountLabelPercent') : t('amountLabelFixed')}
                 </label>
                 <input
                   type="number"
@@ -161,7 +163,7 @@ export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
                 className="px-4 py-2 rounded-xl border border-stone-200 text-sm text-stone-600
                            hover:bg-stone-50 transition-colors"
               >
-                Cancelar
+                {t('cancelBtn')}
               </button>
               <button
                 type="submit"
@@ -170,7 +172,7 @@ export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
                            text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors"
               >
                 {busy && <Loader2 size={13} className="animate-spin" />}
-                {editing ? 'Guardar' : 'Criar'}
+                {editing ? t('saveBtn') : t('createBtn')}
               </button>
             </div>
           </form>

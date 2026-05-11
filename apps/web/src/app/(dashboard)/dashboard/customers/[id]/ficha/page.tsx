@@ -9,6 +9,7 @@
 import { Suspense }                         from 'react';
 import { headers }                          from 'next/headers';
 import { notFound }                         from 'next/navigation';
+import { getTranslations }                  from 'next-intl/server';
 import { createSupabaseServerClient }       from '@/infrastructure/supabase/server';
 import { getOrganizationBySlug }            from '@/domains/organizations/service';
 import { getCustomerFullHistory }           from '@/domains/customers/full-history';
@@ -36,12 +37,13 @@ async function generateSignedUrls(appointments: AppointmentHistoryRow[]): Promis
   return new Map(results);
 }
 
-function resolveName(nameI18n: unknown, locale: string): string {
+function resolveName(nameI18n: unknown, locale: string, fallback: string): string {
   const m = nameI18n as Record<string, string> | null;
-  return m?.[locale] ?? m?.['es'] ?? m?.['en'] ?? 'Servicio';
+  return m?.[locale] ?? m?.['es'] ?? m?.['en'] ?? fallback;
 }
 
-async function ClinicalContent({ customerId, orgId, locale }: { customerId: string; orgId: string; locale: string }) {
+async function ClinicalContent({ customerId, orgId, locale }: { customerId: string; orgId: string; locale: string; }) {
+  const t = await getTranslations({ locale, namespace: 'dashboard.customers.ficha' });
   const histResult = await getCustomerFullHistory(customerId, orgId);
   if (!histResult.data) notFound();
   const hist = histResult.data;
@@ -63,7 +65,7 @@ async function ClinicalContent({ customerId, orgId, locale }: { customerId: stri
     startAt:          a.startAt instanceof Date ? a.startAt.toISOString() : String(a.startAt),
     status:           a.status,
     totalCents:       a.totalCents,
-    serviceName:      resolveName(a.serviceNameI18n, locale),
+    serviceName:      resolveName(a.serviceNameI18n, locale, t('serviceNameFallback')),
     clinicalSessionId: a.clinicalSessionId,
     professionalNotes: a.professionalNotes,
     skinReactionNotes: a.skinReactionNotes,
@@ -74,7 +76,7 @@ async function ClinicalContent({ customerId, orgId, locale }: { customerId: stri
     .map((a) => ({
       sessionId:   a.clinicalSessionId!,
       sessionDate: a.startAt instanceof Date ? a.startAt.toISOString() : String(a.startAt),
-      serviceName: resolveName(a.serviceNameI18n, locale),
+      serviceName: resolveName(a.serviceNameI18n, locale, t('serviceNameFallback')),
       photos:      a.photos.map(p => ({
         id:        p.id,
         photoType: p.photoType,
@@ -87,15 +89,15 @@ async function ClinicalContent({ customerId, orgId, locale }: { customerId: stri
     <AutoLockOverlay>
       <div className="space-y-12">
         <PatientHeader patient={patientData} locale={locale} />
-        <section aria-label="Historial de tratamientos">
-          <h2 className="font-serif text-xl font-light text-[var(--color-spa-stone)] mb-6">
-            {locale === 'en' ? 'Treatment History' : locale === 'pt' ? 'Histórico de Tratamentos' : 'Evolución del Tratamiento'}
+        <section aria-label={t('treatmentHeading')}>
+          <h2 className="font-serif text-xl font-light text-(--color-spa-stone) mb-6">
+            {t('treatmentHeading')}
           </h2>
           <TreatmentTimeline entries={timelineEntries} locale={locale} />
         </section>
-        <section aria-label="Galería antes y después">
-          <h2 className="font-serif text-xl font-light text-[var(--color-spa-stone)] mb-6">
-            {locale === 'en' ? 'Before & After Gallery' : locale === 'pt' ? 'Galeria Antes e Depois' : 'Galería Antes y Después'}
+        <section aria-label={t('galleryHeading')}>
+          <h2 className="font-serif text-xl font-light text-(--color-spa-stone) mb-6">
+            {t('galleryHeading')}
           </h2>
           <PhotoGallery sessions={photoSessions} locale={locale} />
         </section>
@@ -108,7 +110,7 @@ export default async function FichaPage({ params }: Props) {
   const { id } = await params;
   const h      = await headers();
   const slug   = h.get('x-tenant-slug') ?? '';
-  const locale = h.get('x-locale')      ?? 'es';
+  const locale = h.get('x-locale')      ?? 'pt';
 
   const orgResult = await getOrganizationBySlug(slug);
   if (!orgResult.data) notFound();

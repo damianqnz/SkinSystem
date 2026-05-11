@@ -19,7 +19,7 @@ interface Props { children: ReactNode }
 export default async function CustomersLayout({ children }: Props) {
   const h      = await headers();
   const slug   = h.get('x-tenant-slug') ?? '';
-  const locale = h.get('x-locale')      ?? 'es';
+  const locale = h.get('x-locale')      ?? 'pt';
 
   // Pre-fetch customers for sidebar (errors soft-fail to empty list)
   const orgResult = await getOrganizationBySlug(slug);

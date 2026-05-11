@@ -9,6 +9,7 @@ import Image         from 'next/image';
 import { CalendarPlus, Pencil, Stethoscope } from 'lucide-react';
 import Link          from 'next/link';
 import { toast }     from 'sonner';
+import { useTranslations, useLocale } from 'next-intl';
 import { CustomerStatusBadge }  from '../../_components/CustomerStatusBadge';
 import { CustomerFormModal }    from '../../_components/CustomerFormModal';
 import { CustomerActionsMenu }  from './CustomerActionsMenu';
@@ -30,14 +31,6 @@ function avatarPalette(name: string) {
   return PALETTES[Math.abs(h) % PALETTES.length]!;
 }
 function initials(name: string) { return name.trim().split(/\s+/).slice(0, 2).map(p => p[0]!.toUpperCase()).join(''); }
-function fmtDate(iso: string | null, locale: string) {
-  if (!iso) return '—';
-  const d = new Date(iso); const now = new Date();
-  const diff = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
-  if (diff === 0) return locale === 'pt' ? 'Hoje' : locale === 'en' ? 'Today' : 'Hoy';
-  const tag = locale === 'pt' ? 'pt-PT' : locale === 'en' ? 'en-GB' : 'es-ES';
-  return d.toLocaleDateString(tag, { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 interface Props {
   id: string; fullName: string; email: string | null; phone: string | null;
@@ -51,7 +44,11 @@ interface Props {
 
 const TR = 'px-3 py-2.5 font-sans text-[11px] uppercase tracking-wider border-b-2 border-transparent transition-colors data-[state=active]:border-[#D4AF37] data-[state=active]:text-stone-900 text-stone-400 disabled:opacity-30 disabled:cursor-not-allowed';
 
+const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
+
 export function CustomerProfileClient({ id, fullName, email, phone, isGuest, visitCount, lastVisitAtIso, status, createdAtIso, locale, isBlocked: initialBlocked, avatarUrl: initialAvatarUrl, notes, company, country, countryIso, address, city, state, postalCode, socialLinks }: Props) {
+  const t            = useTranslations('dashboard.customers.profile');
+  const intlLocale   = useLocale();
   const router       = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,6 +59,16 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
   const [avatarLoading, setAvatarLoading] = useState(false);
   const initialCustomer: CustomerMatch = { id, fullName, email, phone };
   const pal = avatarPalette(fullName);
+
+  function fmtDate(iso: string | null): string {
+    if (!iso) return '—';
+    const d    = new Date(iso);
+    const now  = new Date();
+    const diff = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
+    if (diff === 0) return t('today');
+    const tag = INTL_LOCALE_MAP[intlLocale] ?? 'pt-PT';
+    return d.toLocaleDateString(tag, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
 
   useGSAP(() => {
     gsap.from(containerRef.current, { opacity: 0, y: 20, duration: 0.35, ease: 'power2.out' });
@@ -84,21 +91,17 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
       {/* Blocked banner */}
       {isBlocked && (
         <div className="flex items-center justify-between px-4 py-2 bg-rose-50 border-b border-rose-100 shrink-0">
-          <p className="font-sans text-sm text-rose-600">
-            {locale === 'pt' ? 'Cliente bloqueado — não pode fazer reservas online.'
-              : locale === 'en' ? 'Client blocked — cannot make online bookings.'
-              : 'Cliente bloqueado — no puede realizar reservas en línea.'}
-          </p>
+          <p className="font-sans text-sm text-rose-600">{t('blockedBanner')}</p>
         </div>
       )}
 
       {/* Profile header */}
-      <div className="p-6 border-b border-[var(--color-spa-border)] space-y-4 shrink-0">
+      <div className="p-6 border-b border-spa-border space-y-4 shrink-0">
         <div className="flex items-start gap-4">
           {/* Avatar */}
           <button onClick={() => fileInputRef.current?.click()} disabled={avatarLoading}
-            className="relative w-20 h-20 rounded-sm flex items-center justify-center flex-shrink-0 overflow-hidden group"
-            style={{ backgroundColor: pal.bg }} aria-label="Cambiar foto">
+            className="relative w-20 h-20 rounded-sm flex items-center justify-center shrink-0 overflow-hidden group"
+            style={{ backgroundColor: pal.bg }} aria-label={t('photoAriaLabel')}>
             {avatarUrl
               ? <Image src={avatarUrl} alt={fullName} fill className="object-cover" sizes="80px" />
               : <span className="font-serif text-3xl font-light" style={{ color: pal.fg }}>{initials(fullName)}</span>
@@ -119,20 +122,20 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
               <CustomerStatusBadge status={status} locale={locale} />
               {isGuest && (
                 <span className="font-sans text-[9px] uppercase tracking-widest px-2 py-0.5 border border-stone-300 text-stone-400 rounded-sm">
-                  {locale === 'pt' ? 'Convidado' : locale === 'en' ? 'Guest' : 'Invitado'}
+                  {t('guestBadge')}
                 </span>
               )}
             </div>
             <p className="font-sans text-xs text-stone-400">
-              {visitCount} {locale === 'pt' ? 'visitas' : locale === 'en' ? 'visits' : 'visitas'}
+              {t('visits', { count: visitCount })}
               {lastVisitAtIso && <span className="mx-1">·</span>}
-              {lastVisitAtIso && fmtDate(lastVisitAtIso, locale)}
+              {lastVisitAtIso && fmtDate(lastVisitAtIso)}
             </p>
           </div>
 
           {/* Action buttons */}
           <div className="flex items-center gap-0.5 shrink-0">
-            <button onClick={() => setEditOpen(true)} className="p-1.5 rounded-md hover:bg-stone-100 text-stone-400 transition-colors" aria-label="Editar">
+            <button onClick={() => setEditOpen(true)} className="p-1.5 rounded-md hover:bg-stone-100 text-stone-400 transition-colors" aria-label={t('editAriaLabel')}>
               <Pencil size={14} strokeWidth={1.5} />
             </button>
             <CustomerActionsMenu customerId={id} fullName={fullName} locale={locale} isBlocked={isBlocked} onBlockToggled={setIsBlocked} />
@@ -144,22 +147,22 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
           <button onClick={() => setFabOpen(true)}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-sm border border-[#D4AF37] text-[#D4AF37] text-sm font-sans hover:bg-amber-50 transition-colors">
             <CalendarPlus size={14} strokeWidth={1.5} />
-            {locale === 'pt' ? 'Agendar consulta' : locale === 'en' ? 'Schedule' : 'Agendar cita'}
+            {t('scheduleCta')}
           </button>
           <Link href={`/dashboard/customers/${id}/ficha`}
             className={cn('flex items-center justify-center gap-2 px-4 py-2.5 rounded-sm border border-stone-200 text-stone-600 text-sm font-sans hover:bg-stone-50 transition-colors')}>
             <Stethoscope size={14} strokeWidth={1.5} />
-            {locale === 'pt' ? 'Ficha clínica' : locale === 'en' ? 'Clinical' : 'Ficha clínica'}
+            {t('fichaCta')}
           </Link>
         </div>
       </div>
 
       {/* Tabs */}
       <Tabs.Root defaultValue="sobre" className="flex-1 flex flex-col min-h-0">
-        <Tabs.List className="flex border-b border-[var(--color-spa-border)] px-4 shrink-0">
-          <Tabs.Trigger value="sobre" className={TR}>{locale === 'pt' ? 'Sobre' : locale === 'en' ? 'About' : 'Sobre'}</Tabs.Trigger>
-          <Tabs.Trigger value="notas" className={TR} disabled>{locale === 'pt' ? 'Notas' : 'Notas'}</Tabs.Trigger>
-          <Tabs.Trigger value="compromisos" className={TR}>{locale === 'pt' ? 'Compromissos' : locale === 'en' ? 'Appointments' : 'Compromisos'}</Tabs.Trigger>
+        <Tabs.List className="flex border-b border-spa-border px-4 shrink-0">
+          <Tabs.Trigger value="sobre"       className={TR}>{t('tabAbout')}</Tabs.Trigger>
+          <Tabs.Trigger value="notas"       className={TR} disabled>{t('tabNotes')}</Tabs.Trigger>
+          <Tabs.Trigger value="compromisos" className={TR}>{t('tabAppointments')}</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="sobre" className="flex-1 overflow-y-auto p-6">
           <SobreTab
@@ -169,7 +172,7 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
           />
         </Tabs.Content>
         <Tabs.Content value="notas" className="flex-1 p-6">
-          <p className="font-sans text-sm text-stone-400 text-center mt-6">Próximamente.</p>
+          <p className="font-sans text-sm text-stone-400 text-center mt-6">{t('notesSoon')}</p>
         </Tabs.Content>
         <Tabs.Content value="compromisos" className="flex-1 overflow-y-auto p-6">
           <CompromisosTab customerId={id} locale={locale} />

@@ -3,22 +3,16 @@
 import Link from 'next/link';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, MoreHorizontal, Plus } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { ViewSwitcher, type CalendarView } from './ViewSwitcher';
 
 interface CalendarHeaderProps {
-  /** First day of the displayed month (UTC) */
   monthStart: Date;
   locale:     string;
   view:       CalendarView;
 }
 
-const MONTH_LABELS: Record<string, string[]> = {
-  es: ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'],
-  pt: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
-  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
-};
-
-const TODAY_LABEL: Record<string, string> = { es: 'Hoy', pt: 'Hoje', en: 'Today' };
+const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
 
 function shiftMonthIso(monthStart: Date, delta: number): string {
   const d = new Date(monthStart);
@@ -27,8 +21,10 @@ function shiftMonthIso(monthStart: Date, delta: number): string {
 }
 
 export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps) {
-  const pathname = usePathname();
-  const params   = useSearchParams();
+  const t          = useTranslations('dashboard.calendar.header');
+  const intlLocale = INTL_LOCALE_MAP[useLocale()] ?? 'pt-PT';
+  const pathname   = usePathname();
+  const params     = useSearchParams();
 
   const buildHref = (monthIso?: string) => {
     const sp = new URLSearchParams(Array.from(params.entries()));
@@ -37,7 +33,7 @@ export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps
     return `${pathname}${sp.toString() ? `?${sp.toString()}` : ''}`;
   };
 
-  const months   = MONTH_LABELS[locale] ?? MONTH_LABELS.es!;
+  const months   = t.raw('months') as string[];
   const monthLbl = months[monthStart.getUTCMonth()];
   const yearLbl  = monthStart.getUTCFullYear();
 
@@ -50,7 +46,7 @@ export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps
       <div className="flex-1 flex items-center justify-center gap-3">
         <Link
           href={buildHref(shiftMonthIso(monthStart, -1))}
-          aria-label="Mês anterior"
+          aria-label={t('prevMonthAriaLabel')}
           className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors"
           scroll={false}
         >
@@ -67,7 +63,7 @@ export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps
 
         <Link
           href={buildHref(shiftMonthIso(monthStart, 1))}
-          aria-label="Próximo mês"
+          aria-label={t('nextMonthAriaLabel')}
           className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors"
           scroll={false}
         >
@@ -82,22 +78,22 @@ export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps
           style={{ fontFamily: 'var(--font-sans)' }}
           scroll={false}
         >
-          {TODAY_LABEL[locale] ?? TODAY_LABEL.es}
+          {t('todayLabel')}
         </Link>
       </div>
 
-      {/* Right — quick actions (placeholders for Phase 2) */}
+      {/* Right — quick actions */}
       <div className="flex items-center gap-1">
         <button
           type="button"
-          aria-label="Nova marcação"
+          aria-label={t('newApptAriaLabel')}
           className="p-1.5 rounded-md text-spa-muted hover:text-[#D4AF37] hover:bg-stone-50 transition-colors"
         >
           <Plus size={14} strokeWidth={1.5} />
         </button>
         <button
           type="button"
-          aria-label="Mais opções"
+          aria-label={t('moreAriaLabel')}
           className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors"
         >
           <MoreHorizontal size={14} strokeWidth={1.5} />

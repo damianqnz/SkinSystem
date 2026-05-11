@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Plus, Pencil } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { ServiceRow } from './ServiceRow';
 import { ServiceDrawer } from './ServiceDrawer';
-import { getCatalogT } from '../_i18n';
 import type { CategoryWithServices, ServiceRow as ServiceRowType } from '@/domains/catalog/service';
 
 interface CatalogIslandProps {
@@ -25,14 +25,15 @@ function resolveI18n(obj: unknown, locale: string): string {
 }
 
 export function CatalogIsland({ category, categories, locale, organizationId, onEditCategory }: CatalogIslandProps) {
-  const t = getCatalogT(locale);
-  const [expanded, setExpanded]         = useState(true);
-  const [drawerOpen, setDrawerOpen]     = useState(false);
+  const t          = useTranslations('dashboard.catalog');
+  const intlLocale = useLocale();
+  const [expanded, setExpanded]             = useState(true);
+  const [drawerOpen, setDrawerOpen]         = useState(false);
   const [editingService, setEditingService] = useState<ServiceRowType | null>(null);
 
   const services = category?.services ?? [];
-  const catName  = category ? resolveI18n(category.nameI18n, locale) : t.noCategory;
-  const catDesc  = category ? resolveI18n(category.descriptionI18n, locale) : '';
+  const catName  = category ? resolveI18n(category.nameI18n, intlLocale) : t('noCategory');
+  const catDesc  = category ? resolveI18n(category.descriptionI18n, intlLocale) : '';
   const isOrphan = category === null;
 
   if (isOrphan && services.length === 0) return null;
@@ -64,14 +65,14 @@ export function CatalogIsland({ category, categories, locale, organizationId, on
           </div>
 
           <span className="text-[11px] font-medium text-stone-400 tabular-nums shrink-0">
-            {services.length} {services.length === 1 ? t.serviceSingular : t.servicePlural}
+            {services.length} {services.length === 1 ? t('serviceSingular') : t('servicePlural')}
           </span>
 
           {!isOrphan && onEditCategory && (
             <button
               onClick={(e) => { e.stopPropagation(); onEditCategory(); }}
               className="p-1.5 rounded-lg text-stone-300 hover:text-stone-600 hover:bg-stone-100 transition-colors opacity-0 group-hover:opacity-100"
-              title={t.editCategoryTitle}
+              title={t('editCategoryTitle')}
             >
               <Pencil size={13} />
             </button>
@@ -100,17 +101,17 @@ export function CatalogIsland({ category, categories, locale, organizationId, on
             >
               {services.length === 0 ? (
                 <div className="px-5 py-6 text-center">
-                  <p className="text-sm text-stone-400">{t.emptyCategoryMsg}</p>
+                  <p className="text-sm text-stone-400">{t('emptyCategoryMsg')}</p>
                 </div>
               ) : (
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-stone-50">
-                      <th className="py-2 pl-4 pr-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest">{t.colService}</th>
-                      <th className="py-2 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest">{t.colPrice}</th>
-                      <th className="py-2 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest hidden sm:table-cell">{t.colDuration}</th>
-                      <th className="py-2 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest hidden md:table-cell">{t.colDeposit}</th>
-                      <th className="py-2 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest hidden sm:table-cell">{t.colStatus}</th>
+                      <th className="py-2 pl-4 pr-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest">{t('colService')}</th>
+                      <th className="py-2 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest">{t('colPrice')}</th>
+                      <th className="py-2 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest hidden sm:table-cell">{t('colDuration')}</th>
+                      <th className="py-2 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest hidden md:table-cell">{t('colDeposit')}</th>
+                      <th className="py-2 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest hidden sm:table-cell">{t('colStatus')}</th>
                       <th className="py-2 pl-3 pr-4" />
                     </tr>
                   </thead>
@@ -130,7 +131,7 @@ export function CatalogIsland({ category, categories, locale, organizationId, on
                   <span className="w-5 h-5 rounded-full border border-stone-200 group-hover/add:border-amber-300 group-hover/add:bg-amber-50 flex items-center justify-center transition-colors">
                     <Plus size={10} />
                   </span>
-                  {t.addService}
+                  {t('addService')}
                 </button>
               </div>
             </motion.div>

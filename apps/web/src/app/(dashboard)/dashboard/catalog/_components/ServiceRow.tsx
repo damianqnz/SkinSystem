@@ -4,8 +4,8 @@ import { useActionState, useEffect, useOptimistic, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Pencil, Circle, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations, useLocale } from 'next-intl';
 import { toggleServiceStatusAction } from '../actions';
-import { getCatalogT } from '../_i18n';
 import type { CatalogActionState } from '../actions';
 import type { ServiceRow as ServiceRowType } from '@/domains/catalog/service';
 
@@ -33,7 +33,8 @@ function fmtPrice(cents: number, currency: string): string {
 }
 
 export function ServiceRow({ service, locale, onEdit, index }: ServiceRowProps) {
-  const t = getCatalogT(locale);
+  const t          = useTranslations('dashboard.catalog');
+  const intlLocale = useLocale();
   const [state, dispatch, isPending] = useActionState<CatalogActionState, unknown>(toggleServiceStatusAction, IDLE);
   const [optimisticActive, setOptimisticActive] = useOptimistic(service.isActive);
 
@@ -52,8 +53,8 @@ export function ServiceRow({ service, locale, onEdit, index }: ServiceRowProps) 
     const url = `${window.location.origin}/book?service=${service.id}`;
     if (navigator.clipboard?.writeText) {
       navigator.clipboard.writeText(url)
-        .then(() => toast.success(t.linkCopied))
-        .catch(() => toast.error(t.linkCopyError));
+        .then(() => toast.success(t('linkCopied')))
+        .catch(() => toast.error(t('linkCopyError')));
       return;
     }
     const el = document.createElement('textarea');
@@ -63,15 +64,15 @@ export function ServiceRow({ service, locale, onEdit, index }: ServiceRowProps) 
     el.focus(); el.select();
     try {
       document.execCommand('copy');
-      toast.success(t.linkCopied);
+      toast.success(t('linkCopied'));
     } catch {
-      toast.error(t.linkCopyError);
+      toast.error(t('linkCopyError'));
     } finally {
       document.body.removeChild(el);
     }
-  }, [service.id, t.linkCopied, t.linkCopyError]);
+  }, [service.id, t]);
 
-  const name  = resolveI18n(service.nameI18n, locale);
+  const name  = resolveI18n(service.nameI18n, intlLocale);
   const price = fmtPrice(service.priceCents, service.currency);
 
   return (
@@ -109,7 +110,7 @@ export function ServiceRow({ service, locale, onEdit, index }: ServiceRowProps) 
           optimisticActive ? 'bg-emerald-50 text-emerald-700' : 'bg-stone-100 text-stone-500',
         ].join(' ')}>
           <span className={['w-1.5 h-1.5 rounded-full', optimisticActive ? 'bg-emerald-400' : 'bg-stone-300'].join(' ')} />
-          {optimisticActive ? t.statusActive : t.statusInactive}
+          {optimisticActive ? t('statusActive') : t('statusInactive')}
         </span>
       </td>
       <td className="py-3.5 pl-3 pr-4">
@@ -117,23 +118,23 @@ export function ServiceRow({ service, locale, onEdit, index }: ServiceRowProps) 
           <button
             onClick={handleCopyLink}
             className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium text-stone-500 hover:text-amber-700 hover:bg-amber-50 transition-colors"
-            title={t.copyLinkTitle}
+            title={t('copyLinkTitle')}
           >
             <Link2 size={11} strokeWidth={1.8} />
-            <span className="hidden md:inline">{t.copyLink}</span>
+            <span className="hidden md:inline">{t('copyLink')}</span>
           </button>
           <button
             onClick={handleToggle}
             disabled={isPending}
             className="p-1.5 rounded-md text-[10px] font-medium text-stone-500 hover:bg-stone-100 transition-colors disabled:opacity-40"
-            title={optimisticActive ? t.deactivate : t.activate}
+            title={optimisticActive ? t('deactivate') : t('activate')}
           >
             {optimisticActive ? 'OFF' : 'ON'}
           </button>
           <button
             onClick={() => onEdit(service)}
             className="p-1.5 rounded-md text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
-            title={t.editTitle}
+            title={t('editTitle')}
           >
             <Pencil size={13} />
           </button>

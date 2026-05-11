@@ -33,7 +33,7 @@ export default async function CatalogPage() {
 async function CatalogContent() {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const locale = hdrs.get('x-locale') ?? 'es';
+  const locale = hdrs.get('x-locale') ?? 'pt';
 
   const orgResult = await getOrganizationBySlug(slug);
   if (orgResult.error || !orgResult.data) notFound();

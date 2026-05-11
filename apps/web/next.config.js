@@ -2,6 +2,10 @@
 // Dynamic pages (those calling headers/cookies) are already opt-out of
 // Next.js Full Route Cache without this flag.
 
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
+
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
   throw new Error(
     'NEXT_PUBLIC_SUPABASE_URL is not set. ' +
@@ -44,4 +48,4 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

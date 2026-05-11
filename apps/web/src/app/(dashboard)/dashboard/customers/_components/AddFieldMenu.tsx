@@ -2,6 +2,7 @@
 
 import * as Popover from '@radix-ui/react-popover';
 import { Plus, Phone, Mail, Globe, X as XIcon } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export type FieldType =
   | 'instagram' | 'facebook' | 'x' | 'youtube' | 'linkedin' | 'tiktok'
@@ -33,21 +34,6 @@ const TikTokIcon = () => (
   </svg>
 );
 
-interface FieldOption { type: FieldType; label: string; icon: React.ReactNode }
-
-const FIELD_OPTIONS: FieldOption[] = [
-  { type: 'instagram', label: 'Instagram', icon: <InstagramIcon /> },
-  { type: 'facebook',  label: 'Facebook',  icon: <FacebookIcon /> },
-  { type: 'x',         label: 'X',         icon: <XIcon size={14} strokeWidth={1.5} /> },
-  { type: 'youtube',   label: 'YouTube',   icon: <YoutubeIcon /> },
-  { type: 'linkedin',  label: 'LinkedIn',  icon: <LinkedinIcon /> },
-  { type: 'tiktok',    label: 'TikTok',    icon: <TikTokIcon /> },
-  { type: 'website',   label: 'Sitio web', icon: <Globe size={14} strokeWidth={1.5} /> },
-  { type: 'custom',    label: 'Custom',    icon: <Plus  size={14} strokeWidth={1.5} /> },
-  { type: 'phone',     label: 'Teléfono',  icon: <Phone size={14} strokeWidth={1.5} /> },
-  { type: 'email',     label: 'Email',     icon: <Mail  size={14} strokeWidth={1.5} /> },
-];
-
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -55,15 +41,28 @@ interface Props {
   locale?: string;
 }
 
-export function AddFieldMenu({ open, onOpenChange, onSelect, locale }: Props) {
-  const label = locale === 'pt' ? '+ Adicionar' : locale === 'en' ? '+ Add field' : '+ Agregar';
+export function AddFieldMenu({ open, onOpenChange, onSelect }: Props) {
+  const t = useTranslations('dashboard.customers.form');
+
+  const FIELD_OPTIONS: Array<{ type: FieldType; label: string; icon: React.ReactNode }> = [
+    { type: 'instagram', label: 'Instagram',       icon: <InstagramIcon /> },
+    { type: 'facebook',  label: 'Facebook',         icon: <FacebookIcon /> },
+    { type: 'x',         label: 'X',               icon: <XIcon size={14} strokeWidth={1.5} /> },
+    { type: 'youtube',   label: 'YouTube',          icon: <YoutubeIcon /> },
+    { type: 'linkedin',  label: 'LinkedIn',         icon: <LinkedinIcon /> },
+    { type: 'tiktok',    label: 'TikTok',           icon: <TikTokIcon /> },
+    { type: 'website',   label: t('fieldWebsite'),  icon: <Globe size={14} strokeWidth={1.5} /> },
+    { type: 'custom',    label: 'Custom',           icon: <Plus  size={14} strokeWidth={1.5} /> },
+    { type: 'phone',     label: t('fieldPhone'),    icon: <Phone size={14} strokeWidth={1.5} /> },
+    { type: 'email',     label: 'Email',            icon: <Mail  size={14} strokeWidth={1.5} /> },
+  ];
 
   return (
     <Popover.Root open={open} onOpenChange={onOpenChange}>
       <Popover.Trigger asChild>
         <button type="button"
           className="flex items-center gap-1.5 font-sans text-xs text-stone-500 hover:text-stone-800 transition-colors py-1 px-2 rounded-sm hover:bg-stone-100">
-          {label}
+          {t('addField')}
         </button>
       </Popover.Trigger>
       <Popover.Portal>

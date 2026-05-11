@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { ShieldOff } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import { CustomerStatusBadge } from './CustomerStatusBadge';
 import { cn } from '@/shared/lib/utils';
 import type { ClientStatus } from '@/domains/customers/service';
@@ -26,6 +27,8 @@ const PALETTES = [
   { bg: '#F0FDFA', fg: '#0F766E' },
 ];
 
+const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
+
 function avatarPalette(name: string) {
   let h = 0; for (const c of name) h = (h << 5) - h + c.charCodeAt(0);
   return PALETTES[Math.abs(h) % PALETTES.length]!;
@@ -36,22 +39,26 @@ function initials(name: string) {
     ? (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase()
     : name.slice(0, 2).toUpperCase();
 }
-function fmtDate(iso: string | null, locale: string) {
-  if (!iso) return '—';
-  const d = new Date(iso); const now = new Date();
-  const diff = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
-  if (diff === 0) return locale === 'pt' ? 'Hoje' : locale === 'en' ? 'Today' : 'Hoy';
-  if (diff < 7)   return `${diff}d`;
-  const tag = locale === 'pt' ? 'pt-PT' : locale === 'en' ? 'en-GB' : 'es-ES';
-  return d.toLocaleDateString(tag, { day: 'numeric', month: 'short' });
-}
 
 interface Props { customer: CustomerSer; locale: string; isSelected: boolean }
 
 export function CustomerListItem({ customer, locale, isSelected }: Props) {
-  const router = useRouter();
-  const pal    = avatarPalette(customer.fullName);
-  const ini    = initials(customer.fullName);
+  const router     = useRouter();
+  const intlLocale = useLocale();
+  const t          = useTranslations('dashboard.customers.profile');
+  const pal        = avatarPalette(customer.fullName);
+  const ini        = initials(customer.fullName);
+
+  function fmtDate(iso: string | null): string {
+    if (!iso) return '—';
+    const d    = new Date(iso);
+    const now  = new Date();
+    const diff = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
+    if (diff === 0) return t('today');
+    if (diff < 7)   return `${diff}d`;
+    const tag = INTL_LOCALE_MAP[intlLocale] ?? 'pt-PT';
+    return d.toLocaleDateString(tag, { day: 'numeric', month: 'short' });
+  }
 
   return (
     <button
@@ -66,14 +73,14 @@ export function CustomerListItem({ customer, locale, isSelected }: Props) {
       )}
     >
       {/* Avatar */}
-      <div className="w-9 h-9 rounded-sm flex items-center justify-center flex-shrink-0" style={{ backgroundColor: pal.bg }}>
+      <div className="w-9 h-9 rounded-sm flex items-center justify-center shrink-0" style={{ backgroundColor: pal.bg }}>
         <span className="font-sans text-[11px] font-semibold" style={{ color: pal.fg }}>{ini}</span>
       </div>
       {/* Info */}
       <div className="flex-1 min-w-0">
         <p className="font-sans text-sm font-medium text-stone-800 truncate">{customer.fullName}</p>
         <p className="font-sans text-[11px] text-stone-400 truncate">
-          {fmtDate(customer.lastVisitAtIso, locale)}
+          {fmtDate(customer.lastVisitAtIso)}
         </p>
       </div>
       {/* Status + blocked icon */}

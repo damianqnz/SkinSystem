@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useTransition, useMemo } from 'react';
-import { Search, Download, Loader2, CalendarRange, ExternalLink } from 'lucide-react';
+import {
+  Search, Download, Loader2, CalendarRange, ExternalLink,
+  ChevronsUpDown, ChevronUp, ChevronDown,
+} from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations, useLocale } from 'next-intl';
 import { getPaymentHistoryAction } from '../actions';
 import type { PaymentHistoryRow } from '@/domains/billing/service-history';
-import { getTranslations, type BillingMessages } from '../_i18n';
 
 // ── Constants ─────────────────────────────────────────────────
 
@@ -16,6 +19,22 @@ const INTL_LOCALE_MAP: Record<string, string> = {
   en: 'en-GB',
   pt: 'pt-PT',
 };
+
+const STATUS_PRIORITY: Record<string, number> = {
+  succeeded: 0,
+  pending:   1,
+  failed:    2,
+  refunded:  3,
+};
+
+// ── Types ─────────────────────────────────────────────────────
+
+type SortKey = 'date' | 'client' | 'staff' | 'service' | 'serviceDate' | 'amount' | 'status';
+type SortDir = 'asc' | 'desc';
+
+type ColDef =
+  | { sortKey: SortKey; label: string; sortable: true }
+  | { sortKey: null;    label: string; sortable: false };
 
 // ── Helpers ───────────────────────────────────────────────────
 
@@ -42,50 +61,6 @@ function resolveI18n(obj: unknown, locale = 'pt'): string {
   return o[locale] ?? o['es'] ?? o['en'] ?? Object.values(o)[0] ?? '—';
 }
 
-function interpolate(template: string, vars: Record<string, string | number>): string {
-  return template.replace(/\{(\w+)\}/g, (_, k) => String(vars[k] ?? k));
-}
-
-// ── CSV export ────────────────────────────────────────────────
-
-function exportCsv(rows: PaymentHistoryRow[], t: BillingMessages, intlLocale: string) {
-  const statusLabels: Record<string, string> = {
-    succeeded: t.statusSucceeded,
-    pending:   t.statusPending,
-    failed:    t.statusFailed,
-    refunded:  t.statusRefunded,
-  };
-  const COLS = [
-    t.csvColDate, t.csvColClient, t.csvColStaff, t.csvColService,
-    t.csvColServiceDate, t.csvColAmount, t.csvColMethod, t.csvColStripeId,
-    t.csvColStatus, t.csvColAppointmentId,
-  ];
-  const lines = [COLS.join(';')];
-  for (const r of rows) {
-    lines.push([
-      fmtDate(r.paidAt ?? r.createdAt, intlLocale),
-      r.clientName,
-      r.staffName ?? '—',
-      resolveI18n(r.serviceNameI18n),
-      fmtDateShort(r.serviceDate, intlLocale),
-      fmtMoney(r.amountCents, r.currency, intlLocale),
-      r.method,
-      r.stripeIntentId,
-      statusLabels[r.status] ?? r.status,
-      r.appointmentId,
-    ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(';'));
-  }
-  // UTF-8 BOM so Excel detects encoding correctly
-  const bom  = '﻿';
-  const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
-  const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `pagamentos_${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
 // ── Today's date helpers ──────────────────────────────────────
 
 function todayISO() { return new Date().toISOString().slice(0, 10); }
@@ -96,17 +71,16 @@ function firstDayOfMonthISO() {
 
 // ── Component ─────────────────────────────────────────────────
 
-interface Props { locale?: string; }
-
-export function PaymentHistoryTable({ locale = 'pt' }: Props) {
-  const t          = getTranslations(locale);
+export function PaymentHistoryTable() {
+  const t          = useTranslations('dashboard.billing.history');
+  const locale     = useLocale();
   const intlLocale = toIntlLocale(locale);
 
   const STATUS_MAP: Record<string, { label: string; cls: string }> = {
-    succeeded: { label: t.statusSucceeded, cls: 'bg-emerald-50 text-emerald-700' },
-    pending:   { label: t.statusPending,   cls: 'bg-amber-50   text-amber-700'   },
-    failed:    { label: t.statusFailed,    cls: 'bg-rose-50    text-rose-600'     },
-    refunded:  { label: t.statusRefunded,  cls: 'bg-sky-50     text-sky-700'      },
+    succeeded: { label: t('statusSucceeded'), cls: 'bg-emerald-50 text-emerald-700' },
+    pending:   { label: t('statusPending'),   cls: 'bg-amber-50   text-amber-700'   },
+    failed:    { label: t('statusFailed'),    cls: 'bg-rose-50    text-rose-600'     },
+    refunded:  { label: t('statusRefunded'),  cls: 'bg-sky-50     text-sky-700'      },
   };
 
   const [from,        setFrom]        = useState(firstDayOfMonthISO());
@@ -115,6 +89,8 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
   const [search,      setSearch]      = useState('');
   const [loaded,      setLoaded]      = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortKey,     setSortKey]     = useState<SortKey | null>(null);
+  const [sortDir,     setSortDir]     = useState<SortDir | null>(null);
   const [pending, startTransition]    = useTransition();
 
   function handleGenerate() {
@@ -132,8 +108,61 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
     setCurrentPage(1);
   }
 
+  function handleSort(key: SortKey) {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir('asc');
+    } else if (sortDir === 'asc') {
+      setSortDir('desc');
+    } else {
+      // desc → back to original query order
+      setSortKey(null);
+      setSortDir(null);
+    }
+    setCurrentPage(1);
+  }
+
+  function handleExportCsv() {
+    const statusLabels: Record<string, string> = {
+      succeeded: t('statusSucceeded'),
+      pending:   t('statusPending'),
+      failed:    t('statusFailed'),
+      refunded:  t('statusRefunded'),
+    };
+    const cols = [
+      t('csvColDate'), t('csvColClient'), t('csvColStaff'), t('csvColService'),
+      t('csvColServiceDate'), t('csvColAmount'), t('csvColMethod'), t('csvColStripeId'),
+      t('csvColStatus'), t('csvColAppointmentId'),
+    ];
+    const lines = [cols.join(';')];
+    for (const r of filtered) {
+      lines.push([
+        fmtDate(r.paidAt ?? r.createdAt, intlLocale),
+        r.clientName,
+        r.staffName ?? '—',
+        resolveI18n(r.serviceNameI18n),
+        fmtDateShort(r.serviceDate, intlLocale),
+        fmtMoney(r.amountCents, r.currency, intlLocale),
+        r.method,
+        r.stripeIntentId,
+        statusLabels[r.status] ?? r.status,
+        r.appointmentId,
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`).join(';'));
+    }
+    // UTF-8 BOM so Excel detects encoding correctly
+    const bom  = '﻿';
+    const blob = new Blob([bom + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `pagamentos_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const term = search.trim().toLowerCase();
 
+  // Pipeline: rows → filtered (search) → sorted → paged
   const filtered = useMemo(() => {
     if (!term) return rows;
     return rows.filter((r) => {
@@ -144,19 +173,56 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
     });
   }, [rows, term, locale]);
 
-  const totalPages    = Math.ceil(filtered.length / PAGE_SIZE);
+  const sorted = useMemo(() => {
+    if (!sortKey || !sortDir) return filtered;
+    return [...filtered].sort((a, b) => {
+      let cmp = 0;
+      switch (sortKey) {
+        case 'date':
+          cmp = (a.paidAt ?? a.createdAt).localeCompare(b.paidAt ?? b.createdAt);
+          break;
+        case 'client':
+          cmp = a.clientName.localeCompare(b.clientName, locale);
+          break;
+        case 'staff':
+          cmp = (a.staffName ?? '').localeCompare(b.staffName ?? '', locale);
+          break;
+        case 'service':
+          cmp = resolveI18n(a.serviceNameI18n, locale)
+                  .localeCompare(resolveI18n(b.serviceNameI18n, locale), locale);
+          break;
+        case 'serviceDate':
+          cmp = a.serviceDate.localeCompare(b.serviceDate);
+          break;
+        case 'amount':
+          cmp = a.amountCents - b.amountCents;
+          break;
+        case 'status':
+          cmp = (STATUS_PRIORITY[a.status] ?? 99) - (STATUS_PRIORITY[b.status] ?? 99);
+          break;
+      }
+      return sortDir === 'desc' ? -cmp : cmp;
+    });
+  }, [filtered, sortKey, sortDir, locale]);
+
+  const totalPages     = Math.ceil(filtered.length / PAGE_SIZE);
   const showPagination = filtered.length > PAGE_SIZE;
 
   const paged = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE;
-    return filtered.slice(start, start + PAGE_SIZE);
-  }, [filtered, currentPage]);
+    return sorted.slice(start, start + PAGE_SIZE);
+  }, [sorted, currentPage]);
 
-  const [beforeGen, afterGen] = t.emptyInitial.split('{generateBtn}');
-
-  const TABLE_HEADERS = [
-    t.colDate, t.colClient, t.colStaff, t.colService,
-    t.colServiceDate, t.colAmount, t.colMethod, t.colStatus, t.colAppointmentId,
+  const COLUMNS: ColDef[] = [
+    { sortKey: 'date',        label: t('colDate'),          sortable: true  },
+    { sortKey: 'client',      label: t('colClient'),        sortable: true  },
+    { sortKey: 'staff',       label: t('colStaff'),         sortable: true  },
+    { sortKey: 'service',     label: t('colService'),       sortable: true  },
+    { sortKey: 'serviceDate', label: t('colServiceDate'),   sortable: true  },
+    { sortKey: 'amount',      label: t('colAmount'),        sortable: true  },
+    { sortKey: null,          label: t('colMethod'),        sortable: false },
+    { sortKey: 'status',      label: t('colStatus'),        sortable: true  },
+    { sortKey: null,          label: t('colAppointmentId'), sortable: false },
   ];
 
   return (
@@ -166,7 +232,7 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
         <div className="flex items-center gap-2">
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">
-              {t.dateFromLabel}
+              {t('dateFromLabel')}
             </label>
             <input
               type="date"
@@ -177,7 +243,7 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
           </div>
           <div className="flex flex-col gap-1">
             <label className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">
-              {t.dateToLabel}
+              {t('dateToLabel')}
             </label>
             <input
               type="date"
@@ -192,7 +258,7 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
             className="mt-5 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors"
           >
             {pending ? <Loader2 size={14} className="animate-spin" /> : <CalendarRange size={14} />}
-            {t.generateBtn}
+            {t('generateBtn')}
           </button>
         </div>
 
@@ -204,17 +270,17 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
                 type="text"
                 value={search}
                 onChange={(e) => handleSearch(e.target.value)}
-                placeholder={t.searchPlaceholder}
+                placeholder={t('searchPlaceholder')}
                 className="pl-8 pr-3 py-2 rounded-xl border border-stone-200 text-sm text-stone-700
                            placeholder:text-stone-400 focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200 transition-colors w-56"
               />
             </div>
             <button
-              onClick={() => exportCsv(filtered, t, intlLocale)}
+              onClick={handleExportCsv}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-stone-200 text-sm text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors"
             >
               <Download size={13} />
-              {t.exportCsvBtn}
+              {t('exportCsvBtn')}
             </button>
           </div>
         )}
@@ -225,7 +291,7 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
         filtered.length === 0 ? (
           <div className="bg-white rounded-2xl border border-stone-100 py-12 text-center">
             <p className="text-sm text-stone-400">
-              {rows.length === 0 ? t.emptyNoData : t.emptySearch}
+              {rows.length === 0 ? t('emptyNoData') : t('emptySearch')}
             </p>
           </div>
         ) : (
@@ -234,11 +300,54 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
               <table className="w-full text-sm min-w-[900px]">
                 <thead>
                   <tr className="border-b border-stone-50">
-                    {TABLE_HEADERS.map((h) => (
-                      <th key={h} className="py-2.5 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest whitespace-nowrap">
-                        {h}
-                      </th>
-                    ))}
+                    {COLUMNS.map((col) =>
+                      col.sortable ? (
+                        <th
+                          key={col.sortKey}
+                          aria-sort={
+                            sortKey === col.sortKey
+                              ? sortDir === 'asc' ? 'ascending' : 'descending'
+                              : 'none'
+                          }
+                          className="group/sort py-2.5 px-3 text-left whitespace-nowrap cursor-pointer"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleSort(col.sortKey)}
+                            aria-label={t('sortByLabel', { column: col.label })}
+                            className="flex items-center gap-1 text-[10px] font-medium text-stone-400 uppercase tracking-widest focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-300 rounded-sm"
+                          >
+                            {col.label}
+                            {sortKey === col.sortKey && sortDir === 'asc' ? (
+                              <ChevronUp
+                                size={11}
+                                strokeWidth={2}
+                                className="opacity-100 transition-opacity duration-150"
+                              />
+                            ) : sortKey === col.sortKey && sortDir === 'desc' ? (
+                              <ChevronDown
+                                size={11}
+                                strokeWidth={2}
+                                className="opacity-100 transition-opacity duration-150"
+                              />
+                            ) : (
+                              <ChevronsUpDown
+                                size={11}
+                                strokeWidth={1.75}
+                                className="opacity-0 group-hover/sort:opacity-50 [@media(hover:none)]:opacity-50 transition-opacity duration-150"
+                              />
+                            )}
+                          </button>
+                        </th>
+                      ) : (
+                        <th
+                          key={col.label}
+                          className="py-2.5 px-3 text-left text-[10px] font-medium text-stone-400 uppercase tracking-widest whitespace-nowrap"
+                        >
+                          {col.label}
+                        </th>
+                      )
+                    )}
                     <th className="py-2.5 px-3" />
                   </tr>
                 </thead>
@@ -276,7 +385,7 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="p-1 text-stone-300 hover:text-stone-600 transition-colors"
-                            title={t.viewInStripe}
+                            title={t('viewInStripe')}
                           >
                             <ExternalLink size={12} />
                           </a>
@@ -293,7 +402,7 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
               {showPagination && (
                 <>
                   <p className="text-[11px] text-stone-400">
-                    {interpolate(t.pageIndicator, {
+                    {t('pageIndicator', {
                       from:       (currentPage - 1) * PAGE_SIZE + 1,
                       to:         Math.min(currentPage * PAGE_SIZE, filtered.length),
                       total:      filtered.length,
@@ -307,14 +416,14 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
                       disabled={currentPage === 1}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-stone-200 text-xs text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {t.prevBtn}
+                      {t('prevBtn')}
                     </button>
                     <button
                       onClick={() => setCurrentPage((p) => p + 1)}
                       disabled={currentPage === totalPages}
                       className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border border-stone-200 text-xs text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {t.nextBtn}
+                      {t('nextBtn')}
                     </button>
                   </div>
                 </>
@@ -329,9 +438,7 @@ export function PaymentHistoryTable({ locale = 'pt' }: Props) {
         <div className="bg-white rounded-2xl border border-stone-100 border-dashed py-12 text-center">
           <CalendarRange size={24} className="text-stone-300 mx-auto mb-3" strokeWidth={1} />
           <p className="text-sm text-stone-400">
-            {beforeGen}
-            <strong className="text-stone-600">{t.generateBtn}</strong>
-            {afterGen}
+            {t('emptyInitial', { generateBtn: t('generateBtn') })}
           </p>
         </div>
       )}

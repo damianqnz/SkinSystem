@@ -4,6 +4,7 @@ import { useState, useTransition }                                     from 'rea
 import { Plus, MoreVertical, Pencil, Trash2, Percent, DollarSign }     from 'lucide-react';
 import * as DropdownMenu                                                from '@radix-ui/react-dropdown-menu';
 import { toast }                                                        from 'sonner';
+import { useTranslations }                                              from 'next-intl';
 import { deleteSurchargeAction }                                        from '../actions-surcharges';
 import type { SurchargeRow }                                            from '../actions-surcharges';
 import { SurchargeModal }                                               from './SurchargeModal';
@@ -27,6 +28,7 @@ function SurchargeItem({
   onEdit:   (r: SurchargeRow) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useTranslations('dashboard.billing.surcharges');
   const [pending, startTransition] = useTransition();
   const Icon = row.valueType === 'percent' ? Percent : DollarSign;
 
@@ -34,7 +36,7 @@ function SurchargeItem({
     startTransition(async () => {
       const res = await deleteSurchargeAction(row.id);
       if (res.error) { toast.error(res.error); return; }
-      toast.success('Removido');
+      toast.success(t('toastDeleted'));
       onDelete(row.id);
     });
   }
@@ -43,14 +45,14 @@ function SurchargeItem({
     <div className="flex items-center justify-between gap-4 bg-white rounded-xl border border-stone-100
                     px-4 py-3 shadow-sm group transition-shadow hover:shadow">
       <div className="flex items-center gap-3 min-w-0">
-        <span className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg
+        <span className={`shrink-0 flex items-center justify-center w-8 h-8 rounded-lg
           ${row.isReduction ? 'bg-sky-50 text-sky-600' : 'bg-amber-50 text-amber-600'}`}>
           <Icon size={14} strokeWidth={2} />
         </span>
         <div className="min-w-0">
           <p className="text-sm font-medium text-stone-800 truncate">{row.name}</p>
           <p className="text-xs text-stone-400 mt-0.5">
-            {row.isReduction ? 'Redução' : 'Taxa'} · {fmtValue(row)}
+            {row.isReduction ? t('kindReduction') : t('kindTax')} · {fmtValue(row)}
           </p>
         </div>
       </div>
@@ -77,7 +79,7 @@ function SurchargeItem({
                          hover:bg-stone-50 focus:outline-none"
             >
               <Pencil size={13} />
-              Editar
+              {t('edit')}
             </DropdownMenu.Item>
             <DropdownMenu.Item
               onSelect={handleDelete}
@@ -85,7 +87,7 @@ function SurchargeItem({
                          hover:bg-rose-50 focus:outline-none"
             >
               <Trash2 size={13} />
-              Remover
+              {t('remove')}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
@@ -101,6 +103,7 @@ interface Props {
 }
 
 export function SurchargesSection({ initial }: Props) {
+  const t = useTranslations('dashboard.billing.surcharges');
   const [rows,    setRows]    = useState<SurchargeRow[]>(initial);
   const [modal,   setModal]   = useState(false);
   const [editing, setEditing] = useState<SurchargeRow | null>(null);
@@ -129,17 +132,17 @@ export function SurchargesSection({ initial }: Props) {
     <section className="space-y-3">
       <div>
         <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">
-          Taxas e reduções
+          {t('sectionTitle')}
         </h2>
         <p className="text-xs text-stone-400 mt-1">
-          Gostaria de aplicar cobranças adicionais ou reduções aos pagamentos?
+          {t('sectionDesc')}
         </p>
       </div>
 
       <div className="space-y-2">
         {rows.length === 0 ? (
           <div className="bg-white rounded-xl border border-stone-100 border-dashed px-5 py-6 text-center">
-            <p className="text-sm text-stone-400">Nenhuma taxa ou redução configurada.</p>
+            <p className="text-sm text-stone-400">{t('empty')}</p>
           </div>
         ) : (
           rows.map((r) => (
@@ -155,11 +158,11 @@ export function SurchargesSection({ initial }: Props) {
                        hover:text-amber-700 hover:bg-amber-50/40 transition-colors"
           >
             <Plus size={14} />
-            Adicionar taxa ou redução
+            {t('addBtn')}
           </button>
         ) : (
           <p className="text-xs text-stone-400 text-center py-1">
-            Limite atingido: 2 taxas e 1 redução
+            {t('limitReached')}
           </p>
         )}
       </div>

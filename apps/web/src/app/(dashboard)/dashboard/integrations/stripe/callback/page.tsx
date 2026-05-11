@@ -1,5 +1,5 @@
 import { headers } from 'next/headers';
-import { stripeT } from '../../_i18n/stripe';
+import { getTranslations } from 'next-intl/server';
 import { StripeCallbackBridge } from './_callback-bridge';
 
 interface StripeCallbackPageProps {
@@ -19,11 +19,11 @@ export default async function StripeCallbackPage({ searchParams }: StripeCallbac
   const status = params.status === 'refresh' ? 'refresh' : 'success';
 
   const hdrs   = await headers();
-  const locale = hdrs.get('x-locale') ?? 'es';
-  const t      = stripeT(locale);
+  const locale = hdrs.get('x-locale') ?? 'pt';
+  const t      = await getTranslations({ locale, namespace: 'integrations.stripe' });
 
-  const heading = status === 'success' ? t.callback.successTitle : t.callback.refreshTitle;
-  const body    = status === 'success' ? t.callback.successBody  : t.callback.refreshBody;
+  const heading = status === 'success' ? t('callback.successTitle') : t('callback.refreshTitle');
+  const body    = status === 'success' ? t('callback.successBody')  : t('callback.refreshBody');
 
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center text-center">
@@ -40,7 +40,7 @@ export default async function StripeCallbackPage({ searchParams }: StripeCallbac
                    transition-colors hover:bg-stone-800
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
       >
-        {t.callback.backToIntegrations}
+        {t('callback.backToIntegrations')}
       </a>
     </div>
   );

@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from 'react';
 import { Plus, Search } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { CatalogIsland } from './CatalogIsland';
 import { CategoryDrawer } from './CategoryDrawer';
-import { getCatalogT } from '../_i18n';
 import type { CategoryWithServices, ServiceRow } from '@/domains/catalog/service';
 
 function resolveI18n(obj: unknown, locale: string): string {
@@ -21,7 +21,8 @@ interface CatalogClientProps {
 }
 
 export function CatalogClient({ categories, orphans, locale, organizationId }: CatalogClientProps) {
-  const t = getCatalogT(locale);
+  const t      = useTranslations('dashboard.catalog');
+  const intlLocale = useLocale();
   const [catDrawerOpen, setCatDrawerOpen] = useState(false);
   const [editingCat, setEditingCat]       = useState<CategoryWithServices | null>(null);
   const [search, setSearch]               = useState('');
@@ -35,18 +36,18 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
       .map((cat) => ({
         ...cat,
         services: cat.services.filter((svc) =>
-          resolveI18n(svc.nameI18n, locale).toLowerCase().includes(term)
+          resolveI18n(svc.nameI18n, intlLocale).toLowerCase().includes(term)
         ),
       }))
       .filter((cat) => cat.services.length > 0);
-  }, [categories, term, locale]);
+  }, [categories, term, intlLocale]);
 
   const filteredOrphans = useMemo<ServiceRow[]>(() => {
     if (!term) return orphans;
     return orphans.filter((svc) =>
-      resolveI18n(svc.nameI18n, locale).toLowerCase().includes(term)
+      resolveI18n(svc.nameI18n, intlLocale).toLowerCase().includes(term)
     );
-  }, [orphans, term, locale]);
+  }, [orphans, term, intlLocale]);
 
   const totalServices = categories.reduce((n, c) => n + c.services.length, 0) + orphans.length;
   const isEmpty   = categories.length === 0 && orphans.length === 0;
@@ -57,9 +58,9 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
       {/* Page header */}
       <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t.title}</h1>
+          <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t('title')}</h1>
           <p className="text-sm text-stone-400 mt-1">
-            {categories.length} {t.categoriesLabel} · {totalServices} {t.servicesLabel}
+            {categories.length} {t('categoriesLabel')} · {totalServices} {t('servicesLabel')}
           </p>
         </div>
 
@@ -71,7 +72,7 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder={t.searchPlaceholder}
+                placeholder={t('searchPlaceholder')}
                 className="pl-8 pr-3 py-2 rounded-xl border border-stone-200 text-sm text-stone-700
                            placeholder:text-stone-400 bg-white hover:border-stone-300
                            focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200
@@ -84,7 +85,7 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
             className="flex items-center gap-2 px-4 py-2 rounded-xl border border-stone-200 text-sm text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors whitespace-nowrap"
           >
             <Plus size={14} />
-            {t.newCategory}
+            {t('newCategory')}
           </button>
         </div>
       </div>
@@ -129,38 +130,40 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
   );
 }
 
-function EmptyState({ t, onNewCategory }: { t: ReturnType<typeof getCatalogT>; onNewCategory: () => void }) {
+type T = ReturnType<typeof useTranslations<'dashboard.catalog'>>;
+
+function EmptyState({ t, onNewCategory }: { t: T; onNewCategory: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-24 text-center">
       <div className="w-16 h-16 rounded-2xl bg-stone-100 flex items-center justify-center mb-5">
         <span className="text-2xl">✦</span>
       </div>
-      <h3 className="font-cormorant text-xl font-semibold text-stone-700 mb-2">{t.emptyTitle}</h3>
-      <p className="text-sm text-stone-400 max-w-xs mb-6">{t.emptyDesc}</p>
+      <h3 className="font-cormorant text-xl font-semibold text-stone-700 mb-2">{t('emptyTitle')}</h3>
+      <p className="text-sm text-stone-400 max-w-xs mb-6">{t('emptyDesc')}</p>
       <button
         onClick={onNewCategory}
         className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 transition-colors"
       >
         <Plus size={14} />
-        {t.emptyButton}
+        {t('emptyButton')}
       </button>
     </div>
   );
 }
 
-function NoResults({ t, query, onClear }: { t: ReturnType<typeof getCatalogT>; query: string; onClear: () => void }) {
+function NoResults({ t, query, onClear }: { t: T; query: string; onClear: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <Search size={28} className="text-stone-300 mb-4" strokeWidth={1} />
       <p className="font-cormorant text-lg font-semibold text-stone-600 mb-1">
-        {t.noResultsPrefix}&ldquo;{query}&rdquo;
+        {t('noResultsPrefix')}&ldquo;{query}&rdquo;
       </p>
-      <p className="text-sm text-stone-400 mb-4">{t.noResultsDesc}</p>
+      <p className="text-sm text-stone-400 mb-4">{t('noResultsDesc')}</p>
       <button
         onClick={onClear}
         className="text-xs text-amber-600 hover:text-amber-700 underline underline-offset-2 transition-colors"
       >
-        {t.clearSearch}
+        {t('clearSearch')}
       </button>
     </div>
   );

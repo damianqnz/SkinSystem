@@ -4,9 +4,9 @@ import { useState, useTransition } from 'react';
 import * as Switch               from '@radix-ui/react-switch';
 import { Loader2, HelpCircle }   from 'lucide-react';
 import { toast }                 from 'sonner';
+import { useTranslations }       from 'next-intl';
 import { updatePoliciesAction }  from '../actions';
 import { AccordionSection }      from './AccordionSection';
-import { useSettingsT }          from '../../_i18n';
 
 type LeadUnit   = 'minutos' | 'horas' | 'dias';
 type WindowUnit = 'dias'    | 'meses';
@@ -38,6 +38,10 @@ function slotToMinutes(value: number, unit: SlotUnit): number {
 }
 
 const CANCELLATION_VALUES = [0, 1, 2, 4, 6, 10, 12, 24, 48, 72, 168, -1] as const;
+const CANCELLATION_KEY_MAP: Record<number, string> = {
+  0: 'anytime', 1: '1h', 2: '2h', 4: '4h', 6: '6h',
+  10: '10h', 12: '12h', 24: '24h', 48: '48h', 72: '72h', 168: '1week', [-1]: 'never',
+};
 
 function UnitSelect<T extends string>({ value, onChange, options }: {
   value: T; onChange: (v: T) => void;
@@ -62,7 +66,9 @@ interface Props {
 }
 
 export function PoliciesSection({ initial }: Props) {
-  const t = useSettingsT().policies;
+  const t = useTranslations('dashboard.settings.preferences.policies');
+  const units = t.raw('units') as Record<string, string>;
+  const cancellationOpts = t.raw('cancellationOptions') as Record<string, string>;
   const [isPending, startTransition] = useTransition();
 
   const initLead   = detectLeadUnit(initial.bookingLeadTimeHours);
@@ -90,28 +96,28 @@ export function PoliciesSection({ initial }: Props) {
         cancellationHoursNotice,
         cancellationPolicyText:  cancellationPolicyText || null,
       });
-      if (result.error) { toast.error(result.error.message ?? t.errorSave); }
-      else              { toast.success(t.successSave); }
+      if (result.error) { toast.error(result.error.message ?? t('errorSave')); }
+      else              { toast.success(t('successSave')); }
     });
   };
 
   const numInputCls = 'border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-800 w-20 text-center focus:outline-none focus:border-amber-300 transition-colors';
   const rowCls = 'pb-5 border-b border-stone-50 last:pb-0 last:border-b-0';
 
-  const leadUnits    = [{ label: t.units.minutes, value: 'minutos' as LeadUnit   }, { label: t.units.hours, value: 'horas' as LeadUnit }, { label: t.units.days, value: 'dias' as LeadUnit }] as const;
-  const windowUnits  = [{ label: t.units.days,    value: 'dias'    as WindowUnit }, { label: t.units.months, value: 'meses' as WindowUnit }] as const;
-  const slotUnits    = [{ label: t.units.minutes, value: 'minutos' as SlotUnit   }, { label: t.units.hours, value: 'horas' as SlotUnit }] as const;
+  const leadUnits    = [{ label: units.minutes ?? '', value: 'minutos' as LeadUnit   }, { label: units.hours ?? '', value: 'horas' as LeadUnit   }, { label: units.days ?? '', value: 'dias' as LeadUnit   }] as const;
+  const windowUnits  = [{ label: units.days ?? '',    value: 'dias'    as WindowUnit }, { label: units.months ?? '', value: 'meses' as WindowUnit }] as const;
+  const slotUnits    = [{ label: units.minutes ?? '', value: 'minutos' as SlotUnit   }, { label: units.hours ?? '',  value: 'horas' as SlotUnit   }] as const;
 
   return (
-    <AccordionSection id="politicas" title={t.accordionTitle}>
+    <AccordionSection id="politicas" title={t('accordionTitle')}>
       <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6 space-y-5">
 
         {/* 1 ── Lead time */}
         <div className={rowCls}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <p className="text-sm font-medium text-stone-900">{t.leadTime.title}</p>
-              <p className="text-xs text-stone-500 mt-1">{t.leadTime.desc}</p>
+              <p className="text-sm font-medium text-stone-900">{t('leadTimeTitle')}</p>
+              <p className="text-xs text-stone-500 mt-1">{t('leadTimeDesc')}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <input type="number" value={leadValue} min={0}
@@ -126,8 +132,8 @@ export function PoliciesSection({ initial }: Props) {
         <div className={rowCls}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <p className="text-sm font-medium text-stone-900">{t.bookingWindow.title}</p>
-              <p className="text-xs text-stone-500 mt-1">{t.bookingWindow.desc}</p>
+              <p className="text-sm font-medium text-stone-900">{t('bookingWindowTitle')}</p>
+              <p className="text-xs text-stone-500 mt-1">{t('bookingWindowDesc')}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <input type="number" value={windowValue} min={0}
@@ -143,16 +149,16 @@ export function PoliciesSection({ initial }: Props) {
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-1.5">
-                <p className="text-sm font-medium text-stone-900">{t.slotDuration.title}</p>
+                <p className="text-sm font-medium text-stone-900">{t('slotDurationTitle')}</p>
                 <div className="relative group">
                   <HelpCircle size={13} className="text-stone-400 cursor-help" />
                   <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2.5 w-64 bg-stone-900 text-white text-xs rounded-xl px-3 py-2.5 shadow-lg leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-150 pointer-events-none z-20">
-                    {t.slotDuration.tooltip}
+                    {t('slotDurationTooltip')}
                     <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-stone-900" />
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-stone-500 mt-1">{t.slotDuration.desc}</p>
+              <p className="text-xs text-stone-500 mt-1">{t('slotDurationDesc')}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               <input type="number" value={slotValue} min={slotUnit === 'horas' ? 0.5 : 5} step={slotUnit === 'horas' ? 0.5 : 5}
@@ -171,15 +177,15 @@ export function PoliciesSection({ initial }: Props) {
         <div className={rowCls}>
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1">
-              <p className="text-sm font-medium text-stone-900">{t.cancellation.title}</p>
-              <p className="text-xs text-stone-500 mt-1">{t.cancellation.desc}</p>
+              <p className="text-sm font-medium text-stone-900">{t('cancellationTitle')}</p>
+              <p className="text-xs text-stone-500 mt-1">{t('cancellationDesc')}</p>
             </div>
             <div className="shrink-0">
               <select value={cancellationHoursNotice}
                 onChange={(e) => setCancellationHoursNotice(parseInt(e.target.value, 10))}
                 className="border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-800 bg-white focus:outline-none focus:border-amber-300 transition-colors appearance-none cursor-pointer">
-                {CANCELLATION_VALUES.map((v, idx) => (
-                  <option key={v} value={v}>{t.cancellationOptions[idx]}</option>
+                {CANCELLATION_VALUES.map((v) => (
+                  <option key={v} value={v}>{cancellationOpts[CANCELLATION_KEY_MAP[v] ?? ''] ?? v}</option>
                 ))}
               </select>
             </div>
@@ -188,15 +194,15 @@ export function PoliciesSection({ initial }: Props) {
 
         {/* 5 ── Custom message */}
         <div className="pt-2">
-          <label className="text-sm font-medium text-stone-900 block">{t.customMessage.title}</label>
-          <p className="text-xs text-stone-500 mt-1 mb-3">{t.customMessage.desc}</p>
+          <label className="text-sm font-medium text-stone-900 block">{t('customMessageTitle')}</label>
+          <p className="text-xs text-stone-500 mt-1 mb-3">{t('customMessageDesc')}</p>
           <textarea value={cancellationPolicyText} onChange={(e) => setCancellationPolicyText(e.target.value)}
             rows={4} className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm text-stone-800 focus:outline-none focus:border-amber-300 transition-colors resize-none" />
         </div>
 
         {/* Add to homepage */}
         <div className="pt-2 flex items-center justify-between gap-4">
-          <label className="text-sm font-medium text-stone-900">{t.addPolicyToHomepage}</label>
+          <label className="text-sm font-medium text-stone-900">{t('addPolicyToHomepage')}</label>
           <Switch.Root checked={showPolicyOnHomepage} onCheckedChange={setShowPolicyOnHomepage}
             className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-stone-200 transition-colors data-[state=checked]:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400">
             <Switch.Thumb className="block h-4 w-4 rounded-full bg-white shadow-sm transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0" />
@@ -207,7 +213,7 @@ export function PoliciesSection({ initial }: Props) {
           <button onClick={handleSave} disabled={isPending}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors">
             {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isPending ? t.saving : t.save}
+            {isPending ? t('saving') : t('save')}
           </button>
         </div>
       </div>

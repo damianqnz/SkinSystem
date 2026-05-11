@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { CalendarX } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { getCustomerAppointmentsAction } from '../../actions/get-customer-appointments';
 import type { AppointmentHistoryData, AppointmentHistoryItem } from '@/domains/customers/service-appointments';
 
 // ── Helpers ──────────────────────────────────────────────────────
+const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
+
 function svcName(name: Record<string, string> | null, locale: string): string {
   if (!name) return '—';
   return name[locale] ?? name['es'] ?? Object.values(name)[0] ?? '—';
@@ -16,28 +19,12 @@ function fmtEur(cents: number | null): string {
   return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }
 
-function fmtAppt(iso: string, locale: string) {
-  const d = new Date(iso);
-  const tag = locale === 'pt' ? 'pt-PT' : locale === 'en' ? 'en-GB' : 'es-ES';
-  return {
-    date: d.toLocaleDateString(tag, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }),
-    time: d.toLocaleTimeString(tag, { hour: '2-digit', minute: '2-digit' }),
-  };
-}
-
 const STATUS_CLS: Record<string, string> = {
-  pending:   'bg-amber-50  text-amber-700  border-amber-200',
-  confirmed: 'bg-sky-50    text-sky-700    border-sky-200',
+  pending:   'bg-amber-50   text-amber-700   border-amber-200',
+  confirmed: 'bg-sky-50     text-sky-700     border-sky-200',
   completed: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  cancelled: 'bg-stone-50  text-stone-500  border-stone-200',
-  no_show:   'bg-rose-50   text-rose-600   border-rose-200',
-};
-const STATUS_L: Record<string, Record<string, string>> = {
-  pending:   { es: 'Pendiente',  pt: 'Pendente',  en: 'Pending'   },
-  confirmed: { es: 'Confirmada', pt: 'Confirmada', en: 'Confirmed' },
-  completed: { es: 'Completada', pt: 'Concluída',  en: 'Completed' },
-  cancelled: { es: 'Cancelada',  pt: 'Cancelada',  en: 'Cancelled' },
-  no_show:   { es: 'No asistió', pt: 'Faltou',     en: 'No-show'  },
+  cancelled: 'bg-stone-50   text-stone-500   border-stone-200',
+  no_show:   'bg-rose-50    text-rose-600    border-rose-200',
 };
 
 // ── Sub-components ────────────────────────────────────────────────
@@ -53,23 +40,23 @@ function StatCard({ value, label, hint }: { value: string | number; label: strin
   );
 }
 
-function ApptRow({ item, locale }: { item: AppointmentHistoryItem; locale: string }) {
-  const { date, time } = fmtAppt(item.startAt, locale);
+function ApptRow({ item, locale, statusLabels }: { item: AppointmentHistoryItem; locale: string; statusLabels: Record<string, string> }) {
+  const intlLocale = INTL_LOCALE_MAP[locale] ?? 'pt-PT';
+  const d    = new Date(item.startAt);
+  const date = d.toLocaleDateString(intlLocale,  { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  const time = d.toLocaleTimeString(intlLocale,  { hour: '2-digit', minute: '2-digit' });
   const statusCls   = STATUS_CLS[item.status] ?? STATUS_CLS.pending!;
-  const statusLabel = (STATUS_L[item.status] ?? STATUS_L.pending!)[locale] ?? STATUS_L.pending!.es!;
+  const statusLabel = statusLabels[item.status] ?? item.status;
   return (
     <div className="flex items-start gap-3 py-3 border-b border-stone-100 last:border-0">
-      {/* Date / time */}
       <div className="w-32 shrink-0">
         <p className="font-sans text-xs text-stone-700 leading-snug">{date}</p>
         <p className="font-sans text-[11px] text-stone-400">{time}</p>
       </div>
-      {/* Service + staff */}
       <div className="flex-1 min-w-0">
         <p className="font-sans text-sm text-stone-800 truncate">{svcName(item.serviceName, locale)}</p>
         {item.staffName && <p className="font-sans text-[11px] text-stone-400 truncate">{item.staffName}</p>}
       </div>
-      {/* Status + price */}
       <div className="shrink-0 flex flex-col items-end gap-1">
         <span className={`font-sans text-[10px] px-1.5 py-0.5 border rounded-sm ${statusCls}`}>{statusLabel}</span>
         <span className="font-sans text-xs text-stone-500 tabular-nums">{fmtEur(item.totalCents)}</span>
@@ -93,6 +80,8 @@ function Skeleton() {
 interface Props { customerId: string; locale: string; }
 
 export function CompromisosTab({ customerId, locale }: Props) {
+  const t = useTranslations('dashboard.customers.appointments');
+  useLocale(); // ensures locale context is available
   const [data,    setData]    = useState<AppointmentHistoryData | null>(null);
   const [loading, setLoading] = useState(true);
   const [errMsg,  setErrMsg]  = useState<string | null>(null);
@@ -114,44 +103,31 @@ export function CompromisosTab({ customerId, locale }: Props) {
   if (!data)   return null;
 
   const { stats, items } = data;
-  const L = {
-    year:        locale === 'pt' ? 'Este ano'    : locale === 'en' ? 'This year'   : 'Este año',
-    yearHint:    locale === 'pt' ? 'Visitas concluídas no ano em curso'
-                 : locale === 'en' ? 'Completed visits in the current year'
-                 : 'Visitas completadas en el año en curso',
-    cancel:      locale === 'pt' ? 'Canceladas'  : locale === 'en' ? 'Cancelled'   : 'Canceladas',
-    cancelHint:  locale === 'pt' ? 'Total de consultas que não se realizaram'
-                 : locale === 'en' ? 'Appointments that did not take place'
-                 : 'Total de citas que no se llevaron a cabo',
-    avg:         locale === 'pt' ? 'Gasto médio' : locale === 'en' ? 'Avg. spend'  : 'Gasto medio',
-    avgHint:     locale === 'pt' ? 'Média por sessão concluída'
-                 : locale === 'en' ? 'Average amount per completed session'
-                 : 'Promedio por sesión completada',
-    services:    locale === 'pt' ? 'Serviços'    : locale === 'en' ? 'Services'    : 'Servicios',
-    servicesHint:locale === 'pt' ? 'Tratamentos distintos já realizados'
-                 : locale === 'en' ? 'Distinct treatments received'
-                 : 'Tipos de tratamiento distintos recibidos',
-    noCitas:     locale === 'pt' ? 'Sem historial de visitas.' : locale === 'en' ? 'No visits yet.' : 'Sin historial de visitas.',
+
+  const statusLabels: Record<string, string> = {
+    pending:   t('status.pending'),
+    confirmed: t('status.confirmed'),
+    completed: t('status.completed'),
+    cancelled: t('status.cancelled'),
+    no_show:   t('status.no_show'),
   };
 
   return (
     <div className="space-y-5">
-      {/* Stat cards */}
       <div className="grid grid-cols-2 gap-3">
-        <StatCard value={stats.totalThisYear}         label={L.year}     hint={L.yearHint}     />
-        <StatCard value={stats.cancelledCount}        label={L.cancel}   hint={L.cancelHint}   />
-        <StatCard value={fmtEur(stats.avgSpendCents)} label={L.avg}      hint={L.avgHint}      />
-        <StatCard value={stats.distinctServices}      label={L.services} hint={L.servicesHint} />
+        <StatCard value={stats.totalThisYear}         label={t('yearLabel')}      hint={t('yearHint')}      />
+        <StatCard value={stats.cancelledCount}        label={t('cancelledLabel')} hint={t('cancelledHint')} />
+        <StatCard value={fmtEur(stats.avgSpendCents)} label={t('avgSpendLabel')}  hint={t('avgSpendHint')}  />
+        <StatCard value={stats.distinctServices}      label={t('servicesLabel')}  hint={t('servicesHint')}  />
       </div>
 
-      {/* Appointment list */}
       {items.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-8 text-stone-400">
           <CalendarX size={28} strokeWidth={1} />
-          <p className="font-sans text-sm">{L.noCitas}</p>
+          <p className="font-sans text-sm">{t('noHistory')}</p>
         </div>
       ) : (
-        <div>{items.map(item => <ApptRow key={item.id} item={item} locale={locale} />)}</div>
+        <div>{items.map(item => <ApptRow key={item.id} item={item} locale={locale} statusLabels={statusLabels} />)}</div>
       )}
     </div>
   );

@@ -5,11 +5,18 @@ import * as Switch                                                     from '@ra
 import { Plus, MoreVertical, Pencil, Trash2, Tag }                     from 'lucide-react';
 import * as DropdownMenu                                               from '@radix-ui/react-dropdown-menu';
 import { toast }                                                       from 'sonner';
+import { useTranslations, useLocale }                                  from 'next-intl';
 import { toggleCouponAction, deleteCouponAction }                      from '../actions-coupons';
 import type { CouponRow }                                              from '../actions-coupons';
 import { CouponModal }                                                 from './CouponModal';
 
 // ── Helpers ───────────────────────────────────────────────────
+
+const INTL_LOCALE_MAP: Record<string, string> = {
+  es: 'es-ES',
+  en: 'en-GB',
+  pt: 'pt-PT',
+};
 
 function fmtDiscount(row: CouponRow) {
   return row.discountType === 'percent'
@@ -17,8 +24,8 @@ function fmtDiscount(row: CouponRow) {
     : `€${parseFloat(row.discountValue).toFixed(2)}`;
 }
 
-function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+function fmtDate(iso: string, intlLocale: string) {
+  return new Date(iso).toLocaleDateString(intlLocale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function isExpired(row: CouponRow) {
@@ -39,6 +46,9 @@ function CouponItem({
   onEdit:   (r: CouponRow) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useTranslations('dashboard.billing.coupons');
+  const locale = useLocale();
+  const intlLocale = INTL_LOCALE_MAP[locale] ?? 'pt-PT';
   const [active,  setActive]  = useState(row.isActive);
   const [pending, startTransition] = useTransition();
   const expired = isExpired(row);
@@ -56,7 +66,7 @@ function CouponItem({
     startTransition(async () => {
       const res = await deleteCouponAction(row.id);
       if (res.error) { toast.error(res.error); return; }
-      toast.success('Cupão removido');
+      toast.success(t('toastDeleted'));
       onDelete(row.id);
     });
   }
@@ -66,7 +76,7 @@ function CouponItem({
                      transition-all hover:shadow
                      ${expired ? 'border-rose-100 opacity-70' : 'border-stone-100'}`}>
       {/* Icon */}
-      <span className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 text-amber-600">
+      <span className="shrink-0 flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 text-amber-600">
         <Tag size={14} strokeWidth={2} />
       </span>
 
@@ -79,22 +89,22 @@ function CouponItem({
           </span>
           {expired && (
             <span className="inline-block bg-rose-50 text-rose-500 text-[10px] font-medium px-2 py-0.5 rounded-full">
-              Expirado
+              {t('expired')}
             </span>
           )}
         </div>
         <p className="text-[11px] text-stone-400 mt-0.5 space-x-2">
           {row.maxUses != null && (
-            <span>{row.usesCount}/{row.maxUses} usos</span>
+            <span>{t('uses', { count: row.usesCount, maxUses: row.maxUses })}</span>
           )}
           {row.maxUses == null && row.usesCount > 0 && (
-            <span>{row.usesCount} usos</span>
+            <span>{t('usesNoLimit', { count: row.usesCount })}</span>
           )}
           {row.validUntil && (
-            <span>Expira {fmtDate(row.validUntil)}</span>
+            <span>{t('expiresOn', { date: fmtDate(row.validUntil, intlLocale) })}</span>
           )}
           {!row.validUntil && !row.maxUses && (
-            <span>Sem limite</span>
+            <span>{t('noLimit')}</span>
           )}
         </p>
       </div>
@@ -141,7 +151,7 @@ function CouponItem({
                          hover:bg-stone-50 focus:outline-none"
             >
               <Pencil size={13} />
-              Editar
+              {t('edit')}
             </DropdownMenu.Item>
             <DropdownMenu.Item
               onSelect={handleDelete}
@@ -149,7 +159,7 @@ function CouponItem({
                          hover:bg-rose-50 focus:outline-none"
             >
               <Trash2 size={13} />
-              Remover
+              {t('remove')}
             </DropdownMenu.Item>
           </DropdownMenu.Content>
         </DropdownMenu.Portal>
@@ -165,6 +175,7 @@ interface Props {
 }
 
 export function CouponsSection({ initial }: Props) {
+  const t = useTranslations('dashboard.billing.coupons');
   const [rows,    setRows]    = useState<CouponRow[]>(initial);
   const [modal,   setModal]   = useState(false);
   const [editing, setEditing] = useState<CouponRow | null>(null);
@@ -193,17 +204,17 @@ export function CouponsSection({ initial }: Props) {
     <section className="space-y-3">
       <div>
         <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">
-          Cupões de desconto
+          {t('sectionTitle')}
         </h2>
         <p className="text-xs text-stone-400 mt-1">
-          Crie cupões com desconto fixo ou percentual para partilhar com os seus clientes.
+          {t('sectionDesc')}
         </p>
       </div>
 
       <div className="space-y-2">
         {rows.length === 0 ? (
           <div className="bg-white rounded-xl border border-stone-100 border-dashed px-5 py-6 text-center">
-            <p className="text-sm text-stone-400">Nenhum cupão criado ainda.</p>
+            <p className="text-sm text-stone-400">{t('empty')}</p>
           </div>
         ) : (
           rows.map((r) => (
@@ -224,7 +235,7 @@ export function CouponsSection({ initial }: Props) {
                      hover:text-amber-700 hover:bg-amber-50/40 transition-colors"
         >
           <Plus size={14} />
-          Criar cupão
+          {t('createBtn')}
         </button>
       </div>
 

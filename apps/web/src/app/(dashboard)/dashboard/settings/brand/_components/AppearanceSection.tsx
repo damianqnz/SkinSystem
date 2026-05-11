@@ -3,8 +3,8 @@
 import { useState, useTransition } from 'react';
 import { Monitor, Sun, Moon, Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { updateAppearanceAction } from '../actions';
-import { useSettingsT } from '../../_i18n';
 
 interface Props {
   initial: {
@@ -38,11 +38,15 @@ function notifyPreview() {
 }
 
 export function AppearanceSection({ initial }: Props) {
-  const t = useSettingsT().appearance;
+  const t = useTranslations('dashboard.settings.brand.appearance');
   const [brandColor,  setBrandColor]  = useState(initial.brandColor);
   const [buttonShape, setButtonShape] = useState(initial.buttonShape);
   const [theme,       setTheme]       = useState(initial.theme);
   const [isPending,   startTransition] = useTransition();
+
+  // Named-key lookup for shapes and themes
+  const shapes = t.raw('shapes') as Record<string, string>;
+  const themes = t.raw('themes') as Record<string, string>;
 
   const handleSave = () => {
     startTransition(async () => {
@@ -50,7 +54,7 @@ export function AppearanceSection({ initial }: Props) {
       if (result.error) {
         toast.error(result.error.message);
       } else {
-        toast.success(t.successSave);
+        toast.success(t('successSave'));
         notifyPreview();
       }
     });
@@ -59,12 +63,12 @@ export function AppearanceSection({ initial }: Props) {
   return (
     <section id="appearance" className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6">
       <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest mb-6">
-        {t.sectionTitle}
+        {t('sectionTitle')}
       </h2>
 
       {/* Color Swatches */}
       <div className="mb-8">
-        <p className="text-sm font-medium text-stone-700 mb-3">{t.brandColor}</p>
+        <p className="text-sm font-medium text-stone-700 mb-3">{t('brandColor')}</p>
         <div className="flex items-center gap-3 flex-wrap mb-3">
           {PRESET_COLORS.map((color) => (
             <button
@@ -84,7 +88,7 @@ export function AppearanceSection({ initial }: Props) {
           ))}
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-stone-500">{t.custom}</label>
+          <label className="text-xs text-stone-500">{t('custom')}</label>
           <input
             type="color"
             value={brandColor}
@@ -97,9 +101,9 @@ export function AppearanceSection({ initial }: Props) {
 
       {/* Button Shapes */}
       <div className="mb-8">
-        <p className="text-sm font-medium text-stone-700 mb-3">{t.buttonShape}</p>
+        <p className="text-sm font-medium text-stone-700 mb-3">{t('buttonShape')}</p>
         <div className="flex items-center gap-3">
-          {BUTTON_SHAPE_IDS.map((id, idx) => (
+          {BUTTON_SHAPE_IDS.map((id) => (
             <button
               key={id}
               onClick={() => setButtonShape(id)}
@@ -108,7 +112,7 @@ export function AppearanceSection({ initial }: Props) {
               }`}
               style={{ borderRadius: id === 'pill' ? '999px' : id === 'rounded' ? '12px' : '4px' }}
             >
-              {t.shapes[idx]}
+              {shapes[id] ?? id}
             </button>
           ))}
         </div>
@@ -116,9 +120,9 @@ export function AppearanceSection({ initial }: Props) {
 
       {/* Theme Selection */}
       <div className="mb-8">
-        <p className="text-sm font-medium text-stone-700 mb-3">{t.theme}</p>
+        <p className="text-sm font-medium text-stone-700 mb-3">{t('theme')}</p>
         <div className="grid grid-cols-3 gap-3">
-          {THEME_IDS.map(({ id, icon: Icon }, idx) => {
+          {THEME_IDS.map(({ id, icon: Icon }) => {
             const isSelected = theme === id;
             return (
               <button
@@ -131,7 +135,7 @@ export function AppearanceSection({ initial }: Props) {
                 }`}
               >
                 <Icon size={18} />
-                <span className="text-xs font-medium">{t.themes[idx]}</span>
+                <span className="text-xs font-medium">{themes[id] ?? id}</span>
               </button>
             );
           })}
@@ -144,7 +148,7 @@ export function AppearanceSection({ initial }: Props) {
         className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors"
       >
         {isPending && <Loader2 size={16} className="animate-spin" />}
-        {t.save}
+        {t('save')}
       </button>
     </section>
   );

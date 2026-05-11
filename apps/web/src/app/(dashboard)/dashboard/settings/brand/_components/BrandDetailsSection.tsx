@@ -3,8 +3,8 @@
 import { useState, useTransition, useRef } from 'react';
 import { Loader2, Upload, Trash2, ImageIcon } from 'lucide-react';
 import { toast }                              from 'sonner';
+import { useTranslations }                    from 'next-intl';
 import { updateBrandDetailsAction, uploadOrgMediaAction } from '../actions';
-import { useSettingsT } from '../../_i18n';
 import { isValidImageFile, UPLOAD_MAX_MB } from '@/shared/config/uploads';
 
 interface Props {
@@ -25,7 +25,7 @@ function notifyPreview() {
 }
 
 export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
-  const t = useSettingsT().brandDetails;
+  const t = useTranslations('dashboard.settings.brand.details');
   const [name,      setName]      = useState(initial.name);
   const [industry,  setIndustry]  = useState(initial.industry ?? '');
   const [about,     setAbout]     = useState(initial.about ?? '');
@@ -39,17 +39,29 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
   const logoInput   = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
 
+  // Industries as named keys — extract translated labels
+  const INDUSTRY_KEYS = ['beauty','healthWellness','fitness','education','consulting',
+    'photography','technology','food','fashion','other'] as const;
+  const industryLabels = INDUSTRY_KEYS.map(k => ({
+    key: k,
+    label: t(`industries.${k}` as Parameters<typeof t>[0]),
+  }));
+
   async function handleUpload(file: File, type: 'logo' | 'banner') {
     const validation = isValidImageFile(file);
     if (!validation.ok) {
-      const key = validation.reason === 'TOO_LARGE' ? 'errorTooLarge' : 'errorInvalidType';
-      const entry = t[key];
-      toast.error(entry.title, {
-        description: entry.description.replace('{maxMb}', String(UPLOAD_MAX_MB)),
-        position: 'top-center',
-        duration: 6000,
-        richColors: true,
-      });
+      const isLarge = validation.reason === 'TOO_LARGE';
+      toast.error(
+        isLarge ? t('errorTooLargeTitle') : t('errorInvalidTypeTitle'),
+        {
+          description: isLarge
+            ? t('errorTooLargeDesc', { maxMb: UPLOAD_MAX_MB })
+            : t('errorInvalidTypeDesc'),
+          position: 'top-center',
+          duration: 6000,
+          richColors: true,
+        },
+      );
       return;
     }
 
@@ -64,7 +76,7 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
       const res = await uploadOrgMediaAction(fd);
 
       if (res.error || !res.data) {
-        toast.error(res.error?.message ?? t.errorUpload);
+        toast.error(res.error?.message ?? t('errorUpload'));
         if (type === 'logo') setLogoUrl(initial.logoUrl ?? '');
         else setBannerUrl(initial.bannerUrl ?? '');
         return;
@@ -73,15 +85,14 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
       if (type === 'logo') setLogoUrl(res.data.url);
       else setBannerUrl(res.data.url);
 
-      toast.success(type === 'logo' ? t.successLogo : t.successBanner);
+      toast.success(type === 'logo' ? t('successLogo') : t('successBanner'));
       notifyPreview();
 
     } catch (err) {
       console.error('[upload] unexpected error:', err);
-      toast.error(t.errorUnexpected);
+      toast.error(t('errorUnexpected'));
       if (type === 'logo') setLogoUrl(initial.logoUrl ?? '');
       else setBannerUrl(initial.bannerUrl ?? '');
-
     } finally {
       if (type === 'logo') setUploadingLogo(false);
       else setUploadingBanner(false);
@@ -105,7 +116,7 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
     startTransition(async () => {
       const res = await updateBrandDetailsAction({ name, industry: industry || null, about: about || null });
       if (res.error) { toast.error(res.error.message); return; }
-      toast.success(t.successSave);
+      toast.success(t('successSave'));
       notifyPreview();
     });
   }
@@ -113,7 +124,7 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
   return (
     <section id="detalhes" className="space-y-5">
       <h2 className="text-xs font-medium text-stone-400 uppercase tracking-widest">
-        {t.sectionTitle}
+        {t('sectionTitle')}
       </h2>
 
       {/* Banner */}
@@ -127,12 +138,12 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-stone-400">
               <ImageIcon size={20} strokeWidth={1.5} />
-              <span className="text-xs">{t.clickToAddBanner}</span>
+              <span className="text-xs">{t('clickToAddBanner')}</span>
             </div>
           )}
           <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
             <span className="text-white text-xs font-medium bg-black/40 px-3 py-1.5 rounded-lg">
-              {bannerUrl ? t.changeBanner : t.addBanner}
+              {bannerUrl ? t('changeBanner') : t('addBanner')}
             </span>
           </div>
           {uploadingBanner && (
@@ -168,7 +179,7 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
           <div className="flex gap-2 pb-1">
             <button onClick={() => logoInput.current?.click()}
               className="text-xs text-stone-600 border border-stone-200 px-3 py-1.5 rounded-lg hover:bg-stone-50 transition-colors">
-              {logoUrl ? t.editLogo : t.addLogo}
+              {logoUrl ? t('editLogo') : t('addLogo')}
             </button>
             {logoUrl && (
               <button onClick={() => setLogoUrl('')}
@@ -183,7 +194,7 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
       {/* Fields */}
       <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-6 space-y-4">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t.businessName}</label>
+          <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('businessName')}</label>
           <input
             type="text"
             value={name}
@@ -193,7 +204,7 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t.bookingUrl}</label>
+          <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('bookingUrl')}</label>
           <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden focus-within:border-amber-300 focus-within:ring-1 focus-within:ring-amber-200 transition-colors">
             <span className="px-3 py-2.5 text-xs text-stone-400 bg-stone-50 border-r border-stone-200 whitespace-nowrap">
               skinsystem.pt/
@@ -205,28 +216,30 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
               className="flex-1 px-3 py-2.5 text-sm text-stone-500 bg-white focus:outline-none cursor-not-allowed"
             />
           </div>
-          <p className="text-[10px] text-stone-400">{t.urlReadOnly}</p>
+          <p className="text-[10px] text-stone-400">{t('urlReadOnly')}</p>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t.industry}</label>
+          <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('industry')}</label>
           <select
             value={industry}
             onChange={(e) => setIndustry(e.target.value)}
             className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 bg-white focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200 transition-colors appearance-none cursor-pointer"
           >
-            <option value="">{t.selectPlaceholder}</option>
-            {t.industries.map((i) => <option key={i} value={i}>{i}</option>)}
+            <option value="">{t('selectPlaceholder')}</option>
+            {industryLabels.map(({ key, label }) => (
+              <option key={key} value={label}>{label}</option>
+            ))}
           </select>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t.about}</label>
+          <label className="text-xs font-medium text-stone-500 uppercase tracking-wider">{t('about')}</label>
           <textarea
             value={about}
             onChange={(e) => setAbout(e.target.value)}
             rows={4}
-            placeholder={t.aboutPlaceholder}
+            placeholder={t('aboutPlaceholder')}
             className="w-full border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-800 placeholder:text-stone-400 focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200 transition-colors resize-none"
           />
         </div>
@@ -235,7 +248,7 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
           <button onClick={handleSave} disabled={pending}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors">
             {pending && <Loader2 size={13} className="animate-spin" />}
-            {t.save}
+            {t('save')}
           </button>
         </div>
       </div>

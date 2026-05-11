@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 import { ViewSwitcher, type CalendarView } from './ViewSwitcher';
 
 interface CalendarDayNavProps {
@@ -10,38 +11,7 @@ interface CalendarDayNavProps {
   view:   CalendarView;
 }
 
-const DAY_NAMES: Record<string, string[]> = {
-  es: ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'],
-  pt: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
-  en: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
-};
-
-const MONTH_NAMES: Record<string, string[]> = {
-  es: ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],
-  pt: ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'],
-  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
-};
-
-function fmtDate(d: Date, locale: string, view: CalendarView): { dayName: string; full: string } {
-  const days   = DAY_NAMES[locale]  ?? DAY_NAMES['es']!;
-  const months = MONTH_NAMES[locale] ?? MONTH_NAMES['es']!;
-
-  if (view === 'week') {
-    const dow          = d.getUTCDay();
-    const diffToMonday = dow === 0 ? -6 : 1 - dow;
-    const start = new Date(d); start.setUTCDate(d.getUTCDate() + diffToMonday);
-    const end   = new Date(start); end.setUTCDate(start.getUTCDate() + 6);
-    const full  = start.getUTCMonth() === end.getUTCMonth()
-      ? `${start.getUTCDate()} - ${end.getUTCDate()} ${months[start.getUTCMonth()]} ${start.getUTCFullYear()}`
-      : `${start.getUTCDate()} ${months[start.getUTCMonth()]?.slice(0, 3)} - ${end.getUTCDate()} ${months[end.getUTCMonth()]?.slice(0, 3)} ${start.getUTCFullYear()}`;
-    return { dayName: locale === 'pt' ? 'Semana' : locale === 'en' ? 'Week' : 'Semana', full };
-  }
-
-  return {
-    dayName: days[d.getUTCDay()]!,
-    full:    `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`,
-  };
-}
+const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
 
 function isToday(d: Date, view: CalendarView): boolean {
   const now = new Date();
@@ -56,9 +26,31 @@ function isToday(d: Date, view: CalendarView): boolean {
 }
 
 export function CalendarDayNav({ date, locale, view }: CalendarDayNavProps) {
-  const router = useRouter();
-  const path   = usePathname();
-  const params = useSearchParams();
+  const t          = useTranslations('dashboard.calendar.dayNav');
+  const intlLocale = INTL_LOCALE_MAP[useLocale()] ?? 'pt-PT';
+  const router     = useRouter();
+  const path       = usePathname();
+  const params     = useSearchParams();
+
+  const days   = t.raw('days')   as string[];
+  const months = t.raw('months') as string[];
+
+  function fmtDate(): { dayName: string; full: string } {
+    if (view === 'week') {
+      const dow          = date.getUTCDay();
+      const diffToMonday = dow === 0 ? -6 : 1 - dow;
+      const start = new Date(date); start.setUTCDate(date.getUTCDate() + diffToMonday);
+      const end   = new Date(start); end.setUTCDate(start.getUTCDate() + 6);
+      const full  = start.getUTCMonth() === end.getUTCMonth()
+        ? `${start.getUTCDate()} - ${end.getUTCDate()} ${months[start.getUTCMonth()]} ${start.getUTCFullYear()}`
+        : `${start.getUTCDate()} ${months[start.getUTCMonth()]?.slice(0, 3)} - ${end.getUTCDate()} ${months[end.getUTCMonth()]?.slice(0, 3)} ${start.getUTCFullYear()}`;
+      return { dayName: t('weekLabel'), full };
+    }
+    return {
+      dayName: days[date.getUTCDay()]!,
+      full:    `${date.getUTCDate()} ${months[date.getUTCMonth()]} ${date.getUTCFullYear()}`,
+    };
+  }
 
   function navigate(delta: number) {
     const d    = new Date(date);
@@ -76,7 +68,9 @@ export function CalendarDayNav({ date, locale, view }: CalendarDayNavProps) {
   }
 
   const today               = isToday(date, view);
-  const { dayName, full }   = fmtDate(date, locale, view);
+  const { dayName, full }   = fmtDate();
+  const prevLabel = view === 'week' ? t('prevWeekAriaLabel') : t('prevAriaLabel');
+  const nextLabel = view === 'week' ? t('nextWeekAriaLabel') : t('nextAriaLabel');
 
   return (
     <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-stone-100">
@@ -84,21 +78,21 @@ export function CalendarDayNav({ date, locale, view }: CalendarDayNavProps) {
         <ViewSwitcher current={view} locale={locale} />
 
         <div className="flex items-center gap-2 flex-1 justify-center">
-          <button onClick={() => navigate(-1)} aria-label={view === 'week' ? 'Semana anterior' : 'Día anterior'} className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors text-stone-400">
+          <button onClick={() => navigate(-1)} aria-label={prevLabel} className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors text-stone-400">
             <ChevronLeft size={15} />
           </button>
           <div className="text-center min-w-[160px]">
             <p className={['text-sm font-semibold', today ? 'text-amber-600' : 'text-stone-800'].join(' ')}>{dayName}</p>
             <p className="text-[11px] text-stone-400 tabular-nums">{full}</p>
           </div>
-          <button onClick={() => navigate(1)} aria-label={view === 'week' ? 'Semana siguiente' : 'Día siguiente'} className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors text-stone-400">
+          <button onClick={() => navigate(1)} aria-label={nextLabel} className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors text-stone-400">
             <ChevronRight size={15} />
           </button>
         </div>
 
         <button onClick={goToday} disabled={today} className="flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-medium text-stone-500 border border-stone-200 rounded-lg hover:bg-stone-50 disabled:opacity-40 transition-colors">
           <CalendarDays size={12} />
-          {locale === 'pt' ? 'Hoje' : locale === 'en' ? 'Today' : 'Hoy'}
+          {t('todayBtn')}
         </button>
       </div>
     </div>

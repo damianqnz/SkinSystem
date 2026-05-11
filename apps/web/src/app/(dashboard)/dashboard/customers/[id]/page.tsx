@@ -17,7 +17,7 @@ export default async function CustomerPage({ params }: Props) {
   const { id } = await params;
   const h      = await headers();
   const slug   = h.get('x-tenant-slug') ?? '';
-  const locale = h.get('x-locale')      ?? 'es';
+  const locale = h.get('x-locale')      ?? 'pt';
 
   const orgResult = await getOrganizationBySlug(slug);
   if (!orgResult.data) notFound();

@@ -3,6 +3,7 @@
 import * as Switch from '@radix-ui/react-switch';
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { toggleOnlinePaymentAction, toggleAdvancePaymentAction } from '../actions';
 
 interface PaymentSettingsProps {
@@ -51,6 +52,7 @@ function ToggleRow({
 }
 
 export function PaymentSettings({ onlinePaymentEnabled, advancePaymentRequired }: PaymentSettingsProps) {
+  const t = useTranslations('dashboard.billing.paymentSettings');
   const [online,   setOnline]   = useState(onlinePaymentEnabled);
   const [advance,  setAdvance]  = useState(advancePaymentRequired);
   const [pending,  startTransition] = useTransition();
@@ -80,15 +82,15 @@ export function PaymentSettings({ onlinePaymentEnabled, advancePaymentRequired }
   return (
     <div className="space-y-3">
       <ToggleRow
-        label="Aceitar pagamentos da página de agendamento"
-        hint="Permite que clientes paguem online antecipadamente."
+        label={t('onlineLabel')}
+        hint={t('onlineHint')}
         checked={online}
         disabled={pending}
         onChange={handleOnline}
       />
       <ToggleRow
-        label="Exigir pagamento antecipado"
-        hint="Desative para que o pagamento seja opcional no momento do agendamento."
+        label={t('advanceLabel')}
+        hint={t('advanceHint')}
         checked={advance}
         disabled={pending || !online}
         onChange={handleAdvance}

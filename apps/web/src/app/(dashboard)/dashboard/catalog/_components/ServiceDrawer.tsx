@@ -6,8 +6,8 @@ import * as Switch from '@radix-ui/react-switch';
 import * as Slider from '@radix-ui/react-slider';
 import { X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations, useLocale } from 'next-intl';
 import { createServiceAction, updateServiceAction } from '../actions';
-import { getCatalogT } from '../_i18n';
 import type { CatalogActionState } from '../actions';
 import type { ServiceRow, CategoryWithServices } from '@/domains/catalog/service';
 
@@ -23,13 +23,8 @@ interface ServiceDrawerProps {
 }
 
 type I18n = { es: string; en: string; pt: string };
-
 const IDLE: CatalogActionState = { status: 'idle' };
-
-const COLOR_PALETTE = [
-  '#D4AF37', '#0EA5E9', '#10B981', '#F59E0B',
-  '#8B5CF6', '#EF4444', '#EC4899', '#64748B',
-];
+const COLOR_PALETTE = ['#D4AF37','#0EA5E9','#10B981','#F59E0B','#8B5CF6','#EF4444','#EC4899','#64748B'];
 
 function resolveI18n(obj: unknown, locale: string): string {
   if (!obj || typeof obj !== 'object') return '';
@@ -38,13 +33,12 @@ function resolveI18n(obj: unknown, locale: string): string {
 }
 
 export function ServiceDrawer({
-  open, onClose, onSuccess,
-  categories, locale, service,
-  defaultCategoryId, organizationId,
+  open, onClose, onSuccess, categories, locale, service, defaultCategoryId, organizationId,
 }: ServiceDrawerProps) {
-  const t      = getCatalogT(locale);
-  const isEdit = !!service;
-  const id     = useId();
+  const t          = useTranslations('dashboard.catalog');
+  const intlLocale = useLocale();
+  const isEdit     = !!service;
+  const id         = useId();
 
   const [nameI18n,  setNameI18n]  = useState<I18n>({ es: '', en: '', pt: '' });
   const [descI18n,  setDescI18n]  = useState<I18n>({ es: '', en: '', pt: '' });
@@ -108,14 +102,17 @@ export function ServiceDrawer({
     (dispatch as (p: unknown) => void)(payload);
   }
 
-  const catOptions = categories.map((c) => ({ id: c.id, name: resolveI18n(c.nameI18n, locale) }));
+  const catOptions = categories.map((c) => ({ id: c.id, name: resolveI18n(c.nameI18n, intlLocale) }));
 
-  const namePlaceholder = tab === 'es' ? t.namePlaceholderEs : tab === 'en' ? t.namePlaceholderEn : t.namePlaceholderPt;
+  const namePlaceholder =
+    tab === 'es' ? t('namePlaceholderEs') :
+    tab === 'en' ? t('namePlaceholderEn') :
+                   t('namePlaceholderPt');
 
   const depositCopy =
-    deposit === 100 ? t.depositFull :
-    deposit === 0   ? t.depositNone :
-    `${deposit}${t.depositPartialSuffix}`;
+    deposit === 100 ? t('depositFull') :
+    deposit === 0   ? t('depositNone') :
+    `${deposit}${t('depositPartialSuffix')}`;
 
   return (
     <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
@@ -129,10 +126,10 @@ export function ServiceDrawer({
           <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100 shrink-0">
             <div>
               <Dialog.Title className="font-cormorant text-lg font-semibold text-stone-800">
-                {isEdit ? t.editService : t.newService}
+                {isEdit ? t('editService') : t('newService')}
               </Dialog.Title>
               <p className="text-[11px] text-stone-400 mt-0.5">
-                {t.catalogPrefix} {organizationId.slice(0, 8)}…
+                {t('catalogPrefix')} {organizationId.slice(0, 8)}…
               </p>
             </div>
             <Dialog.Close asChild>
@@ -144,10 +141,9 @@ export function ServiceDrawer({
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-
             {/* Name + description (i18n tabs) */}
             <section>
-              <p className="field-label mb-3">{t.serviceNameLabel}</p>
+              <p className="field-label mb-3">{t('serviceNameLabel')}</p>
               <div className="flex gap-1 mb-3">
                 {(['es','en','pt'] as const).map((l) => (
                   <button key={l} type="button" onClick={() => setTab(l)}
@@ -169,7 +165,7 @@ export function ServiceDrawer({
               <textarea
                 value={descI18n[tab]}
                 onChange={(e) => setDescI18n((p) => ({ ...p, [tab]: e.target.value }))}
-                placeholder={t.descPlaceholder}
+                placeholder={t('descPlaceholder')}
                 rows={2}
                 className="input-editorial w-full resize-none text-sm"
               />
@@ -178,32 +174,26 @@ export function ServiceDrawer({
             {/* Price + Duration */}
             <section className="grid grid-cols-2 gap-4">
               <div>
-                <label className="field-label">{t.priceLabel}</label>
+                <label className="field-label">{t('priceLabel')}</label>
                 <div className="relative mt-1.5">
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 text-stone-400 text-sm">€</span>
-                  <input
-                    type="number" min="0" step="0.01" value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="input-editorial w-full pl-4 tabular-nums" required
-                  />
+                  <input type="number" min="0" step="0.01" value={price}
+                    onChange={(e) => setPrice(e.target.value)} placeholder="0.00"
+                    className="input-editorial w-full pl-4 tabular-nums" required />
                 </div>
               </div>
               <div>
-                <label className="field-label">{t.durationLabel}</label>
-                <input
-                  type="number" min="1" step="5" value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  placeholder="60"
-                  className="input-editorial w-full mt-1.5 tabular-nums" required
-                />
+                <label className="field-label">{t('durationLabel')}</label>
+                <input type="number" min="1" step="5" value={duration}
+                  onChange={(e) => setDuration(e.target.value)} placeholder="60"
+                  className="input-editorial w-full mt-1.5 tabular-nums" required />
               </div>
             </section>
 
             {/* Deposit slider */}
             <section>
               <div className="flex items-center justify-between mb-2">
-                <label className="field-label">{t.depositLabel}</label>
+                <label className="field-label">{t('depositLabel')}</label>
                 <span className="text-sm font-bold tabular-nums text-amber-600">{deposit}%</span>
               </div>
               <Slider.Root min={0} max={100} step={5} value={[deposit]}
@@ -212,10 +202,7 @@ export function ServiceDrawer({
                 <Slider.Track className="relative h-1 flex-1 bg-stone-200 rounded-full">
                   <Slider.Range className="absolute h-full bg-amber-400 rounded-full" />
                 </Slider.Track>
-                <Slider.Thumb
-                  className="block w-4 h-4 bg-white border-2 border-amber-400 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-amber-300"
-                  aria-label="Deposit percent"
-                />
+                <Slider.Thumb className="block w-4 h-4 bg-white border-2 border-amber-400 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-amber-300" aria-label="Deposit percent" />
               </Slider.Root>
               <p className="text-[10px] text-stone-400 mt-1">{depositCopy}</p>
             </section>
@@ -223,47 +210,36 @@ export function ServiceDrawer({
             {/* Buffers */}
             <section className="grid grid-cols-2 gap-4">
               <div>
-                <label className="field-label">{t.bufferBeforeLabel}</label>
-                <input type="number" min="0" step="5" value={bufBefore}
-                  onChange={(e) => setBufBefore(e.target.value)}
-                  className="input-editorial w-full mt-1.5 tabular-nums" />
+                <label className="field-label">{t('bufferBeforeLabel')}</label>
+                <input type="number" min="0" step="5" value={bufBefore} onChange={(e) => setBufBefore(e.target.value)} className="input-editorial w-full mt-1.5 tabular-nums" />
               </div>
               <div>
-                <label className="field-label">{t.bufferAfterLabel}</label>
-                <input type="number" min="0" step="5" value={bufAfter}
-                  onChange={(e) => setBufAfter(e.target.value)}
-                  className="input-editorial w-full mt-1.5 tabular-nums" />
+                <label className="field-label">{t('bufferAfterLabel')}</label>
+                <input type="number" min="0" step="5" value={bufAfter} onChange={(e) => setBufAfter(e.target.value)} className="input-editorial w-full mt-1.5 tabular-nums" />
               </div>
             </section>
 
             {/* Category */}
             <section>
-              <label className="field-label">{t.categoryLabel}</label>
-              <select value={catId} onChange={(e) => setCatId(e.target.value)}
-                className="input-editorial w-full mt-1.5">
-                <option value="">{t.noCategory}</option>
+              <label className="field-label">{t('categoryLabel')}</label>
+              <select value={catId} onChange={(e) => setCatId(e.target.value)} className="input-editorial w-full mt-1.5">
+                <option value="">{t('noCategory')}</option>
                 {catOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </section>
 
             {/* Color */}
             <section>
-              <label className="field-label mb-2 block">{t.calendarColor}</label>
+              <label className="field-label mb-2 block">{t('calendarColor')}</label>
               <div className="flex gap-2 flex-wrap">
                 {COLOR_PALETTE.map((c) => (
                   <button key={c} type="button" onClick={() => setColor(c === color ? '' : c)}
-                    className={['w-7 h-7 rounded-full transition-transform',
-                      c === color ? 'scale-125 ring-2 ring-offset-2 ring-stone-400' : 'hover:scale-110',
-                    ].join(' ')}
-                    style={{ backgroundColor: c }}
-                    aria-label={`Color ${c}`}
-                  />
+                    className={['w-7 h-7 rounded-full transition-transform', c === color ? 'scale-125 ring-2 ring-offset-2 ring-stone-400' : 'hover:scale-110'].join(' ')}
+                    style={{ backgroundColor: c }} aria-label={`Color ${c}`} />
                 ))}
                 {color && (
                   <button type="button" onClick={() => setColor('')}
-                    className="w-7 h-7 rounded-full bg-stone-100 text-stone-400 text-xs hover:bg-stone-200 transition-colors flex items-center justify-center">
-                    ✕
-                  </button>
+                    className="w-7 h-7 rounded-full bg-stone-100 text-stone-400 text-xs hover:bg-stone-200 transition-colors flex items-center justify-center">✕</button>
                 )}
               </div>
             </section>
@@ -271,8 +247,8 @@ export function ServiceDrawer({
             {/* Status toggle */}
             <section className="flex items-center justify-between py-3 border-t border-stone-100">
               <div>
-                <p className="text-sm font-medium text-stone-700">{t.serviceActiveLabel}</p>
-                <p className="text-[11px] text-stone-400">{t.serviceActiveHint}</p>
+                <p className="text-sm font-medium text-stone-700">{t('serviceActiveLabel')}</p>
+                <p className="text-[11px] text-stone-400">{t('serviceActiveHint')}</p>
               </div>
               <Switch.Root checked={isActive} onCheckedChange={setIsActive}
                 className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-stone-200">
@@ -285,14 +261,13 @@ export function ServiceDrawer({
           <div className="px-6 py-4 border-t border-stone-100 flex gap-3 shrink-0">
             <button type="button" onClick={onClose}
               className="flex-1 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-600 hover:bg-stone-50 transition-colors">
-              {t.cancel}
+              {t('cancel')}
             </button>
-            <button
-              onClick={handleSubmit as unknown as React.MouseEventHandler<HTMLButtonElement>}
+            <button onClick={handleSubmit as unknown as React.MouseEventHandler<HTMLButtonElement>}
               disabled={isPending}
               className="flex-1 py-2.5 rounded-xl bg-stone-900 text-white text-sm font-medium hover:bg-stone-800 disabled:opacity-60 transition-colors flex items-center justify-center gap-2">
               {isPending && <Loader2 size={14} className="animate-spin" />}
-              {isEdit ? t.saveChanges : t.createService}
+              {isEdit ? t('saveChanges') : t('createService')}
             </button>
           </div>
         </Dialog.Content>
