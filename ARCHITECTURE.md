@@ -36,7 +36,7 @@ src/
 │   ├── lib/              # Drizzle, Supabase, Redis clients
 │   └── utils/            # Intl formatters & common validators
 ├── messages/             # I18n Static JSON (ES/PT/EN)
-├── middleware.ts         # Subdomain detection & tenant_id injection
+├── proxy.ts              # Subdomain detection & tenant_id injection
 └── instrumentation.ts    # Observability (Mac M4 / Asus TUF telemetry)
 ```
 
@@ -47,7 +47,7 @@ src/
 *Reference: See WORKFLOWS.md for the identity and booking validation process.*
 
 ### 3.1 Detection & Context (Middleware)
-- **Subdomain Resolution**: The `middleware.ts` extracts the `tenant_id` from the incoming hostname (e.g., `lourdes.skinsystem.pt`).
+- **Subdomain Resolution**: The `proxy.ts` extracts the `tenant_id` from the incoming hostname (e.g., `lourdes.skinsystem.pt`).
 - **Header Injection**: It injects the `organization_id` into the request headers to be consumed by Server Components and Actions without client-side manipulation.
 - **Validation**: The middleware performs a pre-flight check against the `organizations` table to ensure the tenant exists before allowing the request to proceed.
 
@@ -92,6 +92,5 @@ To scale without duplicating code, the interface uses a 90/10 CSS Boundary:
 ## 7. Environment & Development Sync
 *Reference: See Section 13 of STANDARDS.md for Git and Sync rules.*
 
-- **Cross-Platform Readiness**: Optimization for high-performance rendering on **Mac mini M4** and robust testing on **Asus TUF**.
 - **Observability**: `instrumentation.ts` is configured to track performance metrics across different hardware environments.
 - **Secrets Management**: Strict use of `.env.local` to manage Supabase and Stripe keys independently for each developer machine.

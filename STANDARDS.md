@@ -72,4 +72,3 @@ This document is the SkinSystem Technical Charter. It coordinates the tools in `
 
 ## 15. Documentation & Sync
 - **PDF Naming**: `report_[ID]_[TIMESTAMP]_v[N].pdf`.
-- **Cross-Platform**: Git `autocrlf input`. Manual `.env.local` sync between Mac M4 and Asus TUF.

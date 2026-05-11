@@ -1,14 +1,12 @@
 import { getRequestConfig } from 'next-intl/server';
 import { headers } from 'next/headers';
-
-const SUPPORTED_LOCALES = ['pt', 'es', 'en'] as const;
-type SupportedLocale = typeof SUPPORTED_LOCALES[number];
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n/config';
 
 function resolveLocale(raw: string | null): SupportedLocale {
-  const candidate = raw ?? 'pt';
+  const candidate = raw ?? DEFAULT_LOCALE;
   return (SUPPORTED_LOCALES as readonly string[]).includes(candidate)
     ? (candidate as SupportedLocale)
-    : 'pt';
+    : DEFAULT_LOCALE;
 }
 
 export default getRequestConfig(async () => {

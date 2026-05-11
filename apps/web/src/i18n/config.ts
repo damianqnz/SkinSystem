@@ -5,8 +5,7 @@
  * hardcode locale fallback strings ('pt', 'es', 'en') in page or
  * component files.
  *
- * proxy.ts and i18n/request.ts duplicate these constants today; a
- * future ticket should update them to import from here.
+ * proxy.ts and i18n/request.ts both consume these constants from here.
  */
 
 export const DEFAULT_LOCALE = 'pt' as const;

@@ -13,12 +13,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createSupabaseMiddlewareClient } from '@/infrastructure/supabase/middleware-client';
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n/config';
 
 // ── Configuration ─────────────────────────────────────────────
-
-const SUPPORTED_LOCALES = ['es', 'pt', 'en'] as const;
-type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
-const DEFAULT_LOCALE: SupportedLocale = 'pt';
 
 /** Subdomains that are never treated as tenant slugs. */
 const RESERVED_SUBDOMAINS = new Set(['www', 'auth', 'api', 'admin', 'app']);
