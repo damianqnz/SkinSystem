@@ -33,6 +33,7 @@ This document is the SkinSystem Technical Charter. It coordinates the tools in `
 
 ## 6. Security & Database Rigor
 - **RLS (Row Level Security)**: No query bypasses the `organization_id` filter.
+- **Slug-bootstrap exception**: the single documented exception to the rule above is the lookup that *resolves* the organization from the proxy-validated `x-tenant-slug` — there is no `organization_id` yet, because that query is what produces it. It must read from `organizations` only, select an explicit column list, and never join tenant-owned business data. Current call sites: `shared/lib/brand-theme.ts` and `domains/organizations/service.ts`.
 - **Zero SELECT ***: Explicitly define columns in Drizzle to prevent data leaks.
 - **Audit Logs**: Mandatory logging for Super Admin actions.
 

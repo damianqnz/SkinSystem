@@ -13,6 +13,15 @@ export function isSupportedLocale(value: string | undefined): value is Supported
 }
 
 /**
+ * Reads back the locale the proxy already resolved into `x-locale`.
+ * For Server Components, which see the header rather than the request.
+ */
+export function localeFromHeader(value: string | null): SupportedLocale {
+  const candidate = value ?? undefined;
+  return isSupportedLocale(candidate) ? candidate : DEFAULT_LOCALE;
+}
+
+/**
  * Maps a raw browser language tag to one of the supported locales.
  *
  * Rules:

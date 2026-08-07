@@ -6,27 +6,23 @@ import { getOrganizationBySlug }      from '@/domains/organizations/service';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { getMyCustomer }              from '@/domains/customers/service-me';
 import { MeSidebar }                  from './_components/MeSidebar';
-import { LanguageSwitcher }           from '../_components/LanguageSwitcher';
+import { LanguageSwitcher }           from '@/shared/components/LanguageSwitcher';
+import { localeFromHeader }           from '@/i18n/detect-locale';
+import type { SupportedLocale }       from '@/i18n/config';
 
 // ── i18n (static labels) ──────────────────────────────────────
+// TODO(PR3): migrate to `messages/*.json` under `account.me.*`.
 
-type Locale = 'pt' | 'es' | 'en';
-
-const BOOK_CTA: Record<Locale, string> = {
+const BOOK_CTA: Record<SupportedLocale, string> = {
   pt: 'Reservar consulta →',
   es: 'Reservar cita →',
   en: 'Book appointment →',
 };
 
-function normalizeLocale(raw: string): Locale {
-  if (raw === 'pt' || raw === 'es' || raw === 'en') return raw;
-  return 'pt';
-}
-
 export default async function MeLayout({ children }: { children: ReactNode }) {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const locale = normalizeLocale(hdrs.get('x-locale') ?? 'pt');
+  const locale = localeFromHeader(hdrs.get('x-locale'));
 
   // ── Auth guard ──────────────────────────────────────────────
   // Sin sesión → `/login` (gateway unificado de Fase 30). El `next=/me`

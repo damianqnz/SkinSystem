@@ -15,7 +15,7 @@
  */
 
 import Link                   from 'next/link';
-import { LanguageSwitcher }   from '../../_components/LanguageSwitcher';
+import { LanguageSwitcher }   from '@/shared/components/LanguageSwitcher';
 import type { BookingLabels } from '../_i18n';
 
 type Locale = 'es' | 'pt' | 'en';
