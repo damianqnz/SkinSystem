@@ -13,6 +13,7 @@ import { getServiceById }        from '@/domains/catalog/service';
 import { calculateAvailableSlots, createAppointment } from '@/domains/booking/service';
 import { createBookingSession }  from '@/domains/billing/service';
 import { buildSlotKey, lockSlot } from '@/shared/lib/redis-lock';
+import { localeFromHeader }       from '@/i18n/detect-locale';
 import type { SlotStatus }        from '@/domains/booking/service';
 
 // ── Public slot type (serialized for RSC boundary) ────────────
@@ -190,7 +191,7 @@ export async function createBookingAction(
 ): Promise<BookingState> {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const locale = hdrs.get('x-locale') ?? 'es';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
 
   const parsed = createBookingSchema.safeParse(raw);
   if (!parsed.success) {

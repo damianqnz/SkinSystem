@@ -5,6 +5,7 @@ import { getOrganizationBySlug }  from '@/domains/organizations/service';
 import { getCategoriesWithServices } from '@/domains/catalog/service';
 import { CatalogClient }          from './_components/CatalogClient';
 import { CatalogSkeleton }        from './_components/CatalogSkeleton';
+import { localeFromHeader }       from '@/i18n/detect-locale';
 
 /**
  * /catalog — Service & Category Management
@@ -33,7 +34,7 @@ export default async function CatalogPage() {
 async function CatalogContent() {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const locale = hdrs.get('x-locale') ?? 'pt';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
 
   const orgResult = await getOrganizationBySlug(slug);
   if (orgResult.error || !orgResult.data) notFound();

@@ -10,6 +10,7 @@ import { notFound }               from 'next/navigation';
 import { getOrganizationBySlug }  from '@/domains/organizations/service';
 import { getCustomerProfile }     from '@/domains/customers/service';
 import { CustomerProfileClient }  from './_components/CustomerProfileClient';
+import { localeFromHeader }       from '@/i18n/detect-locale';
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -17,7 +18,7 @@ export default async function CustomerPage({ params }: Props) {
   const { id } = await params;
   const h      = await headers();
   const slug   = h.get('x-tenant-slug') ?? '';
-  const locale = h.get('x-locale')      ?? 'pt';
+  const locale = localeFromHeader(h.get('x-locale'));
 
   const orgResult = await getOrganizationBySlug(slug);
   if (!orgResult.data) notFound();

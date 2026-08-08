@@ -12,6 +12,7 @@ import { AboutSection } from './_components/AboutSection';
 import { GalleryGrid } from './_components/GalleryGrid';
 import { ReviewsSection } from './_components/ReviewsSection';
 import { MapSection } from './_components/MapSection';
+import { localeFromHeader } from '@/i18n/detect-locale';
 
 // ── SEO ───────────────────────────────────────────────────────
 
@@ -32,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function PublicHomePage() {
   const hdrs = await headers();
   const slug = hdrs.get('x-tenant-slug') ?? '';
-  const locale = hdrs.get('x-locale') ?? 'pt';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
 
   const [data, sessionUser] = await Promise.all([
     getLandingData(slug),
@@ -48,7 +49,7 @@ export default async function PublicHomePage() {
     <div className="min-h-screen bg-stone-50 dark:bg-stone-950 text-stone-900 dark:text-stone-100">
 
       {/* Fixed header */}
-      <PublicHeader orgName={org.name} logoUrl={org.logoUrl} locale={locale} user={sessionUser} />
+      <PublicHeader orgName={org.name} logoUrl={org.logoUrl} user={sessionUser} />
 
       {/* Gallery modal (listens to custom events) */}
       <GalleryModal images={gallery} />

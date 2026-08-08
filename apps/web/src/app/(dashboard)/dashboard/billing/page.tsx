@@ -14,6 +14,7 @@ import { SurchargesSection }       from './_components/SurchargesSection';
 import { CouponsSection }          from './_components/CouponsSection';
 import { getSurchargesAction }     from './actions-surcharges';
 import { getCouponsAction }        from './actions-coupons';
+import { localeFromHeader }        from '@/i18n/detect-locale';
 
 /**
  * /dashboard/billing — Payments management
@@ -36,7 +37,7 @@ export default async function BillingPage() {
 async function BillingContent() {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const locale = hdrs.get('x-locale') ?? 'pt';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
 
   const t = await getTranslations({ locale, namespace: 'dashboard.billing' });
 

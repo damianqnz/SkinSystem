@@ -4,6 +4,7 @@ import 'server-only';
 import { headers } from 'next/headers';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { getCustomersWithStats } from '@/domains/customers/service';
+import { localeFromHeader } from '@/i18n/detect-locale';
 import type { Result } from '@/shared/types/result';
 
 export type ExportResult = { csv: string; filename: string };
@@ -36,7 +37,7 @@ export async function exportCustomersAction(): Promise<Result<ExportResult>> {
   if (!orgId) return { data: null, error: { message: 'No organization', code: 'AUTH_ERROR' } };
 
   const h      = await headers();
-  const locale = h.get('x-locale') ?? 'es';
+  const locale = localeFromHeader(h.get('x-locale'));
 
   const result = await getCustomersWithStats(orgId);
   if (result.error) return { data: null, error: result.error };

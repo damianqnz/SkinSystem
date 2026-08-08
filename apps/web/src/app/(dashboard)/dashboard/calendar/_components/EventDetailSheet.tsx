@@ -12,6 +12,7 @@ import { Clock, CreditCard, Mail, Phone, RotateCcw, User, X } from 'lucide-react
 import { toast } from 'sonner';
 import { cn } from '@/shared/lib/utils';
 import { useTranslations, useLocale } from 'next-intl';
+import { DEFAULT_LOCALE } from '@/i18n/config';
 import {
   cancelAppointmentAction,
   getAppointmentDetailAction,
@@ -55,7 +56,7 @@ function initials(name: string): string {
 }
 
 export function EventDetailSheet({
-  open, onOpenChange, appointmentId, preview, locale = 'pt', onMutated,
+  open, onOpenChange, appointmentId, preview, locale = DEFAULT_LOCALE, onMutated,
 }: EventDetailSheetProps) {
   const t          = useTranslations('dashboard.calendar.eventDetail');
   const tAppt      = useTranslations('dashboard.customers.appointments');

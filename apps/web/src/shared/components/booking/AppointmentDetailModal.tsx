@@ -12,6 +12,7 @@ import {
   restoreAppointmentAction,
 } from '@/app/(dashboard)/dashboard/calendar/actions';
 import type { AppointmentFull } from '@/domains/booking/service';
+import { DEFAULT_LOCALE } from '@/i18n/config';
 
 // ── Status data ────────────────────────────────────────────────
 
@@ -28,7 +29,7 @@ const TN: Record<string, string> = {
   stone:   'bg-stone-50 text-stone-500 border-stone-200',
 };
 const fmtP  = (c: number) => `€${(c / 100).toFixed(2)}`;
-const rName = (m: Record<string, string>, l?: string) => m[l ?? 'pt'] ?? m.pt ?? m.es ?? m.en ?? '—';
+const rName = (m: Record<string, string>, l?: string) => m[l ?? DEFAULT_LOCALE] ?? m.pt ?? m.es ?? m.en ?? '—';
 const fmtDL = (d: Date, l: string) => d.toLocaleDateString(l === 'pt' ? 'pt-PT' : l === 'en' ? 'en-GB' : 'es-ES', { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' });
 const fmtT  = (d: Date, l: string) => d.toLocaleTimeString(l === 'pt' ? 'pt-PT' : l === 'en' ? 'en-GB' : 'es-ES', { hour: '2-digit', minute: '2-digit', hour12: l !== 'es', timeZone: 'UTC' });
 const inits = (n: string) => n.split(/\s+/).slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('') || '—';
@@ -45,7 +46,7 @@ interface AppointmentDetailModalProps {
 
 // ── Component ──────────────────────────────────────────────────
 
-export function AppointmentDetailModal({ appointmentId, onClose, locale = 'pt', onMutated, preview }: AppointmentDetailModalProps) {
+export function AppointmentDetailModal({ appointmentId, onClose, locale = DEFAULT_LOCALE, onMutated, preview }: AppointmentDetailModalProps) {
   const [data,    setData]    = useState<AppointmentFull | null>(null);
   const [loading, setLoading] = useState(false);
   const [pending, start]      = useTransition();

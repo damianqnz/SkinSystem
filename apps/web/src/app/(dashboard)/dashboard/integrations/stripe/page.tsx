@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { ChevronLeft } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { StripeConnectModal } from '../_components/StripeConnectModal';
+import { localeFromHeader } from '@/i18n/detect-locale';
 
 /**
  * Full-page Stripe Connect view.
@@ -14,7 +15,7 @@ import { StripeConnectModal } from '../_components/StripeConnectModal';
  */
 export default async function StripeConnectFullPage() {
   const hdrs   = await headers();
-  const locale = hdrs.get('x-locale') ?? 'pt';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
   const t      = await getTranslations({ locale, namespace: 'integrations.stripe' });
 
   return (

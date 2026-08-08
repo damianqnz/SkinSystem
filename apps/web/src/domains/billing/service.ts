@@ -11,6 +11,7 @@ import {
   calcDepositAmount,
   calcApplicationFee,
 } from '@/shared/lib/stripe';
+import { DEFAULT_LOCALE } from '@/i18n/config';
 import type { Result } from '@/shared/types/result';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -47,7 +48,7 @@ export type BookingSessionResult = {
 const dbErr = (m: string): Result<never> =>
   ({ data: null, error: { message: m, code: 'DB_ERROR' } });
 
-function resolveServiceName(nameI18n: unknown, locale = 'es'): string {
+function resolveServiceName(nameI18n: unknown, locale: string = DEFAULT_LOCALE): string {
   if (!nameI18n || typeof nameI18n !== 'object') return 'Servicio';
   const o = nameI18n as Record<string, string>;
   return o[locale] ?? o['es'] ?? o['en'] ?? Object.values(o)[0] ?? 'Servicio';
@@ -114,7 +115,7 @@ export async function createBookingSession(
       : calcDepositAmount(svc.priceCents, svc.depositPercent);
 
     const applicationFee = org.stripeAccountId ? calcApplicationFee(amountCents) : 0;
-    const serviceName    = resolveServiceName(svc.nameI18n, input.locale ?? 'es');
+    const serviceName    = resolveServiceName(svc.nameI18n, input.locale ?? DEFAULT_LOCALE);
 
     if (amountCents <= 0) {
       return { data: null, error: { message: 'Deposit amount is zero — no payment needed', code: 'ZERO_AMOUNT' } };

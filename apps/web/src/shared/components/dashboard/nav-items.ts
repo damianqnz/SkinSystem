@@ -8,6 +8,8 @@ import {
   Settings2,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { DEFAULT_LOCALE, type SupportedLocale } from '@/i18n/config';
+import { isSupportedLocale } from '@/i18n/detect-locale';
 
 export type NavItem = {
   href:  string;
@@ -17,19 +19,16 @@ export type NavItem = {
 
 type NavTuple = readonly [string, string, string, string, string, string, string];
 
-const NAV_LABELS: Record<'pt' | 'es' | 'en', NavTuple> = {
+const NAV_LABELS: Record<SupportedLocale, NavTuple> = {
   pt: ['Panel', 'Calendário',  'Serviços',    'Clientes', 'Pagamentos', 'Integrações',   'Definições'    ],
   es: ['Panel', 'Calendario',  'Servicios',   'Clientes', 'Pagos',      'Integraciones', 'Configuración' ],
   en: ['Panel', 'Calendar',    'Services',    'Clients',  'Payments',   'Integrations',  'Settings'      ],
 };
 
-function resolveLocale(locale: string): 'pt' | 'es' | 'en' {
-  return (locale === 'es' || locale === 'en') ? locale : 'pt';
-}
-
 export function getNavItems(locale: string): NavItem[] {
+  const resolved = isSupportedLocale(locale) ? locale : DEFAULT_LOCALE;
   const [panel, calendar, services, clients, payments, integrations, settings] =
-    NAV_LABELS[resolveLocale(locale)];
+    NAV_LABELS[resolved];
 
   return [
     { href: '/dashboard',              label: panel,        icon: LayoutDashboard },

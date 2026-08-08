@@ -1,9 +1,10 @@
 import { headers }         from 'next/headers';
 import { getTranslations }  from 'next-intl/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
 
 export default async function CustomersPage() {
   const hdrs   = await headers();
-  const locale = hdrs.get('x-locale') ?? 'pt';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
   const t      = await getTranslations({ locale, namespace: 'dashboard.customers.page' });
 
   return (

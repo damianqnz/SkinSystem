@@ -6,11 +6,12 @@ import { getOrganizationBySlug }      from '@/domains/organizations/service';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { getMyCustomer, getMyAppointments } from '@/domains/customers/service-me';
 import { AppointmentTabs } from './_components/AppointmentTabs';
+import { localeFromHeader } from '@/i18n/detect-locale';
 
 export default async function CitasPage() {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const locale = hdrs.get('x-locale') ?? 'es';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
 
   // El `/me/layout.tsx` ya hace auth-guard contra `/login`; estas
   // comprobaciones son defense-in-depth por si alguien renderiza esta

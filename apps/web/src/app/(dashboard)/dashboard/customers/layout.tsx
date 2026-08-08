@@ -13,13 +13,14 @@ import { getOrganizationBySlug }    from '@/domains/organizations/service';
 import { getCustomersWithStats }    from '@/domains/customers/service';
 import { CustomersRoot }            from './_components/CustomersRoot';
 import type { CustomerSer }         from './_components/CustomerListItem';
+import { localeFromHeader }         from '@/i18n/detect-locale';
 
 interface Props { children: ReactNode }
 
 export default async function CustomersLayout({ children }: Props) {
   const h      = await headers();
   const slug   = h.get('x-tenant-slug') ?? '';
-  const locale = h.get('x-locale')      ?? 'pt';
+  const locale = localeFromHeader(h.get('x-locale'));
 
   // Pre-fetch customers for sidebar (errors soft-fail to empty list)
   const orgResult = await getOrganizationBySlug(slug);

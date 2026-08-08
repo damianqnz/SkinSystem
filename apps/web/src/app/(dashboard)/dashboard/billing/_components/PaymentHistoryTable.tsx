@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
+import { DEFAULT_LOCALE } from '@/i18n/config';
 import { getPaymentHistoryAction } from '../actions';
 import type { PaymentHistoryRow } from '@/domains/billing/service-history';
 
@@ -55,7 +56,7 @@ function fmtDateShort(iso: string, intlLocale = 'pt-PT') {
   return new Date(iso).toLocaleDateString(intlLocale, { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function resolveI18n(obj: unknown, locale = 'pt'): string {
+function resolveI18n(obj: unknown, locale: string = DEFAULT_LOCALE): string {
   if (!obj || typeof obj !== 'object') return '—';
   const o = obj as Record<string, string>;
   return o[locale] ?? o['es'] ?? o['en'] ?? Object.values(o)[0] ?? '—';

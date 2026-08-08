@@ -1,5 +1,6 @@
 import { headers }               from 'next/headers';
 import { notFound }              from 'next/navigation';
+import { getTranslations }       from 'next-intl/server';
 import { and, eq }               from 'drizzle-orm';
 import type { Metadata }         from 'next';
 import { db }                    from '@/infrastructure/db';
@@ -15,7 +16,7 @@ import { StickyInfoCard }        from '../_components/StickyInfoCard';
 import { BookingFunnel }         from './_components/BookingFunnel';
 import { BookHeader }            from './_components/BookHeader';
 import { StepIndicator }         from './_components/StepIndicator';
-import { bookT, format }         from './_i18n';
+import { localeFromHeader }      from '@/i18n/detect-locale';
 import type { BookingConfig, SurchargeItem } from './actions';
 
 // ── Shared helper: resolve current Supabase auth user (if any) ─
@@ -36,13 +37,15 @@ async function getAuthUser(): Promise<{ name: string; email: string } | null> {
 // ── SEO ───────────────────────────────────────────────────────
 
 export async function generateMetadata(): Promise<Metadata> {
-  const hdrs   = await headers();
-  const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const locale = hdrs.get('x-locale') ?? 'pt';
-  const org    = await getOrganizationBySlug(slug);
-  const name   = org.data?.name ?? 'SkinSystem';
+  const hdrs = await headers();
+  const slug = hdrs.get('x-tenant-slug') ?? '';
+  const [t, org] = await Promise.all([
+    getTranslations('booking'),
+    getOrganizationBySlug(slug),
+  ]);
+  const name = org.data?.name ?? 'SkinSystem';
   return {
-    title: format(bookT(locale).metadata.title, { name }),
+    title: t('metadata.title', { name }),
   };
 }
 
@@ -53,11 +56,10 @@ interface BookPageProps {
 }
 
 export default async function BookPage({ searchParams }: BookPageProps) {
-  const hdrs    = await headers();
-  const slug    = hdrs.get('x-tenant-slug') ?? '';
-  const locale  = hdrs.get('x-locale') ?? 'pt';
-  const labels  = bookT(locale);
-  const typedLocale = locale === 'pt' || locale === 'en' ? locale : 'es';
+  const hdrs   = await headers();
+  const slug   = hdrs.get('x-tenant-slug') ?? '';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
+  const t      = await getTranslations('booking');
   const { service: serviceParam, cancelled, auth_error } = await searchParams;
 
   // ── Mode B: catalog view — no service pre-selected ────────────
@@ -88,15 +90,14 @@ export default async function BookPage({ searchParams }: BookPageProps) {
         <BookHeader
           orgName={org.name}
           logoUrl={org.logoUrl}
-          locale={typedLocale}
-          labels={labels}
+          locale={locale}
         />
 
         <div className="max-w-6xl mx-auto px-4">
 
           {/* Step indicator — catalog is step 1 */}
           <div className="max-w-xl mx-auto pt-8">
-            <StepIndicator current="service" showAuthStep={showAuthStep} locale={locale} />
+            <StepIndicator current="service" showAuthStep={showAuthStep} />
           </div>
 
           {/* Mobile: info card on top */}
@@ -253,17 +254,17 @@ export default async function BookPage({ searchParams }: BookPageProps) {
 
   return (
     <div className="min-h-screen bg-[#FAFAF9]">
-      <BookHeader orgName={org.name} logoUrl={orgExt?.logoUrl ?? null} locale={typedLocale} labels={labels} />
+      <BookHeader orgName={org.name} logoUrl={orgExt?.logoUrl ?? null} locale={locale} />
 
       <main className="max-w-4xl mx-auto px-4 py-8">
         {cancelled === '1' && (
           <div className="mb-6 flex items-center gap-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
-            <span className="text-sm text-amber-700">{labels.notices.cancelledPayment}</span>
+            <span className="text-sm text-amber-700">{t('notices.cancelledPayment')}</span>
           </div>
         )}
         {auth_error === '1' && (
           <div className="mb-6 flex items-center gap-3 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
-            <span className="text-sm text-red-700">{labels.notices.oauthError}</span>
+            <span className="text-sm text-red-700">{t('notices.oauthError')}</span>
           </div>
         )}
 

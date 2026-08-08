@@ -10,7 +10,8 @@ import { Step2Calendar }   from './Step2Calendar';
 import { Step2Auth }       from './Step2Auth';
 import { Step3Confirm }    from './Step3Confirm';
 import { BookingSummary }  from './BookingSummary';
-import { bookT }           from '../_i18n';
+import { useTranslations } from 'next-intl';
+import type { SupportedLocale } from '@/i18n/config';
 import type { SelectService }  from '@/domains/catalog/schema';
 import type { PublicSlot, BookingConfig, SurchargeItem } from '../actions';
 
@@ -53,7 +54,8 @@ interface AuthUser {
 
 interface BookingFunnelProps {
   services:        SelectService[];
-  locale:          string;
+  /** Forwarded to the steps that format prices/dates through `Intl`. */
+  locale:          SupportedLocale;
   initialService?: string;
   config:          BookingConfig;
   surcharges:      SurchargeItem[];
@@ -101,7 +103,7 @@ export function BookingFunnel({
   const isAuthenticated = authUser !== null;
   const showAuth        = config.clientLoginEnabled;
   const stepOrder       = getStepOrder(showAuth, isAuthenticated);
-  const t               = bookT(locale);
+  const t               = useTranslations('booking');
 
   // When coming from the catalog (/book?service=<id>), start at calendar
   const initialStep: Step = preSelected ? 'calendar' : 'service';
@@ -176,7 +178,6 @@ export function BookingFunnel({
         <StepIndicator
           current={step}
           showAuthStep={showAuth && !isAuthenticated}
-          locale={locale}
         />
 
         {/* Back button */}
@@ -187,7 +188,7 @@ export function BookingFunnel({
             className="flex items-center gap-1.5 text-xs text-stone-400 hover:text-stone-700 mb-4 transition-colors"
           >
             <ChevronLeft size={14} />
-            {t.common.back}
+            {t('common.back')}
           </button>
         )}
 
@@ -225,7 +226,6 @@ export function BookingFunnel({
             {step === 'auth' && showAuth && (
               <Step2Auth
                 loginRequired={config.clientLoginRequired}
-                locale={locale}
                 onAuthenticated={handleAuthenticated}
                 onContinueAsGuest={handleContinueAsGuest}
               />

@@ -1,6 +1,6 @@
 'use client';
 
-import { bookT } from '../_i18n';
+import { useTranslations } from 'next-intl';
 
 type Step = 'service' | 'calendar' | 'auth' | 'confirm';
 
@@ -9,15 +9,14 @@ const STEP_KEYS: Step[] = ['service', 'calendar', 'auth', 'confirm'];
 interface StepIndicatorProps {
   current:      Step;
   showAuthStep: boolean;
-  locale:       string;
 }
 
-export function StepIndicator({ current, showAuthStep, locale }: StepIndicatorProps) {
-  const t = bookT(locale);
+export function StepIndicator({ current, showAuthStep }: StepIndicatorProps) {
+  const t = useTranslations('booking');
 
   const steps: { key: Step; label: string }[] = STEP_KEYS
     .filter((k) => showAuthStep || k !== 'auth')
-    .map((k) => ({ key: k, label: t.steps[k] }));
+    .map((k) => ({ key: k, label: t(`steps.${k}`) }));
 
   const currentIndex = steps.findIndex((s) => s.key === current);
 

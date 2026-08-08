@@ -16,6 +16,7 @@ import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { getOrganizationBySlug }      from '@/domains/organizations/service';
 import { getCustomerById }            from '@/domains/customers/service';
 import { HomeCareGenerator }          from '@/domains/customers/components/HomeCareGenerator';
+import { localeFromHeader }           from '@/i18n/detect-locale';
 
 interface Props { params: Promise<{ id: string }> }
 
@@ -23,7 +24,7 @@ export default async function RoutinePage({ params }: Props) {
   const { id } = await params;
   const h      = await headers();
   const slug   = h.get('x-tenant-slug') ?? '';
-  const locale = h.get('x-locale')      ?? 'pt';
+  const locale = localeFromHeader(h.get('x-locale'));
 
   const t = await getTranslations({ locale, namespace: 'dashboard.customers.routine' });
 

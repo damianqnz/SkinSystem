@@ -2,9 +2,23 @@
 
 import { useState, useEffect, useTransition } from 'react';
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { getAvailableSlotsAction } from '../actions';
-import { bookT, toIntlTag } from '../_i18n';
+import { toIntlTag } from '@/i18n/intl-tag';
+import type { SupportedLocale } from '@/i18n/config';
 import type { PublicSlot } from '../actions';
+
+// ── Ordered calendar label keys ───────────────────────────────
+// The JSON keeps months/days as named keys (charter red line), but the grid
+// needs positional lookup: month index 0-11 and a week rotated by
+// `weekStartDay`. Building the ordered arrays here is what bridges the two.
+
+const MONTH_KEYS = [
+  'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+  'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
+] as const;
+
+const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 // ── Date helpers ──────────────────────────────────────────────
 
@@ -118,7 +132,8 @@ function SlotGrid({ slots, selected, onPick, timeFormat, emptyLabel }: SlotGridP
 
 interface Step2CalendarProps {
   serviceId:         string;
-  locale:            string;
+  /** Still needed for the `Intl` date label — grid labels come from next-intl. */
+  locale:            SupportedLocale;
   weekStartDay:      number;   // 0=Sun, 1=Mon
   timeFormat:        string;   // '24h' | '12h'
   bookingWindowDays: number;
@@ -137,7 +152,7 @@ export function Step2Calendar({
   leadTimeHours,
   onSelect,
 }: Step2CalendarProps) {
-  const t = bookT(locale);
+  const t = useTranslations('booking');
   const now = new Date();
   now.setUTCHours(0, 0, 0, 0);
 
@@ -155,7 +170,10 @@ export function Step2Calendar({
   const [isPending,       startTransition]   = useTransition();
 
   const days       = buildCalendarDays(viewYear, viewMonth, weekStartDay);
-  const dayHeaders = buildDayHeaders(weekStartDay, t.calendar.dayHeaders);
+  const dayHeaders = buildDayHeaders(
+    weekStartDay,
+    DAY_KEYS.map((k) => t(`calendar.days.${k}`)),
+  );
 
   // Load slots on date change
   useEffect(() => {
@@ -209,7 +227,7 @@ export function Step2Calendar({
   return (
     <div>
       <h2 className="font-cormorant text-2xl font-semibold text-stone-900 mb-5 text-center">
-        {t.calendar.heading}
+        {t('calendar.heading')}
       </h2>
 
       {/* Month navigation */}
@@ -222,7 +240,7 @@ export function Step2Calendar({
           <ChevronLeft size={16} />
         </button>
         <span className="font-cormorant text-base font-semibold text-stone-800">
-          {t.calendar.monthNames[viewMonth]} {viewYear}
+          {t(`calendar.months.${MONTH_KEYS[viewMonth] ?? 'jan'}`)} {viewYear}
         </span>
         <button
           type="button"
@@ -290,7 +308,7 @@ export function Step2Calendar({
             selected={selectedSlotISO}
             onPick={handleSlotPick}
             timeFormat={timeFormat}
-            emptyLabel={t.calendar.empty}
+            emptyLabel={t('calendar.empty')}
           />
         )}
       </div>

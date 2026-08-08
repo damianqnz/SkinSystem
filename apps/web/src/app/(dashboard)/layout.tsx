@@ -12,6 +12,7 @@ import { MainOffset } from '@/shared/components/dashboard/MainOffset';
 import { BottomBar } from '@/shared/components/dashboard/BottomBar';
 import { DashboardHeader } from '@/shared/components/dashboard/DashboardHeader';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { localeFromHeader } from '@/i18n/detect-locale';
 import '../globals.css';
 
 // ── Fonts (self-hosted by Next.js, zero CLS) ──────────────────────────────
@@ -37,7 +38,7 @@ const outfit = Outfit({
 async function DashboardShell({ children }: { children: ReactNode }) {
   const headersList = await headers();
   const tenantSlug  = headersList.get('x-tenant-slug') ?? '';
-  const locale      = headersList.get('x-locale') ?? 'pt';
+  const locale      = localeFromHeader(headersList.get('x-locale'));
   const messages    = await getMessages();
 
   // ── RBAC gate ─────────────────────────────────────────────────

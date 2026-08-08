@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { StripeCallbackBridge } from './_callback-bridge';
+import { localeFromHeader } from '@/i18n/detect-locale';
 
 interface StripeCallbackPageProps {
   searchParams: Promise<{ status?: string }>;
@@ -19,7 +20,7 @@ export default async function StripeCallbackPage({ searchParams }: StripeCallbac
   const status = params.status === 'refresh' ? 'refresh' : 'success';
 
   const hdrs   = await headers();
-  const locale = hdrs.get('x-locale') ?? 'pt';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
   const t      = await getTranslations({ locale, namespace: 'integrations.stripe' });
 
   const heading = status === 'success' ? t('callback.successTitle') : t('callback.refreshTitle');

@@ -10,6 +10,7 @@ import { EditorialDatePicker } from './EditorialDatePicker';
 import { EditorialTimePicker } from './EditorialTimePicker';
 import { CustomerCombobox, type CustomerOption } from './CustomerCombobox';
 import { createInternalAppointmentAction } from '../actions';
+import { DEFAULT_LOCALE } from '@/i18n/config';
 
 export interface ServiceOption {
   id:              string;
@@ -39,7 +40,7 @@ function fmtPrice(cents: number) {
   return `€${(cents / 100).toFixed(2)}`;
 }
 function resolveName(map: Record<string, string>, locale?: string): string {
-  return map[locale ?? 'pt'] ?? map.pt ?? map.es ?? map.en ?? '—';
+  return map[locale ?? DEFAULT_LOCALE] ?? map.pt ?? map.es ?? map.en ?? '—';
 }
 
 export function NewAppointmentForm({
