@@ -4,7 +4,11 @@
  *              domain, the local development apexes, and the tenant slug shape.
  */
 
-/** Subdomains that are never treated as tenant slugs. */
+/**
+ * Subdomains that are never treated as tenant slugs. Every top-level route
+ * added under `(marketing)` belongs here too — otherwise a tenant registering
+ * that slug shadows the corresponding apex page.
+ */
 const RESERVED_SUBDOMAINS = new Set([
   'www', 'auth', 'api', 'admin', 'app', 'cdn', 'static', 'mail',
 ]);

@@ -994,5 +994,12 @@
         "sortByLabel":        "Sort by {column}"
       }
     }
+  },
+  "marketing": {
+    "landing": {
+      "title":   "SkinSystem",
+      "tagline": "The booking and management platform for aesthetics specialists.",
+      "status":  "Under construction"
+    }
   }
 }

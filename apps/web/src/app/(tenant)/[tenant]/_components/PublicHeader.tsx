@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { LanguageSwitcher } from './LanguageSwitcher';
+import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { UserMenu, type PublicSessionUser } from './UserMenu';
 
 // ── Types ─────────────────────────────────────────────────────

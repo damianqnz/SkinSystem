@@ -994,5 +994,12 @@
         "sortByLabel":        "Ordenar por {column}"
       }
     }
+  },
+  "marketing": {
+    "landing": {
+      "title":   "SkinSystem",
+      "tagline": "A plataforma de reservas e gestão para especialistas em estética.",
+      "status":  "Em construção"
+    }
   }
 }

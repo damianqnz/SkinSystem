@@ -6,9 +6,10 @@
  * Thin orchestrator. Host/tenant resolution lives in `infrastructure/tenant/host`,
  * locale resolution in `i18n/detect-locale`, login URLs in `infrastructure/auth`.
  *
- * NOTE: this proxy does NOT rewrite into a `[tenant]` segment. Tenant context
- * travels via `x-tenant-slug`. Introducing the rewrite requires the
- * `(tenant)/[tenant]` route group to exist first.
+ * On a tenant subdomain the request is rewritten internally into
+ * `(tenant)/[tenant]` — the browser URL never changes. `x-tenant-slug` remains
+ * the single source of truth: `(dashboard)` and `(account)` are NOT rewritten
+ * and still read the header.
  */
 
 import { NextResponse } from 'next/server';
@@ -29,9 +30,27 @@ const CONTROLLED_HEADERS = ['x-tenant-slug', 'x-locale'] as const;
 /** Prefixes that always require an authenticated session. */
 const PRIVATE_PREFIXES = ['/dashboard', '/admin'] as const;
 
+/**
+ * Paths that own a top-level route group and therefore keep their real URL.
+ * `/me` is the customer account — deliberately outside the tenant site, with
+ * its own layout and its own guard. `/api` is already outside the matcher; it
+ * is listed anyway so the rule survives a matcher edit.
+ */
+const UNREWRITTEN_PREFIXES = ['/me', '/login', '/auth', '/api', ...PRIVATE_PREFIXES] as const;
+
 /** Exact segment match — `/administration` must not match the `/admin` prefix. */
-function isPrivatePath(pathname: string): boolean {
-  return PRIVATE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+function matchesPrefix(pathname: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
+/**
+ * `/{slug}{pathname}`, with `/` collapsed so the rewrite never lands on a
+ * trailing slash the router would have to redirect away from.
+ */
+function tenantUrl(request: NextRequest, slug: string, pathname: string): URL {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname === '/' ? `/${slug}` : `/${slug}${pathname}`;
+  return url;
 }
 
 /** Carries Supabase's refreshed auth cookies onto a different response. */
@@ -44,7 +63,7 @@ function redirectWithSession(from: NextResponse, to: URL): NextResponse {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const tenantSlug = extractTenantSlug(normalizeHost(request.headers.get('host')));
-  const isPrivate = isPrivatePath(pathname);
+  const isPrivate = matchesPrefix(pathname, PRIVATE_PREFIXES);
   const locale = isPrivate ? detectDashboardLocale(request) : detectLocale(request);
 
   // Rebuild request headers — deleting before setting is what closes the bypass.
@@ -55,7 +74,14 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set('x-locale', locale);
   if (tenantSlug) requestHeaders.set('x-tenant-slug', tenantSlug);
 
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  // Tenant subdomain → serve `(tenant)/[tenant]` without changing the visible
+  // URL. Apex requests fall through to `(marketing)`.
+  const response =
+    tenantSlug && !matchesPrefix(pathname, UNREWRITTEN_PREFIXES)
+      ? NextResponse.rewrite(tenantUrl(request, tenantSlug, pathname), {
+          request: { headers: requestHeaders },
+        })
+      : NextResponse.next({ request: { headers: requestHeaders } });
 
   // Session refresh — required by @supabase/ssr on every request.
   const supabase = createSupabaseMiddlewareClient(request, response);

@@ -2,7 +2,8 @@
 
 /**
  * @file LanguageSwitcher.tsx
- * @description Navbar language selector for the public (consumer) segment.
+ * @description Navbar language selector for the consumer-facing segments —
+ *              the tenant site `(tenant)` and the customer account `(account)`.
  *
  *  - Radix DropdownMenu for a11y (keyboard nav, ARIA, focus trap).
  *  - Three supported locales: pt · es · en.
@@ -14,11 +15,12 @@ import { useTransition }     from 'react';
 import * as DropdownMenu     from '@radix-ui/react-dropdown-menu';
 import { Check, Globe }      from 'lucide-react';
 import { cn }                from '@/shared/lib/utils';
-import { setLocaleAction }   from '../actions';
+import { setLocaleAction }   from '@/shared/actions/locale';
+import type { SupportedLocale } from '@/i18n/config';
 
 // ── Types ─────────────────────────────────────────────────────
 
-type Locale = 'pt' | 'es' | 'en';
+type Locale = SupportedLocale;
 
 interface Props {
   current:  Locale;
@@ -52,7 +54,7 @@ export function LanguageSwitcher({ current, scrolled }: Props) {
     });
   };
 
-  const activeShort = LANGUAGES.find((l) => l.code === current)?.short ?? 'PT';
+  const activeShort = LANGUAGES.find((l) => l.code === current)?.short ?? current.toUpperCase();
 
   return (
     <DropdownMenu.Root>
