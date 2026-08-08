@@ -17,6 +17,19 @@ const supabaseHostname = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Turbopack puts @react-pdf/renderer on its default externals list, then fails
+  // to assign it a ModuleId while building the app-ssr chunk graph:
+  //   ModuleId not found for ident: [externals]/@react-pdf/renderer [external]
+  // `serverExternalPackages` does NOT help — it asks for the state that is
+  // already broken. Transpiling bundles the package into the graph instead, so
+  // there is no external id left to resolve. The two options are mutually
+  // exclusive for the same package.
+  //
+  // Not an app-code bug: HomeCareGenerator is already 'use client' and already
+  // imports the package through `dynamic(..., { ssr: false })`. That flag skips
+  // SSR *rendering*, not the SSR *build graph*. Drop this once Turbopack fixes
+  // the externals resolution (next 16.2.0, @react-pdf/renderer 3.4.5).
+  transpilePackages: ['@react-pdf/renderer'],
   experimental: {
     serverActions: {
       // Must match UPLOAD_MAX_BYTES in src/shared/config/uploads.ts (5 * 1024 * 1024).
