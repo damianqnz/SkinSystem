@@ -14,6 +14,7 @@ import { AvailabilityEngine } from './_components/AvailabilityEngine';
 import { WeekViewEngine }     from './_components/WeekViewEngine';
 import { CalendarSkeleton }   from './_components/CalendarSkeleton';
 import type { CalendarView }  from './_components/ViewSwitcher';
+import { localeFromHeader }   from '@/i18n/detect-locale';
 
 interface CalendarPageProps {
   searchParams: Promise<{
@@ -31,7 +32,7 @@ const VALID_VIEWS: CalendarView[] = ['day', 'week', 'month', 'team'];
 export default async function CalendarPage({ searchParams }: CalendarPageProps) {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const locale = hdrs.get('x-locale') ?? 'pt';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
   const t      = await getTranslations({ locale, namespace: 'dashboard.calendar' });
 
   const { month: monthParam, date: dateParam, view: viewParam } = await searchParams;

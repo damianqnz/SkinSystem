@@ -15,19 +15,20 @@
  */
 
 import Link                   from 'next/link';
+import { useTranslations }    from 'next-intl';
 import { LanguageSwitcher }   from '@/shared/components/LanguageSwitcher';
-import type { BookingLabels } from '../_i18n';
-
-type Locale = 'es' | 'pt' | 'en';
+import type { SupportedLocale } from '@/i18n/config';
 
 interface Props {
   orgName:  string;
   logoUrl?: string | null;
-  locale:   Locale;
-  labels:   BookingLabels;
+  /** Drives the `LanguageSwitcher` active state — labels come from next-intl. */
+  locale:   SupportedLocale;
 }
 
-export function BookHeader({ orgName, logoUrl, locale, labels }: Props) {
+export function BookHeader({ orgName, logoUrl, locale }: Props) {
+  const t = useTranslations('booking');
+
   return (
     <header className="sticky top-0 z-10 bg-[#FAFAF9]/90 dark:bg-stone-950/90 backdrop-blur-md border-b border-stone-100 dark:border-stone-800">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 px-6 h-14">
@@ -35,7 +36,7 @@ export function BookHeader({ orgName, logoUrl, locale, labels }: Props) {
         <Link
           href="/"
           className="hover:opacity-80 transition-opacity flex-shrink-0"
-          aria-label={labels.header.back}
+          aria-label={t('header.back')}
         >
           {logoUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -54,7 +55,7 @@ export function BookHeader({ orgName, logoUrl, locale, labels }: Props) {
         {/* Right cluster: book context + language */}
         <div className="flex items-center gap-3 shrink-0">
           <span className="hidden sm:inline text-xs text-stone-400 font-outfit">
-            {labels.header.title}
+            {t('header.title')}
           </span>
           <LanguageSwitcher current={locale} scrolled />
         </div>

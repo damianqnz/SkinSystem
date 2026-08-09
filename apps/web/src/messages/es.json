@@ -84,7 +84,30 @@
     },
     "calendar": {
       "heading": "Elige fecha y hora",
-      "empty":   "No hay horarios disponibles"
+      "empty":   "No hay horarios disponibles",
+      "months": {
+        "jan": "Enero",
+        "feb": "Febrero",
+        "mar": "Marzo",
+        "apr": "Abril",
+        "may": "Mayo",
+        "jun": "Junio",
+        "jul": "Julio",
+        "aug": "Agosto",
+        "sep": "Septiembre",
+        "oct": "Octubre",
+        "nov": "Noviembre",
+        "dec": "Diciembre"
+      },
+      "days": {
+        "sun": "Dom",
+        "mon": "Lun",
+        "tue": "Mar",
+        "wed": "Mié",
+        "thu": "Jue",
+        "fri": "Vie",
+        "sat": "Sáb"
+      }
     },
     "auth": {
       "headingOptions":         "Iniciar sesión para reservar",
@@ -153,6 +176,23 @@
     },
     "metadata": {
       "title": "Reservar cita — {name}"
+    }
+  },
+  "account": {
+    "me": {
+      "bookCta": "Reservar cita →"
+    }
+  },
+  "tenant": {
+    "header": {
+      "bookCta": "Reservar",
+      "nav": {
+        "services": "Servicios",
+        "about":    "Sobre mí",
+        "gallery":  "Galería",
+        "reviews":  "Reseñas",
+        "location": "Ubicación"
+      }
     }
   },
   "integrations": {

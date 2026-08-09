@@ -3,27 +3,30 @@
 import { useState, useTransition } from 'react';
 import Image from 'next/image';
 import { Star, MapPin, Tag, Loader2, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { validateCouponAction } from '../actions';
-import { bookT, toIntlTag } from '../_i18n';
+import { toIntlTag } from '@/i18n/intl-tag';
+import type { SupportedLocale } from '@/i18n/config';
 import type { PublicSlot, SurchargeItem, CouponResult } from '../actions';
 import type { SelectService } from '@/domains/catalog/schema';
 
 // ── Helpers ───────────────────────────────────────────────────
-// DB-driven i18n JSONB picker (service nameI18n). Distinct from bookT (UI labels).
+// DB-driven i18n JSONB picker (service nameI18n). Distinct from the static UI
+// labels, which come from the `booking` message namespace.
 function pickI18n(field: unknown, locale: string): string {
   if (!field || typeof field !== 'object') return '';
   const o = field as Record<string, string>;
   return o[locale] ?? o['es'] ?? o['en'] ?? Object.values(o)[0] ?? '';
 }
 
-function fmtPrice(cents: number, locale: string, currency = 'EUR'): string {
+function fmtPrice(cents: number, locale: SupportedLocale, currency = 'EUR'): string {
   return (cents / 100).toLocaleString(toIntlTag(locale), {
     style: 'currency', currency,
     minimumFractionDigits: 2, maximumFractionDigits: 2,
   });
 }
 
-function fmtDate(iso: string, locale: string): string {
+function fmtDate(iso: string, locale: SupportedLocale): string {
   return new Date(iso).toLocaleString(toIntlTag(locale), {
     weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
   });
@@ -68,7 +71,8 @@ interface BookingSummaryProps {
   service: SelectService | null;
   slot: PublicSlot | null;
   surcharges: SurchargeItem[];
-  locale: string;
+  /** Still needed for `Intl` price/date formatting and the DB JSONB picker. */
+  locale: SupportedLocale;
   showPrices: boolean;
   appliedCoupon: AppliedCoupon | null;
   onCouponApply: (coupon: AppliedCoupon) => void;
@@ -88,8 +92,7 @@ export function BookingSummary({
   onCouponApply,
   onCouponRemove,
 }: BookingSummaryProps) {
-  const tAll = bookT(locale);
-  const t    = tAll.summary;
+  const t = useTranslations('booking.summary');
   const [couponCode, setCouponCode] = useState('');
   const [couponError, setCouponError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -207,7 +210,7 @@ export function BookingSummary({
       {service && showPrices && (
         <div className="bg-white rounded-2xl border border-stone-100 p-5 shadow-sm space-y-3">
           <p className="text-xs font-medium text-stone-400 uppercase tracking-widest">
-            {t.heading}
+            {t('heading')}
           </p>
 
           {/* Service */}
@@ -254,7 +257,7 @@ export function BookingSummary({
 
           {hasReductions && (
             <div className="flex justify-between text-xs font-medium text-stone-700 border-t border-stone-100 pt-2">
-              <span>{t.subtotalOnline}</span>
+              <span>{t('subtotalOnline')}</span>
               <span className="font-outfit tabular-nums">{fmtPrice(subtotalOnlineCents, locale, currency)}</span>
             </div>
           )}
@@ -287,7 +290,7 @@ export function BookingSummary({
                   value={couponCode}
                   onChange={(e) => { setCouponCode(e.target.value.toUpperCase()); setCouponError(null); }}
                   onKeyDown={(e) => e.key === 'Enter' && handleValidateCoupon()}
-                  placeholder={t.couponPlaceholder}
+                  placeholder={t('couponPlaceholder')}
                   className="flex-1 border border-stone-200 rounded-xl px-3 py-2 text-xs text-stone-800 bg-white focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:border-stone-400 placeholder:text-stone-300 transition-colors uppercase"
                 />
                 <button
@@ -296,7 +299,7 @@ export function BookingSummary({
                   disabled={isPending || !couponCode.trim()}
                   className="px-3 py-2 bg-stone-900 text-white text-xs font-outfit font-medium rounded-xl hover:bg-stone-700 disabled:opacity-50 transition-colors flex-shrink-0"
                 >
-                  {isPending ? <Loader2 size={12} className="animate-spin" /> : t.couponApply}
+                  {isPending ? <Loader2 size={12} className="animate-spin" /> : t('couponApply')}
                 </button>
               </div>
               {couponError && (
@@ -307,7 +310,7 @@ export function BookingSummary({
 
           {/* Total online */}
           <div className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
-            <span className="text-sm font-medium text-amber-800">{t.totalNow}</span>
+            <span className="text-sm font-medium text-amber-800">{t('totalNow')}</span>
             <span className="text-sm font-outfit font-bold tabular-nums text-amber-800">
               {fmtPrice(totalOnlineCents, locale, currency)}
             </span>
@@ -316,7 +319,7 @@ export function BookingSummary({
           {/* Saldo local */}
           {hasReductions && paidLocalCents > 0 && (
             <div className="flex justify-between text-xs text-stone-400">
-              <span>{t.localBalance}</span>
+              <span>{t('localBalance')}</span>
               <span className="font-outfit tabular-nums">{fmtPrice(paidLocalCents, locale, currency)}</span>
             </div>
           )}

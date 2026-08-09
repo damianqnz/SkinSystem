@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useLocale, useTranslations } from 'next-intl';
+import { DEFAULT_LOCALE } from '@/i18n/config';
+import { isSupportedLocale } from '@/i18n/detect-locale';
 import { LanguageSwitcher } from '@/shared/components/LanguageSwitcher';
 import { UserMenu, type PublicSessionUser } from './UserMenu';
 
@@ -11,29 +14,33 @@ import { UserMenu, type PublicSessionUser } from './UserMenu';
 interface Props {
   orgName: string;
   logoUrl: string | null;
-  locale: string;
   user: PublicSessionUser | null;
 }
 
+/**
+ * `id` is the DOM anchor the section renders with (Portuguese, matching the
+ * markup); `labelKey` is the message key. They are deliberately decoupled so a
+ * translation never has to mirror an anchor name.
+ */
 const SECTIONS = [
-  { id: 'servicos', label: { pt: 'Serviços', es: 'Servicios', en: 'Services' } },
-  { id: 'sobre', label: { pt: 'Sobre nós', es: 'Sobre mí', en: 'About' } },
-  { id: 'galeria', label: { pt: 'Galeria', es: 'Galería', en: 'Gallery' } },
-  { id: 'avaliacoes', label: { pt: 'Avaliações', es: 'Reseñas', en: 'Reviews' } },
-  { id: 'morada', label: { pt: 'Morada', es: 'Ubicación', en: 'Location' } },
+  { id: 'servicos',   labelKey: 'nav.services' },
+  { id: 'sobre',      labelKey: 'nav.about'    },
+  { id: 'galeria',    labelKey: 'nav.gallery'  },
+  { id: 'avaliacoes', labelKey: 'nav.reviews'  },
+  { id: 'morada',     labelKey: 'nav.location' },
 ] as const;
-
-const BOOK_LABEL = { pt: 'Reservar', es: 'Reservar', en: 'Book now' } as const;
 
 // ── Component ─────────────────────────────────────────────────
 
-export function PublicHeader({ orgName, logoUrl, locale, user }: Props) {
+export function PublicHeader({ orgName, logoUrl, user }: Props) {
+  const t   = useTranslations('tenant.header');
+  // `useLocale()` is typed as a bare string until `Locale` is augmented, so it
+  // still has to be narrowed before feeding the strictly-typed child props.
+  const raw = useLocale();
+  const locale = isSupportedLocale(raw) ? raw : DEFAULT_LOCALE;
+
   const [activeId, setActiveId] = useState<string>('');
   const [scrolled, setScrolled] = useState(false);
-
-  const lang = (locale as 'pt' | 'es' | 'en') in { pt: 1, es: 1, en: 1 }
-    ? (locale as 'pt' | 'es' | 'en')
-    : 'pt';
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -94,7 +101,7 @@ export function PublicHeader({ orgName, logoUrl, locale, user }: Props) {
 
         {/* Nav links — hidden on mobile */}
         <nav className="hidden md:flex items-center gap-1">
-          {SECTIONS.map(({ id, label }) => (
+          {SECTIONS.map(({ id, labelKey }) => (
             <button
               key={id}
               onClick={() => scrollTo(id)}
@@ -107,22 +114,22 @@ export function PublicHeader({ orgName, logoUrl, locale, user }: Props) {
                     : 'text-white/70 hover:text-white',
               ].join(' ')}
             >
-              {label[lang]}
+              {t(labelKey)}
             </button>
           ))}
         </nav>
 
         {/* Right cluster: language selector + user menu + CTA */}
         <div className="flex items-center gap-2 shrink-0">
-          <LanguageSwitcher current={lang} scrolled={scrolled} />
-          <UserMenu user={user} locale={lang} scrolled={scrolled} />
+          <LanguageSwitcher current={locale} scrolled={scrolled} />
+          <UserMenu user={user} locale={locale} scrolled={scrolled} />
 
           <Link
             href="/book"
             className="px-4 py-2 text-stone-950 text-[13px] font-outfit font-medium hover:opacity-90 transition-opacity"
             style={{ backgroundColor: 'var(--brand-color)', borderRadius: 'var(--btn-radius)' }}
           >
-            {BOOK_LABEL[lang]}
+            {t('bookCta')}
           </Link>
         </div>
       </div>

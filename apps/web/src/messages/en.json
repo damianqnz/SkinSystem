@@ -84,7 +84,30 @@
     },
     "calendar": {
       "heading": "Choose a date and time",
-      "empty":   "No times available"
+      "empty":   "No times available",
+      "months": {
+        "jan": "January",
+        "feb": "February",
+        "mar": "March",
+        "apr": "April",
+        "may": "May",
+        "jun": "June",
+        "jul": "July",
+        "aug": "August",
+        "sep": "September",
+        "oct": "October",
+        "nov": "November",
+        "dec": "December"
+      },
+      "days": {
+        "sun": "Sun",
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat"
+      }
     },
     "auth": {
       "headingOptions":         "Sign in to book",
@@ -153,6 +176,23 @@
     },
     "metadata": {
       "title": "Book an appointment — {name}"
+    }
+  },
+  "account": {
+    "me": {
+      "bookCta": "Book appointment →"
+    }
+  },
+  "tenant": {
+    "header": {
+      "bookCta": "Book now",
+      "nav": {
+        "services": "Services",
+        "about":    "About",
+        "gallery":  "Gallery",
+        "reviews":  "Reviews",
+        "location": "Location"
+      }
     }
   },
   "integrations": {

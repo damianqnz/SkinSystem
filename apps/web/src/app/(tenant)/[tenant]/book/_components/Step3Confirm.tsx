@@ -5,28 +5,30 @@ import { useRouter }              from 'next/navigation';
 import { Loader2, Shield, Lock }  from 'lucide-react';
 import { toast }                  from 'sonner';
 import { createSupabaseClient }   from '@/infrastructure/supabase/client';
+import { useTranslations }        from 'next-intl';
 import { createBookingAction }    from '../actions';
-import { bookT, format, toIntlTag } from '../_i18n';
+import { toIntlTag }              from '@/i18n/intl-tag';
+import type { SupportedLocale }   from '@/i18n/config';
 import type { BookingState, PublicSlot, BookingConfig, SurchargeItem } from '../actions';
 import type { SelectService }     from '@/domains/catalog/schema';
 
 // ── Helpers ───────────────────────────────────────────────────
 // DB-driven i18n JSONB picker (service nameI18n, etc.) — not to be confused
-// with the UI label dictionary (bookT).
+// with the static UI labels from the `booking` message namespace.
 function pickI18n(field: unknown, locale: string): string {
   if (!field || typeof field !== 'object') return '';
   const o = field as Record<string, string>;
   return o[locale] ?? o['es'] ?? o['en'] ?? Object.values(o)[0] ?? '';
 }
 
-function fmtPrice(cents: number, locale: string, currency = 'EUR'): string {
+function fmtPrice(cents: number, locale: SupportedLocale, currency = 'EUR'): string {
   return (cents / 100).toLocaleString(toIntlTag(locale), {
     style: 'currency', currency,
     minimumFractionDigits: 2, maximumFractionDigits: 2,
   });
 }
 
-function fmtDate(iso: string, locale: string): string {
+function fmtDate(iso: string, locale: SupportedLocale): string {
   return new Date(iso).toLocaleString(toIntlTag(locale), {
     weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit',
   });
@@ -49,7 +51,8 @@ interface AuthUser {
 interface Step3ConfirmProps {
   service:       SelectService;
   slot:          PublicSlot;
-  locale:        string;
+  /** Still needed for `Intl` price/date formatting and the DB JSONB picker. */
+  locale:        SupportedLocale;
   config:        BookingConfig;
   surcharges:    SurchargeItem[];
   appliedCoupon: AppliedCoupon | null;
@@ -77,8 +80,8 @@ function AuthenticatedConfirm({
   appliedCoupon,
 }: { user: AuthUser } & Omit<Step3ConfirmProps, 'config'> & { config: BookingConfig }) {
   const router = useRouter();
-  const tAll = bookT(locale);
-  const t    = tAll.confirm;
+  const t      = useTranslations('booking.confirm');
+  const tCommon = useTranslations('booking.common');
   const [state, dispatch, isPending] =
     useActionState<BookingState, unknown>(createBookingAction, IDLE);
 
@@ -108,8 +111,8 @@ function AuthenticatedConfirm({
   useEffect(() => {
     if (state.status === 'redirect') router.push(state.url);
     if (state.status === 'error')    toast.error(state.message);
-    if (state.status === 'conflict') toast.error(t.conflictError);
-  }, [state, router, t.conflictError]);
+    if (state.status === 'conflict') toast.error(t('conflictError'));
+  }, [state, router, t]);
 
   function handlePay() {
     (dispatch as (p: unknown) => void)({
@@ -124,13 +127,13 @@ function AuthenticatedConfirm({
   }
 
   const btnLabel = config.onlinePaymentEnabled
-    ? format(t.payButton, { amount: fmtPrice(onlineAmountCents, locale, currency) })
-    : t.bookButton;
+    ? t('payButton', { amount: fmtPrice(onlineAmountCents, locale, currency) })
+    : t('bookButton');
 
   return (
     <div className="space-y-5">
       <h2 className="font-cormorant text-2xl font-semibold text-stone-900 text-center">
-        {t.heading}
+        {t('heading')}
       </h2>
 
       {/* Booking summary card */}
@@ -146,7 +149,7 @@ function AuthenticatedConfirm({
             </p>
             {config.showServiceDuration && (
               <p className="text-xs text-stone-400">
-                {service.durationMinutes} {tAll.common.minutes}
+                {service.durationMinutes} {tCommon('minutes')}
               </p>
             )}
           </div>
@@ -158,14 +161,14 @@ function AuthenticatedConfirm({
         </div>
 
         <div className="border-t border-stone-100 pt-3 flex items-center justify-between text-sm">
-          <span className="text-stone-500">{t.dateTime}</span>
+          <span className="text-stone-500">{t('dateTime')}</span>
           <span className="font-outfit font-medium text-stone-700 capitalize text-right">
             {fmtDate(slot.startISO, locale)}
           </span>
         </div>
 
         <div className="flex items-center justify-between text-sm">
-          <span className="text-stone-500">{t.reservedAs}</span>
+          <span className="text-stone-500">{t('reservedAs')}</span>
           <span className="font-outfit text-stone-700 truncate max-w-[180px] text-right">
             {user.name} · {user.email}
           </span>
@@ -181,7 +184,7 @@ function AuthenticatedConfirm({
         </div>
       ) : (
         <p className="text-[10px] text-stone-400 text-center leading-relaxed">
-          {t.policyFallback}
+          {t('policyFallback')}
         </p>
       )}
 
@@ -189,7 +192,7 @@ function AuthenticatedConfirm({
       {config.onlinePaymentEnabled && (
         <div className="flex items-center justify-center gap-2 text-stone-300">
           <Lock size={12} />
-          <span className="text-[11px] font-outfit">{t.stripeSecure}</span>
+          <span className="text-[11px] font-outfit">{t('stripeSecure')}</span>
           <Shield size={12} />
         </div>
       )}
@@ -205,7 +208,7 @@ function AuthenticatedConfirm({
         {isPending ? (
           <>
             <Loader2 size={18} className="animate-spin" />
-            <span className="text-sm">{t.redirecting}</span>
+            <span className="text-sm">{t('redirecting')}</span>
           </>
         ) : (
           <>
@@ -229,8 +232,8 @@ function GuestConfirm({
   appliedCoupon,
 }: Step3ConfirmProps) {
   const router = useRouter();
-  const tAll = bookT(locale);
-  const t    = tAll.confirm;
+  const t      = useTranslations('booking.confirm');
+  const tCommon = useTranslations('booking.common');
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   const [state, dispatch, isPending] =
@@ -262,13 +265,13 @@ function GuestConfirm({
   useEffect(() => {
     if (state.status === 'redirect') router.push(state.url);
     if (state.status === 'error')    toast.error(state.message);
-    if (state.status === 'conflict') toast.error(t.conflictError);
-  }, [state, router, t.conflictError]);
+    if (state.status === 'conflict') toast.error(t('conflictError'));
+  }, [state, router, t]);
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (config.termsRequired && !termsAccepted) {
-      toast.error(t.termsRequiredError);
+      toast.error(t('termsRequiredError'));
       return;
     }
     const fd = new FormData(e.currentTarget);
@@ -290,13 +293,13 @@ function GuestConfirm({
     'placeholder:text-stone-300 transition-colors';
 
   const btnLabel = !config.onlinePaymentEnabled
-    ? t.bookButtonGuest
-    : format(t.payButtonGuest, { amount: fmtPrice(onlineAmountCents, locale, currency) });
+    ? t('bookButtonGuest')
+    : t('payButtonGuest', { amount: fmtPrice(onlineAmountCents, locale, currency) });
 
   return (
     <div>
       <h2 className="font-cormorant text-2xl font-semibold text-stone-900 mb-6 text-center">
-        {t.heading}
+        {t('heading')}
       </h2>
 
       {/* Mobile-only summary */}
@@ -312,7 +315,7 @@ function GuestConfirm({
             </p>
             {config.showServiceDuration && (
               <p className="text-xs text-stone-400">
-                {service.durationMinutes} {tAll.common.minutes}
+                {service.durationMinutes} {tCommon('minutes')}
               </p>
             )}
           </div>
@@ -332,41 +335,41 @@ function GuestConfirm({
       <form onSubmit={handleSubmit} className="space-y-4">
         {config.formFieldName && (
           <div>
-            <label className="field-label">{t.nameLabel}</label>
+            <label className="field-label">{t('nameLabel')}</label>
             <input name="guestName" type="text" required minLength={2} maxLength={100}
-              placeholder={t.namePlaceholder} className={inputClass} />
+              placeholder={t('namePlaceholder')} className={inputClass} />
           </div>
         )}
 
         <div className={config.formFieldPhone && config.formFieldEmail ? 'grid grid-cols-1 sm:grid-cols-2 gap-4' : ''}>
           {config.formFieldPhone && (
             <div>
-              <label className="field-label">{t.phoneLabel}</label>
+              <label className="field-label">{t('phoneLabel')}</label>
               <input name="guestPhone" type="tel" required minLength={6}
-                placeholder={t.phonePlaceholder} className={inputClass} />
+                placeholder={t('phonePlaceholder')} className={inputClass} />
             </div>
           )}
           {config.formFieldEmail && (
             <div>
-              <label className="field-label">{t.emailLabel}</label>
+              <label className="field-label">{t('emailLabel')}</label>
               <input name="guestEmail" type="email" required
-                placeholder={t.emailPlaceholder} className={inputClass} />
-              <p className="mt-1 text-[10px] text-stone-400">{t.emailHelp}</p>
+                placeholder={t('emailPlaceholder')} className={inputClass} />
+              <p className="mt-1 text-[10px] text-stone-400">{t('emailHelp')}</p>
             </div>
           )}
         </div>
 
         {config.formFieldAddress && (
           <div>
-            <label className="field-label">{t.addressLabel}</label>
-            <input name="guestAddress" type="text" placeholder={t.addressPlaceholder} className={inputClass} />
+            <label className="field-label">{t('addressLabel')}</label>
+            <input name="guestAddress" type="text" placeholder={t('addressPlaceholder')} className={inputClass} />
           </div>
         )}
 
         <div>
-          <label className="field-label">{t.noteLabel}</label>
+          <label className="field-label">{t('noteLabel')}</label>
           <textarea name="guestComment" rows={2} maxLength={500}
-            placeholder={t.notePlaceholder}
+            placeholder={t('notePlaceholder')}
             className={`${inputClass} resize-none`} />
         </div>
 
@@ -381,10 +384,10 @@ function GuestConfirm({
             <input type="checkbox" checked={termsAccepted}
               onChange={(e) => setTermsAccepted(e.target.checked)} className="mt-0.5 accent-stone-900" />
             <span className="text-xs text-stone-500 leading-relaxed">
-              {config.termsLabel ?? t.acceptTerms}
+              {config.termsLabel ?? t('acceptTerms')}
               {config.termsUrl && (
                 <> <a href={config.termsUrl} target="_blank" rel="noopener noreferrer"
-                  className="underline hover:text-stone-800 transition-colors">{t.viewPolicy}</a></>
+                  className="underline hover:text-stone-800 transition-colors">{t('viewPolicy')}</a></>
               )}
             </span>
           </label>
@@ -392,14 +395,14 @@ function GuestConfirm({
 
         {!config.cancellationPolicyText && !config.termsRequired && (
           <p className="text-[10px] text-stone-400 leading-relaxed">
-            {t.policyFallback}
+            {t('policyFallback')}
           </p>
         )}
 
         {config.onlinePaymentEnabled && (
           <div className="flex items-center justify-center gap-2 text-stone-300">
             <Lock size={12} />
-            <span className="text-[11px] font-outfit">{t.stripeSecure}</span>
+            <span className="text-[11px] font-outfit">{t('stripeSecure')}</span>
             <Shield size={12} />
           </div>
         )}
@@ -409,7 +412,7 @@ function GuestConfirm({
           className="w-full flex items-center justify-center gap-2 py-4 px-6 text-stone-950 font-outfit font-medium text-sm hover:opacity-90 disabled:opacity-60 transition-opacity shadow-sm"
           style={{ backgroundColor: 'var(--brand-color)', borderRadius: 'var(--btn-radius)' }}
         >
-          {isPending ? (<><Loader2 size={16} className="animate-spin" />{t.redirecting}</>) : btnLabel}
+          {isPending ? (<><Loader2 size={16} className="animate-spin" />{t('redirecting')}</>) : btnLabel}
         </button>
       </form>
     </div>

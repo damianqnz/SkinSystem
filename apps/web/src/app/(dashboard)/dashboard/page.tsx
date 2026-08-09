@@ -13,6 +13,7 @@ import { getTranslations } from 'next-intl/server';
 import { getOrganizationBySlug } from '@/domains/organizations/service';
 import { getSlotsByDate }         from '@/domains/booking/service';
 import { getCustomersList }       from '@/domains/customers/service';
+import { localeFromHeader }       from '@/i18n/detect-locale';
 
 import { StatsCard }            from './_components/StatsCard';
 import { AppointmentsList }     from './_components/AppointmentsList';
@@ -34,7 +35,7 @@ const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 
 export default async function DashboardPage() {
   const headersList = await headers();
   const slug   = headersList.get('x-tenant-slug') ?? '';
-  const locale = headersList.get('x-locale') ?? 'pt';
+  const locale = localeFromHeader(headersList.get('x-locale'));
 
   const t = await getTranslations({ locale, namespace: 'dashboard.home' });
 

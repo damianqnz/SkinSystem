@@ -2,14 +2,13 @@
 
 import { useState, useTransition } from 'react';
 import { Loader2, Mail, ChevronRight }         from 'lucide-react';
+import { useTranslations }                     from 'next-intl';
 import { createSupabaseClient }                from '@/infrastructure/supabase/client';
-import { bookT }                               from '../_i18n';
 
 // ── Props ─────────────────────────────────────────────────────
 
 interface Step2AuthProps {
   loginRequired:     boolean;
-  locale:            string;
   onAuthenticated:   () => void;
   onContinueAsGuest: () => void;
 }
@@ -33,12 +32,10 @@ function GoogleIcon() {
 
 export function Step2Auth({
   loginRequired,
-  locale,
   onAuthenticated,
   onContinueAsGuest,
 }: Step2AuthProps) {
-  const tAll = bookT(locale);
-  const t    = tAll.auth;
+  const t = useTranslations('booking.auth');
 
   const [view,        setView]         = useState<AuthView>('options');
   const [authError,   setAuthError]    = useState<string | null>(null);
@@ -76,7 +73,7 @@ export function Step2Auth({
 
     startTransition(async () => {
       const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
-      if (error) { setAuthError(t.errorCredentials); return; }
+      if (error) { setAuthError(t('errorCredentials')); return; }
       onAuthenticated();
     });
   }
@@ -112,24 +109,24 @@ export function Step2Auth({
       <div>
         <button type="button" onClick={() => { setView('options'); setAuthError(null); }}
           className="text-xs text-stone-400 hover:text-stone-700 mb-5 transition-colors">
-          {t.back}
+          {t('back')}
         </button>
         <h2 className="font-cormorant text-2xl font-semibold text-stone-900 mb-1 text-center">
-          {t.headingLogin}
+          {t('headingLogin')}
         </h2>
-        <p className="text-xs text-stone-400 text-center mb-6">{t.subtitleLogin}</p>
+        <p className="text-xs text-stone-400 text-center mb-6">{t('subtitleLogin')}</p>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="field-label">{t.emailLabel}</label>
+            <label className="field-label">{t('emailLabel')}</label>
             <input name="email" type="email" required
-              placeholder={t.emailPlaceholder}
+              placeholder={t('emailPlaceholder')}
               className={`mt-1.5 ${inputClass}`} />
           </div>
           <div>
-            <label className="field-label">{t.passwordLabel}</label>
+            <label className="field-label">{t('passwordLabel')}</label>
             <input name="password" type="password" required
-              placeholder={t.passwordPlaceholder}
+              placeholder={t('passwordPlaceholder')}
               className={`mt-1.5 ${inputClass}`} />
           </div>
 
@@ -137,12 +134,12 @@ export function Step2Auth({
 
           <button type="submit" disabled={isPending}
             className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-stone-900 text-white font-outfit font-medium text-sm rounded-xl hover:bg-stone-700 disabled:opacity-60 transition-colors">
-            {isPending ? <Loader2 size={16} className="animate-spin" /> : t.enter}
+            {isPending ? <Loader2 size={16} className="animate-spin" /> : t('enter')}
           </button>
 
           <button type="button" onClick={() => { setView('register'); setAuthError(null); }}
             className="w-full text-xs text-stone-400 hover:text-stone-700 transition-colors pt-1">
-            {t.noAccount} <span className="underline">{t.createNow}</span>
+            {t('noAccount')} <span className="underline">{t('createNow')}</span>
           </button>
         </form>
       </div>
@@ -155,30 +152,30 @@ export function Step2Auth({
       <div>
         <button type="button" onClick={() => { setView('options'); setAuthError(null); }}
           className="text-xs text-stone-400 hover:text-stone-700 mb-5 transition-colors">
-          {t.back}
+          {t('back')}
         </button>
         <h2 className="font-cormorant text-2xl font-semibold text-stone-900 mb-1 text-center">
-          {t.headingRegister}
+          {t('headingRegister')}
         </h2>
-        <p className="text-xs text-stone-400 text-center mb-6">{t.subtitleRegister}</p>
+        <p className="text-xs text-stone-400 text-center mb-6">{t('subtitleRegister')}</p>
 
         <form onSubmit={handleRegister} className="space-y-4">
           <div>
-            <label className="field-label">{t.fullNameLabel}</label>
+            <label className="field-label">{t('fullNameLabel')}</label>
             <input name="fullName" type="text" required minLength={2}
-              placeholder={t.fullNamePlaceholder}
+              placeholder={t('fullNamePlaceholder')}
               className={`mt-1.5 ${inputClass}`} />
           </div>
           <div>
-            <label className="field-label">{t.emailLabel}</label>
+            <label className="field-label">{t('emailLabel')}</label>
             <input name="email" type="email" required
-              placeholder={t.emailPlaceholder}
+              placeholder={t('emailPlaceholder')}
               className={`mt-1.5 ${inputClass}`} />
           </div>
           <div>
-            <label className="field-label">{t.passwordLabel}</label>
+            <label className="field-label">{t('passwordLabel')}</label>
             <input name="password" type="password" required minLength={6}
-              placeholder={t.passwordMinPlaceholder}
+              placeholder={t('passwordMinPlaceholder')}
               className={`mt-1.5 ${inputClass}`} />
           </div>
 
@@ -186,7 +183,7 @@ export function Step2Auth({
 
           <button type="submit" disabled={isPending}
             className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-stone-900 text-white font-outfit font-medium text-sm rounded-xl hover:bg-stone-700 disabled:opacity-60 transition-colors">
-            {isPending ? <Loader2 size={16} className="animate-spin" /> : t.createAccount}
+            {isPending ? <Loader2 size={16} className="animate-spin" /> : t('createAccount')}
           </button>
         </form>
       </div>
@@ -197,10 +194,10 @@ export function Step2Auth({
   return (
     <div>
       <h2 className="font-cormorant text-2xl font-semibold text-stone-900 mb-1 text-center">
-        {t.headingOptions}
+        {t('headingOptions')}
       </h2>
       <p className="text-xs text-stone-400 text-center mb-8">
-        {t.subtitleOptions}
+        {t('subtitleOptions')}
       </p>
 
       <div className="space-y-3">
@@ -215,7 +212,7 @@ export function Step2Auth({
           {oauthLoading === 'google'
             ? <Loader2 size={18} className="animate-spin text-stone-400" />
             : <GoogleIcon />}
-          <span>{t.google}</span>
+          <span>{t('google')}</span>
           {oauthLoading !== 'google' && <ChevronRight size={14} className="ml-auto text-stone-300" />}
         </button>
 
@@ -228,7 +225,7 @@ export function Step2Auth({
           className="w-full flex items-center gap-3 px-4 py-3 border border-stone-200 rounded-xl bg-white text-sm font-outfit text-stone-700 hover:bg-stone-50 transition-colors"
         >
           <Mail size={18} className="text-stone-400" />
-          <span>{t.email}</span>
+          <span>{t('email')}</span>
           <ChevronRight size={14} className="ml-auto text-stone-300" />
         </button>
 
@@ -239,7 +236,7 @@ export function Step2Auth({
           className="w-full flex items-center gap-3 px-4 py-3 border border-stone-200 rounded-xl bg-white text-sm font-outfit text-stone-600 hover:bg-stone-50 transition-colors"
         >
           <span className="text-base leading-none text-stone-400">+</span>
-          <span>{t.createProfile}</span>
+          <span>{t('createProfile')}</span>
           <ChevronRight size={14} className="ml-auto text-stone-300" />
         </button>
       </div>
@@ -253,7 +250,7 @@ export function Step2Auth({
         <div className="mt-6 text-center">
           <div className="flex items-center gap-3 mb-4">
             <div className="flex-1 h-px bg-stone-100" />
-            <span className="text-xs text-stone-300 font-outfit">{t.or}</span>
+            <span className="text-xs text-stone-300 font-outfit">{t('or')}</span>
             <div className="flex-1 h-px bg-stone-100" />
           </div>
           <button
@@ -261,7 +258,7 @@ export function Step2Auth({
             onClick={onContinueAsGuest}
             className="text-sm text-stone-400 hover:text-stone-700 underline underline-offset-2 transition-colors"
           >
-            {t.continueGuest}
+            {t('continueGuest')}
           </button>
         </div>
       )}

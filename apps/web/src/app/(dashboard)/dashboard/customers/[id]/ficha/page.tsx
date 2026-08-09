@@ -14,6 +14,7 @@ import { createSupabaseServerClient }       from '@/infrastructure/supabase/serv
 import { getOrganizationBySlug }            from '@/domains/organizations/service';
 import { getCustomerFullHistory }           from '@/domains/customers/full-history';
 import type { AppointmentHistoryRow }       from '@/domains/customers/full-history';
+import { localeFromHeader }                 from '@/i18n/detect-locale';
 
 import { PatientHeader, type PatientHeaderData } from './_components/PatientHeader';
 import { AutoLockOverlay }                   from './_components/AutoLockOverlay';
@@ -110,7 +111,7 @@ export default async function FichaPage({ params }: Props) {
   const { id } = await params;
   const h      = await headers();
   const slug   = h.get('x-tenant-slug') ?? '';
-  const locale = h.get('x-locale')      ?? 'pt';
+  const locale = localeFromHeader(h.get('x-locale'));
 
   const orgResult = await getOrganizationBySlug(slug);
   if (!orgResult.data) notFound();

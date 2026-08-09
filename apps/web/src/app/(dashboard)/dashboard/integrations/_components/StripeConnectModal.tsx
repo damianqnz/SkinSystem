@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server';
 import { getOrganizationBySlug, getOrganizationSettings } from '@/domains/organizations/service';
 import { StripeConnectControls } from './StripeConnectControls';
 import { StripeDisconnectDialog } from './StripeDisconnectDialog';
+import { localeFromHeader } from '@/i18n/detect-locale';
 
 type CardState = 'connected' | 'pending' | 'disconnected';
 
@@ -21,7 +22,7 @@ function pickState(args: { hasAccount: boolean; onboarded: boolean; charges: boo
 export async function StripeConnectModal() {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
-  const locale = hdrs.get('x-locale') ?? 'pt';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
   const t      = await getTranslations({ locale, namespace: 'integrations.stripe' });
 
   const orgRes = await getOrganizationBySlug(slug);

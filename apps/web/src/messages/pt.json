@@ -84,7 +84,30 @@
     },
     "calendar": {
       "heading": "Escolha a data e hora",
-      "empty":   "Não há horários disponíveis"
+      "empty":   "Não há horários disponíveis",
+      "months": {
+        "jan": "Janeiro",
+        "feb": "Fevereiro",
+        "mar": "Março",
+        "apr": "Abril",
+        "may": "Maio",
+        "jun": "Junho",
+        "jul": "Julho",
+        "aug": "Agosto",
+        "sep": "Setembro",
+        "oct": "Outubro",
+        "nov": "Novembro",
+        "dec": "Dezembro"
+      },
+      "days": {
+        "sun": "Dom",
+        "mon": "Seg",
+        "tue": "Ter",
+        "wed": "Qua",
+        "thu": "Qui",
+        "fri": "Sex",
+        "sat": "Sáb"
+      }
     },
     "auth": {
       "headingOptions":         "Entre para reservar",
@@ -153,6 +176,23 @@
     },
     "metadata": {
       "title": "Reservar marcação — {name}"
+    }
+  },
+  "account": {
+    "me": {
+      "bookCta": "Reservar consulta →"
+    }
+  },
+  "tenant": {
+    "header": {
+      "bookCta": "Reservar",
+      "nav": {
+        "services": "Serviços",
+        "about":    "Sobre nós",
+        "gallery":  "Galeria",
+        "reviews":  "Avaliações",
+        "location": "Morada"
+      }
     }
   },
   "integrations": {

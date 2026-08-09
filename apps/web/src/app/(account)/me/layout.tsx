@@ -8,21 +8,13 @@ import { getMyCustomer }              from '@/domains/customers/service-me';
 import { MeSidebar }                  from './_components/MeSidebar';
 import { LanguageSwitcher }           from '@/shared/components/LanguageSwitcher';
 import { localeFromHeader }           from '@/i18n/detect-locale';
-import type { SupportedLocale }       from '@/i18n/config';
-
-// ── i18n (static labels) ──────────────────────────────────────
-// TODO(PR3): migrate to `messages/*.json` under `account.me.*`.
-
-const BOOK_CTA: Record<SupportedLocale, string> = {
-  pt: 'Reservar consulta →',
-  es: 'Reservar cita →',
-  en: 'Book appointment →',
-};
+import { getTranslations }            from 'next-intl/server';
 
 export default async function MeLayout({ children }: { children: ReactNode }) {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
   const locale = localeFromHeader(hdrs.get('x-locale'));
+  const t      = await getTranslations('account.me');
 
   // ── Auth guard ──────────────────────────────────────────────
   // Sin sesión → `/login` (gateway unificado de Fase 30). El `next=/me`
@@ -63,7 +55,7 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
               href="/book"
               className="text-xs text-stone-400 font-outfit hover:text-stone-700 transition-colors"
             >
-              {BOOK_CTA[locale]}
+              {t('bookCta')}
             </Link>
           </div>
         </div>

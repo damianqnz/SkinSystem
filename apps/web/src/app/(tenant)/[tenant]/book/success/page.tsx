@@ -6,6 +6,8 @@ import { db }                  from '@/infrastructure/db';
 import { appointments }        from '@/domains/booking/schema';
 import { catalogServices }     from '@/domains/catalog/schema';
 import { eq, and }             from 'drizzle-orm';
+import { localeFromHeader }    from '@/i18n/detect-locale';
+import { toIntlTag }           from '@/i18n/intl-tag';
 import type { Metadata }       from 'next';
 
 export const metadata: Metadata = { title: 'Reserva confirmada' };
@@ -27,7 +29,7 @@ interface SuccessPageProps {
 export default async function BookSuccessPage({ searchParams }: SuccessPageProps) {
   const hdrs          = await headers();
   const slug          = hdrs.get('x-tenant-slug') ?? '';
-  const locale        = hdrs.get('x-locale') ?? 'es';
+  const locale        = localeFromHeader(hdrs.get('x-locale'));
   const { appointment: appointmentId } = await searchParams;
 
   const orgResult = await getOrganizationBySlug(slug);
@@ -104,7 +106,7 @@ export default async function BookSuccessPage({ searchParams }: SuccessPageProps
                 <p className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">Fecha y hora</p>
                 <p className="text-sm font-outfit text-stone-700 mt-0.5">
                   {appointmentInfo.startAt.toLocaleString(
-                    locale === 'pt' ? 'pt-PT' : locale === 'en' ? 'en-GB' : 'es-ES',
+                    toIntlTag(locale),
                     { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' },
                   )}
                 </p>
