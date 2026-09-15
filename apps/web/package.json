@@ -9,6 +9,8 @@
     "start": "next start",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "reset-password": "tsx --env-file .env.local scripts/reset-user-password.ts"
   },
   "dependencies": {
@@ -65,6 +67,7 @@
     "postcss": "^8.5.9",
     "tailwindcss": "^4.2.2",
     "tsx": "^4.19.3",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^5.0.1"
   }
 }
