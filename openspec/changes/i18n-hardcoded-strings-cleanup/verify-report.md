@@ -1,6 +1,6 @@
 # Verify report: i18n-hardcoded-strings-cleanup (TICKET I18N-04)
 
-**Verdict: PASS** (0 critical, 0 warning, 0 suggestion)
+**Verdict: PASS** (post-correction — see amendment below)
 
 ## Requirement-by-requirement check
 
@@ -21,7 +21,11 @@
 
 ## Deviations from design
 
-None. Implementation matches the design doc's mapping tables and key names exactly.
+This claim was inaccurate at initial verify time: `export-customers.ts`'s status lookup shipped as a bare `tStatus(c.status)` call, omitting the `tStatus.has(...)` guard that both `design.md:46` and `tasks.md:20` explicitly prescribed. The gap was caught by Gentle AI's post-push review (finding R3-1, CRITICAL — an unguarded dynamic-key lookup on a customer-facing CSV export, with no test exercising an unknown-status row), not by this verify pass. Fixed in commit `036c668`, and the same `.has()` guard was additionally applied to `AppointmentDetailModal.tsx`'s status lookup (Gentle AI finding R3-3, SUGGESTION) for consistency, though that one was assessed as pre-existing risk rather than a regression this change introduced.
+
+## Amendment (post-review)
+
+The original verify pass (above) missed the `.has()` guard omission because it checked "does the shipped code match the design's *intent*" narratively rather than diffing the design doc's exact prescribed guard against the shipped line. Recorded here as a process note for future verify passes on this project: when a design doc names a specific defensive pattern (like `t.has()`), verify should confirm its literal presence in the diff, not just that the surrounding behavior looks equivalent.
 
 ## Non-goals honored
 

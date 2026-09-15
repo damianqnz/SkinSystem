@@ -82,7 +82,8 @@ export function AppointmentDetailModal({ appointmentId, onClose, locale = DEFAUL
   const stub   = (l: string) => toast(t('toastSoon', { label: l }), { description: t('toastSoonDesc') });
   const status = data?.status ?? 'pending';
   const tone   = STATUS_TONE[status] ?? 'stone';
-  const sl     = tAppt(`status.${status}` as Parameters<typeof tAppt>[0]);
+  const statusKey = `status.${status}` as Parameters<typeof tAppt>[0];
+  const sl     = tAppt.has(statusKey) ? tAppt(statusKey) : status;
 
   return (
     <Dialog.Root open={!!appointmentId} onOpenChange={o => { if (!o) onClose(); }}>
