@@ -49,7 +49,7 @@ export async function exportCustomersAction(): Promise<Result<ExportResult>> {
       esc(c.fullName),
       esc(c.email),
       esc(c.phone),
-      esc(tStatus(c.status)),
+      esc(tStatus.has(c.status) ? tStatus(c.status) : c.status),
       esc(fmtDate(c.lastVisitAt, locale)),
       String(c.visitCount),
     ].join(','),
