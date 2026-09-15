@@ -176,11 +176,27 @@
     },
     "metadata": {
       "title": "Reservar marcação — {name}"
+    },
+    "success": {
+      "metadata": {
+        "title": "Marcação confirmada"
+      },
+      "heading": "Marcação confirmada!",
+      "subtitle": "Recebemos o seu pagamento. Aguardamos por si.",
+      "treatmentLabel": "Tratamento",
+      "dateTimeLabel": "Data e hora",
+      "confirmationNote": "Vai receber uma confirmação por email. Se precisar de cancelar, faça-o com pelo menos 24h de antecedência.",
+      "backHome": "Voltar ao início"
     }
   },
   "account": {
     "me": {
-      "bookCta": "Reservar consulta →"
+      "bookCta": "Reservar consulta →",
+      "citas": {
+        "emptyTitle": "Sem marcações futuras",
+        "emptySubtitle": "Repetimos a experiência?",
+        "bookCta": "Fazer uma marcação"
+      }
     }
   },
   "tenant": {
@@ -609,6 +625,16 @@
         "colPhone":  "Telefone",
         "importBtn": "Importar {count} clientes"
       },
+      "export": {
+        "columns": {
+          "name":        "Nome",
+          "email":       "Email",
+          "phone":       "Telefone",
+          "status":      "Estado",
+          "lastVisit":   "Última visita",
+          "totalVisits": "Total de visitas"
+        }
+      },
       "form": {
         "addTitle":              "Novo cliente",
         "editTitle":             "Editar cliente",
@@ -780,6 +806,26 @@
         "toastRestored":"Restaurada",
         "toastSoon":    "{label} · em breve",
         "toastSoonDesc":"Esta ação chega na próxima fase."
+      },
+      "newAppointment": {
+        "back": "Voltar",
+        "title": "Marcação",
+        "closeAriaLabel": "Fechar",
+        "tabService": "Serviço",
+        "tabClass": "Aula",
+        "tabEvent": "Evento",
+        "tabReminder": "Lembrete",
+        "whenLabel": "Quando",
+        "noRepeat": "Não se repete",
+        "selectServicePlaceholder": "Selecione um serviço",
+        "customerLabel": "Cliente",
+        "notesLabel": "Notas para o fornecedor e convidado(s)",
+        "cancelBtn": "Cancelar",
+        "creatingBtn": "A criar…",
+        "createBtn": "Criar →",
+        "toastSelectService": "Selecione um serviço",
+        "toastSelectCustomer": "Selecione um cliente",
+        "toastCreated": "Marcação criada"
       }
     },
     "integrations": {

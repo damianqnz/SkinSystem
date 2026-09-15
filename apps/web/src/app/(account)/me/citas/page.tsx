@@ -7,11 +7,13 @@ import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { getMyCustomer, getMyAppointments } from '@/domains/customers/service-me';
 import { AppointmentTabs } from './_components/AppointmentTabs';
 import { localeFromHeader } from '@/i18n/detect-locale';
+import { getTranslations } from 'next-intl/server';
 
 export default async function CitasPage() {
   const hdrs   = await headers();
   const slug   = hdrs.get('x-tenant-slug') ?? '';
   const locale = localeFromHeader(hdrs.get('x-locale'));
+  const t      = await getTranslations({ locale, namespace: 'account.me.citas' });
 
   // El `/me/layout.tsx` ya hace auth-guard contra `/login`; estas
   // comprobaciones son defense-in-depth por si alguien renderiza esta
@@ -31,15 +33,15 @@ export default async function CitasPage() {
       <div className="flex flex-col items-center justify-center py-14 gap-4">
         <Calendar size={32} className="text-stone-200" />
         <div className="text-center">
-          <p className="font-outfit text-sm font-medium text-stone-500">Sin reservas futuras</p>
-          <p className="text-xs text-stone-400 mt-1">¿Repetimos la experiencia?</p>
+          <p className="font-outfit text-sm font-medium text-stone-500">{t('emptyTitle')}</p>
+          <p className="text-xs text-stone-400 mt-1">{t('emptySubtitle')}</p>
         </div>
         <Link
           href="/book"
           className="mt-1 px-5 py-2.5 text-xs font-outfit font-semibold rounded-xl transition-opacity hover:opacity-90"
           style={{ backgroundColor: 'var(--brand-color)', color: '#1c1917' }}
         >
-          Hacer una reserva
+          {t('bookCta')}
         </Link>
       </div>
     );

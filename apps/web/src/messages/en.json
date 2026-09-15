@@ -176,11 +176,27 @@
     },
     "metadata": {
       "title": "Book an appointment — {name}"
+    },
+    "success": {
+      "metadata": {
+        "title": "Booking confirmed"
+      },
+      "heading": "Booking confirmed!",
+      "subtitle": "We've received your payment. See you soon.",
+      "treatmentLabel": "Treatment",
+      "dateTimeLabel": "Date and time",
+      "confirmationNote": "You'll receive a confirmation by email. If you need to cancel, please do so at least 24h in advance.",
+      "backHome": "Back to home"
     }
   },
   "account": {
     "me": {
-      "bookCta": "Book appointment →"
+      "bookCta": "Book appointment →",
+      "citas": {
+        "emptyTitle": "No upcoming bookings",
+        "emptySubtitle": "Shall we do it again?",
+        "bookCta": "Make a booking"
+      }
     }
   },
   "tenant": {
@@ -609,6 +625,16 @@
         "colPhone":  "Phone",
         "importBtn": "Import {count} clients"
       },
+      "export": {
+        "columns": {
+          "name":        "Name",
+          "email":       "Email",
+          "phone":       "Phone",
+          "status":      "Status",
+          "lastVisit":   "Last visit",
+          "totalVisits": "Total visits"
+        }
+      },
       "form": {
         "addTitle":              "New client",
         "editTitle":             "Edit client",
@@ -780,6 +806,26 @@
         "toastRestored":"Restored",
         "toastSoon":    "{label} · coming soon",
         "toastSoonDesc":"This action arrives in the next phase."
+      },
+      "newAppointment": {
+        "back": "Back",
+        "title": "Appointment",
+        "closeAriaLabel": "Close",
+        "tabService": "Service",
+        "tabClass": "Class",
+        "tabEvent": "Event",
+        "tabReminder": "Reminder",
+        "whenLabel": "When",
+        "noRepeat": "Does not repeat",
+        "selectServicePlaceholder": "Select a service",
+        "customerLabel": "Client",
+        "notesLabel": "Notes for provider and guest(s)",
+        "cancelBtn": "Cancel",
+        "creatingBtn": "Creating…",
+        "createBtn": "Create →",
+        "toastSelectService": "Select a service",
+        "toastSelectCustomer": "Select a client",
+        "toastCreated": "Appointment created"
       }
     },
     "integrations": {

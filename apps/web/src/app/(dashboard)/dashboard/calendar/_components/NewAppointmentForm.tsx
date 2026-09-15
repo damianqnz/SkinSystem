@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useMemo, useState, useTransition } from 'react';
 import { ArrowLeft, ChevronDown, FileText, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/shared/lib/utils';
 
 import { EditorialDatePicker } from './EditorialDatePicker';
@@ -54,6 +55,8 @@ export function NewAppointmentForm({
   locale,
   onSuccess,
 }: NewAppointmentFormProps) {
+  const t = useTranslations('dashboard.calendar.newAppointment');
+
   // Form state
   const [serviceId, setServiceId] = useState<string | null>(services[0]?.id ?? null);
   const [date, setDate] = useState(defaultDateIso);
@@ -76,8 +79,8 @@ export function NewAppointmentForm({
   }, [time, selectedService]);
 
   const submit = () => {
-    if (!serviceId)  { toast.error('Selecione um serviço');  return; }
-    if (!customerId) { toast.error('Selecione um cliente'); return; }
+    if (!serviceId)  { toast.error(t('toastSelectService'));  return; }
+    if (!customerId) { toast.error(t('toastSelectCustomer')); return; }
 
     const startAt = isoFromDateTime(date, time);
 
@@ -89,7 +92,7 @@ export function NewAppointmentForm({
         guestComment: notes.trim() || null,
       });
       if (res.status === 'success') {
-        toast.success(res.message ?? 'Marcação criada');
+        toast.success(res.message ?? t('toastCreated'));
         onSuccess();
       } else if (res.status === 'error') {
         toast.error(res.message);
@@ -126,17 +129,17 @@ export function NewAppointmentForm({
               style={{ fontFamily: 'var(--font-sans)' }}
             >
               <ArrowLeft size={12} strokeWidth={1.5} />
-              Voltar
+              {t('back')}
             </button>
             <Dialog.Title
               className="text-[16px] tracking-wide text-(--color-spa-stone)"
               style={{ fontFamily: 'var(--font-serif)' }}
             >
-              Marcação
+              {t('title')}
             </Dialog.Title>
             <Dialog.Close
               className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors"
-              aria-label="Fechar"
+              aria-label={t('closeAriaLabel')}
             >
               <X size={14} strokeWidth={1.5} />
             </Dialog.Close>
@@ -144,10 +147,10 @@ export function NewAppointmentForm({
 
           {/* Tabs (placeholder — only Serviço is functional) */}
           <div className="flex items-center gap-1 px-5 pt-3 -mb-px border-b border-spa-border">
-            <Tab label="Serviço" active />
-            <Tab label="Aula"     disabled />
-            <Tab label="Evento"   disabled />
-            <Tab label="Lembrete" disabled />
+            <Tab label={t('tabService')} active />
+            <Tab label={t('tabClass')}   disabled />
+            <Tab label={t('tabEvent')}   disabled />
+            <Tab label={t('tabReminder')} disabled />
           </div>
 
           {/* Body */}
@@ -158,13 +161,14 @@ export function NewAppointmentForm({
               services={services}
               locale={locale}
               onChange={setServiceId}
+              t={t}
             />
 
             {/* Date / time */}
             <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-[0.16em] text-spa-muted"
                  style={{ fontFamily: 'var(--font-sans)' }}>
-                Quando
+                {t('whenLabel')}
               </p>
               <div className="flex items-center gap-2 flex-wrap">
                 <EditorialDatePicker value={date} onChange={setDate} />
@@ -175,13 +179,13 @@ export function NewAppointmentForm({
               </div>
               <p className="text-[11px] text-spa-muted"
                  style={{ fontFamily: 'var(--font-sans)' }}>
-                Não se repete
+                {t('noRepeat')}
               </p>
             </div>
 
             {/* Customer */}
             <CustomerCombobox
-              label="Cliente"
+              label={t('customerLabel')}
               options={allCustomers}
               value={customerId}
               onChange={(id) => setCustomerId(id)}
@@ -195,7 +199,7 @@ export function NewAppointmentForm({
                 style={{ fontFamily: 'var(--font-sans)' }}
               >
                 <FileText size={11} strokeWidth={1.5} />
-                Notas para o fornecedor e convidado(s)
+                {t('notesLabel')}
               </label>
               <textarea
                 value={notes}
@@ -226,7 +230,7 @@ export function NewAppointmentForm({
               className="px-3 py-1.5 rounded-md text-[12px] text-spa-muted hover:text-(--color-spa-stone) transition-colors"
               style={{ fontFamily: 'var(--font-sans)' }}
             >
-              Cancelar
+              {t('cancelBtn')}
             </Dialog.Close>
             <button
               type="button"
@@ -239,7 +243,7 @@ export function NewAppointmentForm({
               )}
               style={{ fontFamily: 'var(--font-sans)' }}
             >
-              {pending ? 'A criar…' : 'Criar →'}
+              {pending ? t('creatingBtn') : t('createBtn')}
             </button>
           </div>
         </Dialog.Content>
@@ -276,11 +280,13 @@ function ServiceSelect({
   services,
   locale,
   onChange,
+  t,
 }: {
   value: string | null;
   services: ServiceOption[];
   locale?: string;
   onChange: (id: string) => void;
+  t: ReturnType<typeof useTranslations>;
 }) {
   const [open, setOpen] = useState(false);
   const selected = services.find((s) => s.id === value);
@@ -289,7 +295,7 @@ function ServiceSelect({
     <div className="space-y-1 relative">
       <p className="text-[10px] uppercase tracking-[0.16em] text-spa-muted"
          style={{ fontFamily: 'var(--font-sans)' }}>
-        Serviço
+        {t('tabService')}
       </p>
       <button
         type="button"
@@ -316,7 +322,7 @@ function ServiceSelect({
           ) : (
             <span className="flex items-center gap-2 text-spa-muted">
               <Sparkles size={13} strokeWidth={1.5} />
-              Selecione um serviço
+              {t('selectServicePlaceholder')}
             </span>
           )}
         </span>

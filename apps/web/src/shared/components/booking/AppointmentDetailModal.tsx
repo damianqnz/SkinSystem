@@ -5,6 +5,7 @@ import * as Tabs   from '@radix-ui/react-tabs';
 import { useEffect, useState, useTransition }                       from 'react';
 import { Clock, CreditCard, Mail, Phone, RotateCcw, User, X }      from 'lucide-react';
 import { toast }   from 'sonner';
+import { useTranslations } from 'next-intl';
 import { cn }      from '@/shared/lib/utils';
 import {
   cancelAppointmentAction,
@@ -16,12 +17,12 @@ import { DEFAULT_LOCALE } from '@/i18n/config';
 
 // ── Status data ────────────────────────────────────────────────
 
-const SC: Record<string, { es: string; pt: string; en: string; tone: 'amber' | 'emerald' | 'stone' }> = {
-  pending:   { es: 'Pendiente',  pt: 'Pendente',   en: 'Pending',   tone: 'amber'   },
-  confirmed: { es: 'Confirmada', pt: 'Confirmada', en: 'Confirmed', tone: 'emerald' },
-  completed: { es: 'Completada', pt: 'Concluída',  en: 'Completed', tone: 'emerald' },
-  cancelled: { es: 'Cancelada',  pt: 'Cancelada',  en: 'Cancelled', tone: 'stone'   },
-  no_show:   { es: 'No asistió', pt: 'Não compareceu', en: 'No-show', tone: 'stone' },
+const STATUS_TONE: Record<string, 'amber' | 'emerald' | 'stone'> = {
+  pending:   'amber',
+  confirmed: 'emerald',
+  completed: 'emerald',
+  cancelled: 'stone',
+  no_show:   'stone',
 };
 const TN: Record<string, string> = {
   amber:   'bg-amber-50 text-amber-700 border-amber-200',
@@ -47,6 +48,8 @@ interface AppointmentDetailModalProps {
 // ── Component ──────────────────────────────────────────────────
 
 export function AppointmentDetailModal({ appointmentId, onClose, locale = DEFAULT_LOCALE, onMutated, preview }: AppointmentDetailModalProps) {
+  const t      = useTranslations('dashboard.calendar.eventDetail');
+  const tAppt  = useTranslations('dashboard.customers.appointments');
   const [data,    setData]    = useState<AppointmentFull | null>(null);
   const [loading, setLoading] = useState(false);
   const [pending, start]      = useTransition();
@@ -65,10 +68,10 @@ export function AppointmentDetailModal({ appointmentId, onClose, locale = DEFAUL
       const r = await cancelAppointmentAction({ appointmentId });
       if (!r.ok) { toast.error(r.message); return; }
       const prev = r.previousStatus;
-      toast.success('Marcação cancelada', {
-        action: { label: 'Desfazer', onClick: async () => {
+      toast.success(t('toastCancelled'), {
+        action: { label: t('toastUndo'), onClick: async () => {
           const res = await restoreAppointmentAction({ appointmentId, status: prev });
-          if (res.status === 'success') { toast.success('Restaurada'); onMutated(); setData(d => d ? { ...d, status: prev } : d); }
+          if (res.status === 'success') { toast.success(t('toastRestored')); onMutated(); setData(d => d ? { ...d, status: prev } : d); }
         }},
         icon: <RotateCcw size={14} />,
       });
@@ -76,10 +79,10 @@ export function AppointmentDetailModal({ appointmentId, onClose, locale = DEFAUL
     });
   };
 
-  const stub   = (l: string) => toast(`${l} · em breve`, { description: 'Esta ação chega na próxima fase.' });
+  const stub   = (l: string) => toast(t('toastSoon', { label: l }), { description: t('toastSoonDesc') });
   const status = data?.status ?? 'pending';
-  const si     = SC[status]!;
-  const sl     = si[locale === 'pt' ? 'pt' : locale === 'en' ? 'en' : 'es'];
+  const tone   = STATUS_TONE[status] ?? 'stone';
+  const sl     = tAppt(`status.${status}` as Parameters<typeof tAppt>[0]);
 
   return (
     <Dialog.Root open={!!appointmentId} onOpenChange={o => { if (!o) onClose(); }}>
@@ -90,8 +93,8 @@ export function AppointmentDetailModal({ appointmentId, onClose, locale = DEFAUL
           className="fixed z-50 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[calc(100%-2rem)] max-w-lg rounded-2xl bg-white/90 backdrop-blur-xl border border-stone-200/60 shadow-2xl flex flex-col max-h-[85vh] overflow-hidden outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 duration-200"
         >
           <div className="flex items-center justify-between px-5 py-4 border-b border-spa-border shrink-0">
-            <Dialog.Title className="text-[12px] uppercase tracking-[0.16em] text-spa-muted" style={{ fontFamily: 'var(--font-sans)' }}>Detalhe da marcação</Dialog.Title>
-            <Dialog.Close className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors" aria-label="Fechar"><X size={14} strokeWidth={1.5} /></Dialog.Close>
+            <Dialog.Title className="text-[12px] uppercase tracking-[0.16em] text-spa-muted" style={{ fontFamily: 'var(--font-sans)' }}>{t('title')}</Dialog.Title>
+            <Dialog.Close className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors" aria-label={t('closeAriaLabel')}><X size={14} strokeWidth={1.5} /></Dialog.Close>
           </div>
           <div className="px-5 py-5 border-b border-spa-border shrink-0">
             <div className="flex items-start gap-3">
@@ -104,23 +107,23 @@ export function AppointmentDetailModal({ appointmentId, onClose, locale = DEFAUL
           </div>
           <Tabs.Root defaultValue="detalhes" className="flex-1 flex flex-col min-h-0">
             <Tabs.List className="flex items-center gap-1 px-5 border-b border-spa-border shrink-0">
-              <Tb value="detalhes" label="Detalhes" /><Tb value="historico" label="Histórico" disabled />
+              <Tb value="detalhes" label={t('tabDetails')} /><Tb value="historico" label={t('tabHistory')} disabled />
             </Tabs.List>
             <Tabs.Content value="detalhes" className="flex-1 overflow-y-auto no-scrollbar px-5 py-5 space-y-5">
-              <Sc icon={<Clock size={13} strokeWidth={1.5} />} label="Quando">{data ? <p className="text-[13px] text-(--color-spa-stone) tabular-nums capitalize" style={{ fontFamily: 'var(--font-sans)' }}>{fmtDL(data.startAt, locale)} · {fmtT(data.startAt, locale)} — {fmtT(data.endAt, locale)}</p> : <Ph />}</Sc>
-              <Sc icon={<User size={13} strokeWidth={1.5} />} label="Cliente">
+              <Sc icon={<Clock size={13} strokeWidth={1.5} />} label={t('sectionWhen')}>{data ? <p className="text-[13px] text-(--color-spa-stone) tabular-nums capitalize" style={{ fontFamily: 'var(--font-sans)' }}>{fmtDL(data.startAt, locale)} · {fmtT(data.startAt, locale)} — {fmtT(data.endAt, locale)}</p> : <Ph />}</Sc>
+              <Sc icon={<User size={13} strokeWidth={1.5} />} label={t('sectionClient')}>
                 {data ? (<div className="flex items-start gap-3"><span className="w-9 h-9 rounded-full bg-stone-100 text-(--color-spa-stone) text-[11px] font-medium flex items-center justify-center shrink-0" style={{ fontFamily: 'var(--font-sans)' }}>{inits(data.customerName)}</span><div className="flex-1 min-w-0 space-y-0.5"><p className="text-[14px] leading-snug text-(--color-spa-stone)" style={{ fontFamily: 'var(--font-serif)' }}>{data.customerName}</p>{data.customerEmail && <p className="flex items-center gap-1.5 text-[12px] text-spa-muted truncate" style={{ fontFamily: 'var(--font-sans)' }}><Mail size={11} strokeWidth={1.5} />{data.customerEmail}</p>}{data.customerPhone && <p className="flex items-center gap-1.5 text-[12px] text-spa-muted" style={{ fontFamily: 'var(--font-sans)' }}><Phone size={11} strokeWidth={1.5} />{data.customerPhone}</p>}</div></div>) : <Ph />}
               </Sc>
-              <Sc icon={<User size={13} strokeWidth={1.5} />} label="Equipa">{data ? <p className="text-[13px] text-(--color-spa-stone)" style={{ fontFamily: 'var(--font-sans)' }}>{data.staffName ?? '—'}</p> : <Ph />}</Sc>
-              <Sc icon={<Clock size={13} strokeWidth={1.5} />} label="Notas">{data ? <p className="text-[12px] text-(--color-spa-stone) whitespace-pre-wrap" style={{ fontFamily: 'var(--font-sans)' }}>{data.guestComment?.trim() || '—'}</p> : <Ph />}</Sc>
-              <Sc icon={<Clock size={13} strokeWidth={1.5} />} label="Status">{data && <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider border', TN[si.tone])} style={{ fontFamily: 'var(--font-sans)' }}><span className="w-1.5 h-1.5 rounded-full bg-current" />{sl}</span>}</Sc>
+              <Sc icon={<User size={13} strokeWidth={1.5} />} label={t('sectionStaff')}>{data ? <p className="text-[13px] text-(--color-spa-stone)" style={{ fontFamily: 'var(--font-sans)' }}>{data.staffName ?? '—'}</p> : <Ph />}</Sc>
+              <Sc icon={<Clock size={13} strokeWidth={1.5} />} label={t('sectionNotes')}>{data ? <p className="text-[12px] text-(--color-spa-stone) whitespace-pre-wrap" style={{ fontFamily: 'var(--font-sans)' }}>{data.guestComment?.trim() || '—'}</p> : <Ph />}</Sc>
+              <Sc icon={<Clock size={13} strokeWidth={1.5} />} label={t('sectionStatus')}>{data && <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] uppercase tracking-wider border', TN[tone])} style={{ fontFamily: 'var(--font-sans)' }}><span className="w-1.5 h-1.5 rounded-full bg-current" />{sl}</span>}</Sc>
             </Tabs.Content>
-            <Tabs.Content value="historico" className="flex-1 overflow-y-auto px-5 py-5"><p className="text-[12px] text-spa-muted text-center mt-6" style={{ fontFamily: 'var(--font-sans)' }}>Histórico chega em breve.</p></Tabs.Content>
+            <Tabs.Content value="historico" className="flex-1 overflow-y-auto px-5 py-5"><p className="text-[12px] text-spa-muted text-center mt-6" style={{ fontFamily: 'var(--font-sans)' }}>{t('historySoon')}</p></Tabs.Content>
           </Tabs.Root>
           <div className="flex items-center gap-2 px-5 py-3 border-t border-spa-border shrink-0">
-            <button type="button" onClick={() => stub('Reagendar')} className="px-3 py-1.5 rounded-md text-[12px] text-(--color-spa-stone) border border-spa-border hover:bg-stone-50 transition-colors" style={{ fontFamily: 'var(--font-sans)' }}>Reagendar</button>
-            <button type="button" onClick={handleCancel} disabled={pending || status === 'cancelled'} className="px-3 py-1.5 rounded-md text-[12px] text-stone-600 border border-spa-border hover:bg-stone-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" style={{ fontFamily: 'var(--font-sans)' }}>{pending ? 'A cancelar…' : 'Cancelar'}</button>
-            <button type="button" onClick={() => stub('Pagar')} className="ml-auto inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-[12px] font-medium bg-(--color-spa-stone) text-white hover:bg-stone-800 transition-colors" style={{ fontFamily: 'var(--font-sans)' }}><CreditCard size={12} strokeWidth={1.5} />Aceitar pagamento →</button>
+            <button type="button" onClick={() => stub(t('rescheduleBtn'))} className="px-3 py-1.5 rounded-md text-[12px] text-(--color-spa-stone) border border-spa-border hover:bg-stone-50 transition-colors" style={{ fontFamily: 'var(--font-sans)' }}>{t('rescheduleBtn')}</button>
+            <button type="button" onClick={handleCancel} disabled={pending || status === 'cancelled'} className="px-3 py-1.5 rounded-md text-[12px] text-stone-600 border border-spa-border hover:bg-stone-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" style={{ fontFamily: 'var(--font-sans)' }}>{pending ? t('cancellingBtn') : t('cancelBtn')}</button>
+            <button type="button" onClick={() => stub(t('payBtn'))} className="ml-auto inline-flex items-center gap-2 px-4 py-1.5 rounded-md text-[12px] font-medium bg-(--color-spa-stone) text-white hover:bg-stone-800 transition-colors" style={{ fontFamily: 'var(--font-sans)' }}><CreditCard size={12} strokeWidth={1.5} />{t('payBtn')}</button>
           </div>
         </Dialog.Content>
       </Dialog.Portal>

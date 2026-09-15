@@ -2,20 +2,13 @@
 
 import 'server-only';
 import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { getCustomersWithStats } from '@/domains/customers/service';
 import { localeFromHeader } from '@/i18n/detect-locale';
 import type { Result } from '@/shared/types/result';
 
 export type ExportResult = { csv: string; filename: string };
-
-const STATUS_LABELS: Record<string, Record<string, string>> = {
-  nuevo:      { es: 'Nuevo',       pt: 'Novo',        en: 'New'       },
-  recurrente: { es: 'Recurrente',  pt: 'Recorrente',  en: 'Returning' },
-  riesgo:     { es: 'Riesgo',      pt: 'Risco',       en: 'At Risk'   },
-  inactivo:   { es: 'Inactivo',    pt: 'Inativo',     en: 'Inactive'  },
-  perdido:    { es: 'Perdido',     pt: 'Perdido',     en: 'Lost'      },
-};
 
 function fmtDate(d: Date | null, locale: string): string {
   if (!d) return '';
@@ -38,22 +31,25 @@ export async function exportCustomersAction(): Promise<Result<ExportResult>> {
 
   const h      = await headers();
   const locale = localeFromHeader(h.get('x-locale'));
+  const [tStatus, tCols] = await Promise.all([
+    getTranslations({ locale, namespace: 'customers.status' }),
+    getTranslations({ locale, namespace: 'dashboard.customers.export.columns' }),
+  ]);
 
   const result = await getCustomersWithStats(orgId);
   if (result.error) return { data: null, error: result.error };
 
-  const COLS = locale === 'pt'
-    ? ['Nome', 'Email', 'Telefone', 'Estado', 'Última visita', 'Total visitas']
-    : locale === 'en'
-    ? ['Name', 'Email', 'Phone', 'Status', 'Last visit', 'Total visits']
-    : ['Nombre', 'Email', 'Teléfono', 'Estado', 'Última visita', 'Total visitas'];
+  const COLS = [
+    tCols('name'), tCols('email'), tCols('phone'),
+    tCols('status'), tCols('lastVisit'), tCols('totalVisits'),
+  ];
 
   const rows = (result.data ?? []).map(c =>
     [
       esc(c.fullName),
       esc(c.email),
       esc(c.phone),
-      esc(STATUS_LABELS[c.status]?.[locale] ?? c.status),
+      esc(tStatus(c.status)),
       esc(fmtDate(c.lastVisitAt, locale)),
       String(c.visitCount),
     ].join(','),

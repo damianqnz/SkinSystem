@@ -8,13 +8,19 @@ import { catalogServices }     from '@/domains/catalog/schema';
 import { eq, and }             from 'drizzle-orm';
 import { localeFromHeader }    from '@/i18n/detect-locale';
 import { toIntlTag }           from '@/i18n/intl-tag';
+import { getTranslations }     from 'next-intl/server';
 import type { Metadata }       from 'next';
 
-export const metadata: Metadata = { title: 'Reserva confirmada' };
+export async function generateMetadata(): Promise<Metadata> {
+  const hdrs   = await headers();
+  const locale = localeFromHeader(hdrs.get('x-locale'));
+  const t      = await getTranslations({ locale, namespace: 'booking.success' });
+  return { title: t('metadata.title') };
+}
 
 // ── i18n helper ───────────────────────────────────────────────
 
-function t(field: unknown, locale: string): string {
+function resolveServiceName(field: unknown, locale: string): string {
   if (!field || typeof field !== 'object') return '';
   const o = field as Record<string, string>;
   return o[locale] ?? o['es'] ?? o['en'] ?? Object.values(o)[0] ?? '';
@@ -30,6 +36,7 @@ export default async function BookSuccessPage({ searchParams }: SuccessPageProps
   const hdrs          = await headers();
   const slug          = hdrs.get('x-tenant-slug') ?? '';
   const locale        = localeFromHeader(hdrs.get('x-locale'));
+  const t             = await getTranslations({ locale, namespace: 'booking.success' });
   const { appointment: appointmentId } = await searchParams;
 
   const orgResult = await getOrganizationBySlug(slug);
@@ -54,7 +61,7 @@ export default async function BookSuccessPage({ searchParams }: SuccessPageProps
 
     if (rows[0]) {
       appointmentInfo = {
-        serviceName: t(rows[0].nameI18n, locale),
+        serviceName: resolveServiceName(rows[0].nameI18n, locale),
         startAt:     rows[0].startAt,
       };
     }
@@ -86,10 +93,10 @@ export default async function BookSuccessPage({ searchParams }: SuccessPageProps
           {/* Heading */}
           <div>
             <h1 className="font-cormorant text-3xl font-semibold text-stone-900">
-              ¡Reserva confirmada!
+              {t('heading')}
             </h1>
             <p className="mt-2 text-sm text-stone-500">
-              Hemos recibido tu pago. Te esperamos.
+              {t('subtitle')}
             </p>
           </div>
 
@@ -97,13 +104,13 @@ export default async function BookSuccessPage({ searchParams }: SuccessPageProps
           {appointmentInfo && (
             <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 text-left space-y-3">
               <div>
-                <p className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">Tratamiento</p>
+                <p className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">{t('treatmentLabel')}</p>
                 <p className="font-cormorant text-lg font-semibold text-stone-900 mt-0.5">
                   {appointmentInfo.serviceName}
                 </p>
               </div>
               <div>
-                <p className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">Fecha y hora</p>
+                <p className="text-[10px] font-medium text-stone-400 uppercase tracking-wider">{t('dateTimeLabel')}</p>
                 <p className="text-sm font-outfit text-stone-700 mt-0.5">
                   {appointmentInfo.startAt.toLocaleString(
                     toIntlTag(locale),
@@ -115,14 +122,14 @@ export default async function BookSuccessPage({ searchParams }: SuccessPageProps
           )}
 
           <p className="text-xs text-stone-400 leading-relaxed">
-            Recibirás una confirmación por email. Si necesitas cancelar, hazlo con al menos 24h de antelación.
+            {t('confirmationNote')}
           </p>
 
           <Link
             href="/"
             className="inline-flex items-center gap-2 px-6 py-3 bg-stone-900 text-white font-outfit text-sm rounded-xl hover:bg-stone-800 transition-colors"
           >
-            Volver al inicio
+            {t('backHome')}
           </Link>
         </div>
       </main>
