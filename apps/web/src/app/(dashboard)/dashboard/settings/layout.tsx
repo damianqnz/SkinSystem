@@ -1,23 +1,24 @@
 import { Suspense }             from 'react';
 import { headers }              from 'next/headers';
+import { notFound }             from 'next/navigation';
+import { resolvePreviewUrl }    from '@/infrastructure/tenant/preview-url';
 import { SettingsSidebar }      from './_components/SettingsSidebar';
 import { PreviewPanel }         from './_components/PreviewPanel';
 
 export default async function SettingsLayout({ children }: { children: React.ReactNode }) {
   const hdrs       = await headers();
-  const slug       = hdrs.get('x-tenant-slug') ?? 'demo';
+  const slug       = hdrs.get('x-tenant-slug') ?? '';
   const baseUrl    = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://lvh.me:3000';
 
-  // Build preview URL: http://{slug}.lvh.me:3000/ or https://{slug}.skinsystem.pt/
-  const previewUrl = baseUrl.includes('lvh.me')
-    ? `http://${slug}.lvh.me:3000/`
-    : `https://${slug}.${baseUrl.replace(/^https?:\/\//, '')}/`;
+  const resolution = resolvePreviewUrl(slug, baseUrl);
+  if (!resolution.ok) notFound();
+  const { previewUrl, tenantSlug } = resolution;
 
   return (
     <div className="flex -m-6 overflow-hidden" style={{ height: 'calc(100vh - 65px)' }}>
       {/* Sub-sidebar — sticky column, its own scroll */}
       <Suspense fallback={<div className="w-60 flex-shrink-0 border-r border-stone-100 bg-[#FAFAF9] ml-1" />}>
-        <SettingsSidebar tenantSlug={slug} />
+        <SettingsSidebar tenantSlug={tenantSlug} />
       </Suspense>
 
       {/* Main content — only this column scrolls */}
