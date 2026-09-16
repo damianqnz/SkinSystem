@@ -61,11 +61,30 @@ function fmtTime(t: string): string {
   return `${h}:${m}`;
 }
 
+type LabelFn = (key: string, values?: Record<string, string>) => string;
+
+/**
+ * `getTranslations` used to have no failure path here — `computeOpenStatus`
+ * was a pure, always-succeeding string builder. If message-catalog loading
+ * ever throws (a future missing key, a malformed locale file), degrade to a
+ * locale-agnostic label instead of failing the whole tenant-landing render.
+ */
+async function loadOpenStatusTranslators(locale: SupportedLocale): Promise<{ t: LabelFn; tCal: LabelFn }> {
+  try {
+    const [t, tCal] = await Promise.all([
+      getTranslations({ locale, namespace: 'tenant.openStatus' }),
+      getTranslations({ locale, namespace: 'calendar' }),
+    ]);
+    return { t, tCal };
+  } catch {
+    const fallback: LabelFn = (key, values) =>
+      values ? `${key} ${Object.values(values).join(' ')}` : key;
+    return { t: fallback, tCal: fallback };
+  }
+}
+
 async function computeOpenStatus(rules: AvailabilityDay[], timezone: string, locale: SupportedLocale): Promise<OpenStatus> {
-  const [t, tCal] = await Promise.all([
-    getTranslations({ locale, namespace: 'tenant.openStatus' }),
-    getTranslations({ locale, namespace: 'calendar' }),
-  ]);
+  const { t, tCal } = await loadOpenStatusTranslators(locale);
 
   const now   = new Date();
   const parts = new Intl.DateTimeFormat('en-US', {
