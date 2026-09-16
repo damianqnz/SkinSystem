@@ -34,7 +34,7 @@ export async function resolveTenantOrgId(
   const orgId = orgResult.data.id;
 
   const rows = await db
-    .select({ role: profiles.role, isActive: profiles.isActive })
+    .select({ role: profiles.role, isActive: profiles.isActive, locale: profiles.locale })
     .from(profiles)
     .where(and(eq(profiles.id, user.id), eq(profiles.organizationId, orgId)))
     .limit(1);
@@ -48,5 +48,11 @@ export async function resolveTenantOrgId(
     return { error: 'Permisos insuficientes', code: 'FORBIDDEN' };
   }
 
-  return { orgId, userId: user.id, role };
+  return {
+    orgId,
+    userId: user.id,
+    role,
+    profileLocale: profile.locale,
+    orgLocale: orgResult.data.locale,
+  };
 }

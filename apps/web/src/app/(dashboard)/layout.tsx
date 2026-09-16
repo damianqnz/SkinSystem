@@ -1,5 +1,5 @@
 import { Suspense, type ReactNode } from 'react';
-import { headers } from 'next/headers';
+import { headers, cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { Cormorant_Garamond, Outfit } from 'next/font/google';
 import { Toaster } from 'sonner';
@@ -12,7 +12,7 @@ import { MainOffset } from '@/shared/components/dashboard/MainOffset';
 import { BottomBar } from '@/shared/components/dashboard/BottomBar';
 import { DashboardHeader } from '@/shared/components/dashboard/DashboardHeader';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
-import { localeFromHeader } from '@/i18n/detect-locale';
+import { localeFromHeader, resolveDashboardFallbackLocale } from '@/i18n/detect-locale';
 import '../globals.css';
 
 // ── Fonts (self-hosted by Next.js, zero CLS) ──────────────────────────────
@@ -37,9 +37,8 @@ const outfit = Outfit({
 // statically-cacheable outer layout.
 async function DashboardShell({ children }: { children: ReactNode }) {
   const headersList = await headers();
+  const cookieStore = await cookies();
   const tenantSlug  = headersList.get('x-tenant-slug') ?? '';
-  const locale      = localeFromHeader(headersList.get('x-locale'));
-  const messages    = await getMessages();
 
   // ── RBAC gate ─────────────────────────────────────────────────
   // Any user reaching this layout was already authenticated by the proxy.
@@ -67,6 +66,21 @@ async function DashboardShell({ children }: { children: ReactNode }) {
         redirect('/me');
     }
   }
+
+  // ── Locale resolution ─────────────────────────────────────────
+  // Normal path: `x-locale` already reflects the `DASHBOARD_LOCALE` cookie
+  // (seeded at login from `profiles.locale`). When that cookie is missing
+  // (new device, cleared cookies, expired session) the proxy has no DB
+  // access and silently degrades to the public NEXT_LOCALE/Accept-Language
+  // chain — re-derive from the DB chain here instead, now that the RBAC
+  // gate above already fetched `profiles.locale`/`organizations.locale`.
+  const hasDashboardLocaleCookie = !!cookieStore.get('DASHBOARD_LOCALE')?.value;
+  const locale = hasDashboardLocaleCookie
+    ? localeFromHeader(headersList.get('x-locale'))
+    : resolveDashboardFallbackLocale(auth.profileLocale, auth.orgLocale);
+  const messages = hasDashboardLocaleCookie
+    ? await getMessages()
+    : (await import(`../../messages/${locale}.json`)).default;
 
   // Capitalize slug for display: "lourdes" → "Lourdes"
   const tenantName = tenantSlug.charAt(0).toUpperCase() + tenantSlug.slice(1);

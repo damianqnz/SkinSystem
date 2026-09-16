@@ -64,3 +64,19 @@ export function detectDashboardLocale(request: NextRequest): SupportedLocale {
   if (isSupportedLocale(fromCookie)) return fromCookie;
   return detectLocale(request);
 }
+
+/**
+ * DB-backed fallback for when the `DASHBOARD_LOCALE` cookie itself is absent
+ * (new device, cleared cookies, expired session) — the proxy has no DB access
+ * and degrades to the public `NEXT_LOCALE`/Accept-Language chain in that case.
+ * Priority: `profiles.locale` (explicit per-staff preference) → `organizations.locale`
+ * (org default) → `DEFAULT_LOCALE`.
+ */
+export function resolveDashboardFallbackLocale(
+  profileLocale: string | null,
+  orgLocale: string,
+): SupportedLocale {
+  if (isSupportedLocale(profileLocale ?? undefined)) return profileLocale as SupportedLocale;
+  if (isSupportedLocale(orgLocale)) return orgLocale as SupportedLocale;
+  return DEFAULT_LOCALE;
+}

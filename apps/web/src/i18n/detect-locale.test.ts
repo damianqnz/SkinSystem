@@ -13,6 +13,7 @@ import {
   detectLocale,
   isSupportedLocale,
   localeFromHeader,
+  resolveDashboardFallbackLocale,
 } from './detect-locale';
 
 function requestStub(init: { cookie?: string; acceptLanguage?: string }): NextRequest {
@@ -43,6 +44,25 @@ describe('localeFromHeader', () => {
   it('falls back to DEFAULT_LOCALE when the header is missing or unsupported', () => {
     expect(localeFromHeader(null)).toBe(DEFAULT_LOCALE);
     expect(localeFromHeader('fr')).toBe(DEFAULT_LOCALE);
+  });
+});
+
+describe('resolveDashboardFallbackLocale (DB chain used when DASHBOARD_LOCALE cookie is absent)', () => {
+  it('prefers profiles.locale when set', () => {
+    expect(resolveDashboardFallbackLocale('en', 'pt')).toBe('en');
+  });
+
+  it('falls back to organizations.locale when profiles.locale is null', () => {
+    expect(resolveDashboardFallbackLocale(null, 'es')).toBe('es');
+  });
+
+  it('falls back to DEFAULT_LOCALE when neither is a supported locale', () => {
+    expect(resolveDashboardFallbackLocale(null, 'fr')).toBe(DEFAULT_LOCALE);
+    expect(resolveDashboardFallbackLocale('xx', 'yy')).toBe(DEFAULT_LOCALE);
+  });
+
+  it('ignores an unsupported profiles.locale and falls through to organizations.locale', () => {
+    expect(resolveDashboardFallbackLocale('xx', 'en')).toBe('en');
   });
 });
 

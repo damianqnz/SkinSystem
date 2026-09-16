@@ -17,6 +17,10 @@ export type ResolveTenantOk = {
   orgId:  string;
   userId: string;
   role:   UserRole;
+  /** `profiles.locale` — `null` when the staff member has no explicit preference. */
+  profileLocale: string | null;
+  /** `organizations.locale` — org-level default, always set. */
+  orgLocale: string;
 };
 
 export type ResolveTenantResult =
