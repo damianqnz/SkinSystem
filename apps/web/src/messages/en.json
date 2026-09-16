@@ -203,11 +203,12 @@
     "header": {
       "bookCta": "Book now",
       "nav": {
-        "services": "Services",
-        "about":    "About",
-        "gallery":  "Gallery",
-        "reviews":  "Reviews",
-        "location": "Location"
+        "services":  "Services",
+        "about":     "About",
+        "gallery":   "Gallery",
+        "reviews":   "Reviews",
+        "location":  "Location",
+        "ariaLabel": "Page navigation"
       }
     }
   },

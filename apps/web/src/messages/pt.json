@@ -203,11 +203,12 @@
     "header": {
       "bookCta": "Reservar",
       "nav": {
-        "services": "Serviços",
-        "about":    "Sobre nós",
-        "gallery":  "Galeria",
-        "reviews":  "Avaliações",
-        "location": "Morada"
+        "services":  "Serviços",
+        "about":     "Sobre nós",
+        "gallery":   "Galeria",
+        "reviews":   "Avaliações",
+        "location":  "Morada",
+        "ariaLabel": "Navegação da página"
       }
     }
   },

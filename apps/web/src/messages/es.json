@@ -203,11 +203,12 @@
     "header": {
       "bookCta": "Reservar",
       "nav": {
-        "services": "Servicios",
-        "about":    "Sobre mí",
-        "gallery":  "Galería",
-        "reviews":  "Reseñas",
-        "location": "Ubicación"
+        "services":  "Servicios",
+        "about":     "Sobre mí",
+        "gallery":   "Galería",
+        "reviews":   "Reseñas",
+        "location":  "Ubicación",
+        "ariaLabel": "Navegación de la página"
       }
     }
   },

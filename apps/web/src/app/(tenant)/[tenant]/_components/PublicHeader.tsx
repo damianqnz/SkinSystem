@@ -100,11 +100,12 @@ export function PublicHeader({ orgName, logoUrl, user }: Props) {
         </div>
 
         {/* Nav links — hidden on mobile */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex items-center gap-1" aria-label={t('nav.ariaLabel')}>
           {SECTIONS.map(({ id, labelKey }) => (
             <button
               key={id}
               onClick={() => scrollTo(id)}
+              aria-current={activeId === id ? 'true' : undefined}
               className={[
                 'px-3 py-1.5 rounded-lg text-[13px] font-outfit font-medium transition-colors',
                 activeId === id
