@@ -811,6 +811,16 @@
         "toastSoon":    "{label} · próximamente",
         "toastSoonDesc":"Esta acción llega en la próxima fase."
       },
+      "datePicker": {
+        "selectDateAriaLabel": "Seleccionar fecha"
+      },
+      "blockDays": {
+        "from": "Desde",
+        "to": "Hasta",
+        "confirm": "Bloquear días",
+        "success": "Días bloqueados correctamente",
+        "conflictHint": "Reserva existente:"
+      },
       "newAppointment": {
         "back": "Volver",
         "title": "Cita",

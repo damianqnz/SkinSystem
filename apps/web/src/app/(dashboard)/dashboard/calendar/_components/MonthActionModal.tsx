@@ -16,11 +16,10 @@ interface MonthActionModalProps {
   open:         boolean;
   onClose:      () => void;
   selectedDate: Date;
-  locale:       string;
   onSchedule:   () => void;
 }
 
-export function MonthActionModal({ open, onClose, selectedDate, locale, onSchedule }: MonthActionModalProps) {
+export function MonthActionModal({ open, onClose, selectedDate, onSchedule }: MonthActionModalProps) {
   const t = useTranslations('dashboard.calendar.monthAction');
   const [view, setView] = useState<View>('choose');
 
@@ -37,7 +36,7 @@ export function MonthActionModal({ open, onClose, selectedDate, locale, onSchedu
         >
           <AnimatedShell
             view={view} setView={setView}
-            selectedDate={selectedDate} t={t} locale={locale}
+            selectedDate={selectedDate} t={t}
             onClose={handleClose} onSchedule={handleSchedule}
           />
         </Dialog.Content>
@@ -46,11 +45,10 @@ export function MonthActionModal({ open, onClose, selectedDate, locale, onSchedu
   );
 }
 
-function AnimatedShell({ view, setView, selectedDate, t, locale, onClose, onSchedule }: {
+function AnimatedShell({ view, setView, selectedDate, t, onClose, onSchedule }: {
   view: View; setView: (v: View) => void;
   selectedDate: Date;
   t: ReturnType<typeof useTranslations<'dashboard.calendar.monthAction'>>;
-  locale: string;
   onClose: () => void; onSchedule: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
@@ -79,7 +77,7 @@ function AnimatedShell({ view, setView, selectedDate, t, locale, onClose, onSche
           <Tile icon={<CalendarPlus size={20} />} title={t('schedule')} desc={t('scheduleDesc')} onClick={onSchedule} />
         </div>
       ) : (
-        <BlockDaysForm selectedDate={selectedDate} locale={locale} onClose={onClose} />
+        <BlockDaysForm selectedDate={selectedDate} onClose={onClose} />
       )}
     </div>
   );

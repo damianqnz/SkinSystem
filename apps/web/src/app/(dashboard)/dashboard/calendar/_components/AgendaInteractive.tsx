@@ -87,7 +87,6 @@ export function AgendaInteractive({
         open={active?.kind === 'slot'}
         onClose={refreshAndClose}
         selectedDate={active?.kind === 'slot' ? active.date : new Date()}
-        locale={locale}
         onSchedule={handleSchedule}
       />
 

@@ -811,6 +811,16 @@
         "toastSoon":    "{label} · em breve",
         "toastSoonDesc":"Esta ação chega na próxima fase."
       },
+      "datePicker": {
+        "selectDateAriaLabel": "Selecionar data"
+      },
+      "blockDays": {
+        "from": "Desde",
+        "to": "Até",
+        "confirm": "Bloquear dias",
+        "success": "Dias bloqueados com sucesso",
+        "conflictHint": "Reserva existente:"
+      },
       "newAppointment": {
         "back": "Voltar",
         "title": "Marcação",

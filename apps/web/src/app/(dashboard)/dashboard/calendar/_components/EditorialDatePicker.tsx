@@ -3,25 +3,20 @@
 import { useMemo, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { MONTH_KEYS, MONDAY_FIRST_DAY_KEYS } from '@/i18n/calendar-keys';
 import { cn } from '@/shared/lib/utils';
 
 interface EditorialDatePickerProps {
   /** ISO date YYYY-MM-DD */
   value: string;
   onChange: (iso: string) => void;
-  locale?: string;
   /** Optional label rendered above the trigger */
   label?: string;
   disabled?: boolean;
   /** ISO YYYY-MM-DD — disable individual cells before this date */
   minDate?: string;
 }
-
-const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-const MONTHS_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-const MONTHS_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-const DOW_PT = ['S','T','Q','Q','S','S','D'];
 
 function pad(n: number) { return n.toString().padStart(2, '0'); }
 function toIso(y: number, m: number, d: number) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
@@ -30,15 +25,8 @@ function parseIso(iso: string): { y: number; m: number; d: number } {
   return { y, m: m - 1, d };
 }
 
-function getMonthLabels(locale?: string): string[] {
-  if (locale === 'en') return MONTHS_EN;
-  if (locale === 'es') return MONTHS_ES;
-  return MONTHS_PT;
-}
-
-function fmtTrigger(iso: string, locale?: string): string {
+function fmtTrigger(iso: string, months: string[]): string {
   const { y, m, d } = parseIso(iso);
-  const months = getMonthLabels(locale);
   const monthAbbrev = (months[m] ?? '').slice(0, 3);
   return `${d} ${monthAbbrev} ${y}`;
 }
@@ -50,17 +38,21 @@ function fmtTrigger(iso: string, locale?: string): string {
 export function EditorialDatePicker({
   value,
   onChange,
-  locale,
   label,
   disabled,
   minDate,
 }: EditorialDatePickerProps) {
+  const tCal = useTranslations('calendar');
+  const t    = useTranslations('dashboard.calendar.header');
+  const tDp  = useTranslations('dashboard.calendar.datePicker');
+
   const initial = useMemo(() => parseIso(value), [value]);
   const [viewYear,  setViewYear]  = useState(initial.y);
   const [viewMonth, setViewMonth] = useState(initial.m);
   const [open, setOpen] = useState(false);
 
-  const months = getMonthLabels(locale);
+  const months = MONTH_KEYS.map((k) => tCal(`months.${k}`));
+  const days   = MONDAY_FIRST_DAY_KEYS.map((k) => tCal(`days.${k}`).slice(0, 1));
   const monthLabel = months[viewMonth];
 
   // 6×7 grid starting on Monday
@@ -115,10 +107,10 @@ export function EditorialDatePicker({
               disabled && 'opacity-50 cursor-not-allowed',
             )}
             style={{ fontFamily: 'var(--font-sans)' }}
-            aria-label="Selecionar data"
+            aria-label={tDp('selectDateAriaLabel')}
           >
             <Calendar size={13} strokeWidth={1.5} className="text-spa-muted" />
-            <span className="tabular-nums">{fmtTrigger(value, locale)}</span>
+            <span className="tabular-nums">{fmtTrigger(value, months)}</span>
           </button>
         </Popover.Trigger>
 
@@ -140,7 +132,7 @@ export function EditorialDatePicker({
                 type="button"
                 onClick={goPrev}
                 className="p-1 rounded text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-100 transition-colors"
-                aria-label="Mês anterior"
+                aria-label={t('prevMonthAriaLabel')}
               >
                 <ChevronLeft size={14} strokeWidth={1.5} />
               </button>
@@ -154,7 +146,7 @@ export function EditorialDatePicker({
                 type="button"
                 onClick={goNext}
                 className="p-1 rounded text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-100 transition-colors"
-                aria-label="Próximo mês"
+                aria-label={t('nextMonthAriaLabel')}
               >
                 <ChevronRight size={14} strokeWidth={1.5} />
               </button>
@@ -162,7 +154,7 @@ export function EditorialDatePicker({
 
             {/* Day-of-week row */}
             <div className="grid grid-cols-7 gap-1 mb-1">
-              {DOW_PT.map((d, i) => (
+              {days.map((d, i) => (
                 <span key={i} className="text-[10px] text-center text-spa-muted uppercase tracking-wider"
                       style={{ fontFamily: 'var(--font-sans)' }}>
                   {d}

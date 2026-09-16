@@ -811,6 +811,16 @@
         "toastSoon":    "{label} · coming soon",
         "toastSoonDesc":"This action arrives in the next phase."
       },
+      "datePicker": {
+        "selectDateAriaLabel": "Select date"
+      },
+      "blockDays": {
+        "from": "From",
+        "to": "To",
+        "confirm": "Block days",
+        "success": "Days blocked successfully",
+        "conflictHint": "Existing booking:"
+      },
       "newAppointment": {
         "back": "Back",
         "title": "Appointment",
