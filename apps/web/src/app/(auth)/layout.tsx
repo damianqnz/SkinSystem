@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
+import { headers } from 'next/headers';
 import { Cormorant_Garamond, Outfit } from 'next/font/google';
-import { getLocale } from 'next-intl/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
 import '../globals.css';
 
 /**
@@ -25,7 +26,8 @@ const outfit = Outfit({
 });
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
-  const locale = await getLocale();
+  const hdrs = await headers();
+  const locale = localeFromHeader(hdrs.get('x-locale'));
 
   return (
     <html

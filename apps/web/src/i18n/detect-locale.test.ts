@@ -34,7 +34,9 @@ describe('isSupportedLocale', () => {
 });
 
 describe('localeFromHeader', () => {
-  it('returns the header value when it is a supported locale', () => {
+  it('returns each supported locale unchanged — pt/es/en, the exact values (dashboard)/layout.tsx and (auth)/layout.tsx set on <html lang>', () => {
+    expect(localeFromHeader('pt')).toBe('pt');
+    expect(localeFromHeader('es')).toBe('es');
     expect(localeFromHeader('en')).toBe('en');
   });
 

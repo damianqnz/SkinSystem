@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { Cormorant_Garamond, Outfit } from 'next/font/google';
 import { Toaster } from 'sonner';
 import { NextIntlClientProvider } from 'next-intl';
-import { getLocale, getMessages } from 'next-intl/server';
+import { getMessages } from 'next-intl/server';
 import { TenantProvider } from '@/shared/providers/TenantProvider';
 import { SidebarProvider } from '@/shared/components/dashboard/SidebarContext';
 import { Sidebar } from '@/shared/components/dashboard/Sidebar';
@@ -112,7 +112,8 @@ async function DashboardShell({ children }: { children: ReactNode }) {
 // Provides the <html>/<body> root for the dashboard route group, matching
 // the convention used by (auth)/layout.tsx and (public)/layout.tsx.
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
-  const locale = await getLocale();
+  const headersList = await headers();
+  const locale = localeFromHeader(headersList.get('x-locale'));
 
   return (
     <html lang={locale} className={`${cormorant.variable} ${outfit.variable}`}>
