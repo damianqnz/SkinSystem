@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Cormorant_Garamond, Outfit } from 'next/font/google';
+import { getLocale } from 'next-intl/server';
 import '../globals.css';
 
 /**
@@ -23,10 +24,12 @@ const outfit = Outfit({
   display:  'swap',
 });
 
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default async function AuthLayout({ children }: { children: ReactNode }) {
+  const locale = await getLocale();
+
   return (
     <html
-      lang="es"
+      lang={locale}
       className={`${cormorant.variable} ${outfit.variable}`}
     >
       <body className="min-h-screen bg-[#FAFAF9] text-stone-900 antialiased">
