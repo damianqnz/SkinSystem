@@ -3,15 +3,15 @@
 import { useState }          from 'react';
 import Link                  from 'next/link';
 import Image                 from 'next/image';
+import { useTranslations }   from 'next-intl';
 import {
   Star, MapPin, Phone, Mail, Globe,
   ChevronDown, ChevronUp,
 } from 'lucide-react';
+import { DAY_KEYS } from '@/i18n/calendar-keys';
 import type { PublicOrg, OrgPhone, AvailabilityDay, OpenStatus } from '../_data/getLandingData';
 
 // ── Helpers ───────────────────────────────────────────────────
-
-const DAY_NAMES_PT = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 
 function fmtTime(t: string) { const [h, m] = t.split(':'); return `${h}:${m}`; }
 
@@ -41,6 +41,8 @@ interface Props {
 }
 
 export function StickyInfoCard({ org, phones, availability, openStatus, avgRating, reviewCount, showReserveButton = true }: Props) {
+  const tCal          = useTranslations('calendar');
+  const tOpenStatus   = useTranslations('tenant.openStatus');
   const [hoursOpen,   setHoursOpen]   = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
 
@@ -115,13 +117,13 @@ export function StickyInfoCard({ org, phones, availability, openStatus, avgRatin
 
           {hoursOpen && (
             <div className="border-t border-stone-100 dark:border-stone-800 px-4 py-3 space-y-1.5">
-              {DAY_NAMES_PT.map((dayName, dow) => {
+              {DAY_KEYS.map((key, dow) => {
                 const rule = availability.find(r => r.dayOfWeek === dow && r.isActive);
                 return (
                   <div key={dow} className="flex justify-between text-[12px]">
-                    <span className="text-stone-500 dark:text-stone-400">{dayName}</span>
+                    <span className="text-stone-500 dark:text-stone-400">{tCal(`days.${key}`)}</span>
                     <span className="text-stone-700 dark:text-stone-300 font-medium">
-                      {rule ? `${fmtTime(rule.openTime)} – ${fmtTime(rule.closeTime)}` : 'Fechado'}
+                      {rule ? `${fmtTime(rule.openTime)} – ${fmtTime(rule.closeTime)}` : tOpenStatus('closedGeneric')}
                     </span>
                   </div>
                 );

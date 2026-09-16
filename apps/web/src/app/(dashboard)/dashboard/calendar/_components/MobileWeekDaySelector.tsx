@@ -1,30 +1,24 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { cn } from '@/shared/lib/utils';
 import { isToday } from './week-utils';
+import { MONDAY_FIRST_DAY_KEYS } from '@/i18n/calendar-keys';
 import type { WeekDaySer } from './week-utils';
-
-// ── Short labels for compact tabs ─────────────────────────────
-
-const SHORT_LABELS: Record<string, string[]> = {
-  es: ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'],
-  pt: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
-  en: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-};
 
 // ── Props ─────────────────────────────────────────────────────
 
 interface MobileWeekDaySelectorProps {
   weekDays:    WeekDaySer[];
   selectedIdx: number;
-  locale:      string;
   onChange:    (idx: number) => void;
 }
 
 // ── Component ─────────────────────────────────────────────────
 
-export function MobileWeekDaySelector({ weekDays, selectedIdx, locale, onChange }: MobileWeekDaySelectorProps) {
-  const short = SHORT_LABELS[locale] ?? SHORT_LABELS.en!;
+export function MobileWeekDaySelector({ weekDays, selectedIdx, onChange }: MobileWeekDaySelectorProps) {
+  const tCal  = useTranslations('calendar');
+  const short = MONDAY_FIRST_DAY_KEYS.map((k) => tCal(`days.${k}`).slice(0, 3));
 
   return (
     <div className="flex overflow-x-auto no-scrollbar border-b border-stone-100 bg-white shrink-0">

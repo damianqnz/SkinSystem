@@ -1,5 +1,28 @@
 {
   "calendar": {
+    "months": {
+      "jan": "January",
+      "feb": "February",
+      "mar": "March",
+      "apr": "April",
+      "may": "May",
+      "jun": "June",
+      "jul": "July",
+      "aug": "August",
+      "sep": "September",
+      "oct": "October",
+      "nov": "November",
+      "dec": "December"
+    },
+    "days": {
+      "sun": "Sunday",
+      "mon": "Monday",
+      "tue": "Tuesday",
+      "wed": "Wednesday",
+      "thu": "Thursday",
+      "fri": "Friday",
+      "sat": "Saturday"
+    },
     "view": {
       "day": "Day",
       "week": "Week",
@@ -84,30 +107,7 @@
     },
     "calendar": {
       "heading": "Choose a date and time",
-      "empty":   "No times available",
-      "months": {
-        "jan": "January",
-        "feb": "February",
-        "mar": "March",
-        "apr": "April",
-        "may": "May",
-        "jun": "June",
-        "jul": "July",
-        "aug": "August",
-        "sep": "September",
-        "oct": "October",
-        "nov": "November",
-        "dec": "December"
-      },
-      "days": {
-        "sun": "Sun",
-        "mon": "Mon",
-        "tue": "Tue",
-        "wed": "Wed",
-        "thu": "Thu",
-        "fri": "Fri",
-        "sat": "Sat"
-      }
+      "empty":   "No times available"
     },
     "auth": {
       "headingOptions":         "Sign in to book",
@@ -210,6 +210,12 @@
         "location":  "Location",
         "ariaLabel": "Page navigation"
       }
+    },
+    "openStatus": {
+      "open": "Open",
+      "closedGeneric": "Closed",
+      "closedOpensAt": "Closed · Opens at {time}",
+      "closedOpensOnAt": "Closed · Opens {day} at {time}"
     }
   },
   "integrations": {
@@ -766,8 +772,7 @@
         "moreAriaLabel":      "More options",
         "todayLabel":         "Today",
         "viewSwitcherLabel":  "Calendar view",
-        "viewSwitcherAriaLabel":"Change view",
-        "months": ["January","February","March","April","May","June","July","August","September","October","November","December"]
+        "viewSwitcherAriaLabel":"Change view"
       },
       "dayNav": {
         "prevAriaLabel": "Previous day",
@@ -775,9 +780,7 @@
         "prevWeekAriaLabel":"Previous week",
         "nextWeekAriaLabel":"Next week",
         "todayBtn":      "Today",
-        "weekLabel":     "Week",
-        "days": ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
-        "months": ["January","February","March","April","May","June","July","August","September","October","November","December"]
+        "weekLabel":     "Week"
       },
       "monthAction": {
         "chooseAction":    "What would you like to do?",

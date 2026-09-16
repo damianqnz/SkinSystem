@@ -1,9 +1,11 @@
 'use client';
 
 import { useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/shared/lib/utils';
 import { EventChip } from './EventChip';
 import { BlockedDayChip } from './BlockedDayChip';
+import { MONDAY_FIRST_DAY_KEYS } from '@/i18n/calendar-keys';
 import type { SerializedBlock } from './AgendaInteractive';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -31,14 +33,6 @@ interface MonthViewProps {
   /** Chip click → opens the side sheet */
   onChipClick?:     (eventId: string, preview: { customerName: string; serviceColor: string | null }) => void;
 }
-
-// ── Day labels ─────────────────────────────────────────────────────
-
-const DAY_LABELS: Record<string, string[]> = {
-  es: ['Lun.','Mar.','Mié.','Jue.','Vie.','Sáb.','Dom.'],
-  pt: ['Seg.','Ter.','Qua.','Qui.','Sex.','Sáb.','Dom.'],
-  en: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-};
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -70,10 +64,11 @@ export function MonthView({
   onCellClick,
   onChipClick,
 }: MonthViewProps) {
+  const tCal       = useTranslations('calendar');
   const gridStart  = useMemo(() => new Date(gridStartIso  + 'T00:00:00Z'), [gridStartIso]);
   const monthStart = useMemo(() => new Date(monthStartIso + 'T00:00:00Z'), [monthStartIso]);
   const today      = useMemo(() => todayUtcMidnight(), []);
-  const days       = DAY_LABELS[locale] ?? DAY_LABELS.es!;
+  const days       = MONDAY_FIRST_DAY_KEYS.map((k) => tCal(`days.${k}`).slice(0, 3));
 
   // Generate 42 cells (6 weeks × 7 days)
   const cells = useMemo(() => {

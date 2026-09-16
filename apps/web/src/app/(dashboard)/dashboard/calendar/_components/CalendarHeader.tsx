@@ -5,6 +5,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, MoreHorizontal, Plus } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { ViewSwitcher, type CalendarView } from './ViewSwitcher';
+import { MONTH_KEYS } from '@/i18n/calendar-keys';
 
 interface CalendarHeaderProps {
   monthStart: Date;
@@ -22,6 +23,7 @@ function shiftMonthIso(monthStart: Date, delta: number): string {
 
 export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps) {
   const t          = useTranslations('dashboard.calendar.header');
+  const tCal       = useTranslations('calendar');
   const intlLocale = INTL_LOCALE_MAP[useLocale()] ?? 'pt-PT';
   const pathname   = usePathname();
   const params     = useSearchParams();
@@ -33,8 +35,7 @@ export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps
     return `${pathname}${sp.toString() ? `?${sp.toString()}` : ''}`;
   };
 
-  const months   = t.raw('months') as string[];
-  const monthLbl = months[monthStart.getUTCMonth()];
+  const monthLbl = tCal(`months.${MONTH_KEYS[monthStart.getUTCMonth()]}`);
   const yearLbl  = monthStart.getUTCFullYear();
 
   return (

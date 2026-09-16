@@ -1,9 +1,11 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { cn } from '@/shared/lib/utils';
 import { HOUR_LABELS, HOUR_PX, TOTAL_PX } from './week-constants';
 import { DesktopWeekColumn } from './DesktopWeekColumn';
-import { isToday, DAY_LABELS } from './week-utils';
+import { isToday } from './week-utils';
+import { MONDAY_FIRST_DAY_KEYS } from '@/i18n/calendar-keys';
 import type { WeekDaySer } from './week-utils';
 
 // ── Props ─────────────────────────────────────────────────────
@@ -18,7 +20,8 @@ interface DesktopWeekGridProps {
 // ── Component ─────────────────────────────────────────────────
 
 export function DesktopWeekGrid({ weekDays, locale, onHourClick, onAppointmentClick }: DesktopWeekGridProps) {
-  const days = DAY_LABELS[locale] ?? DAY_LABELS.es!;
+  const tCal = useTranslations('calendar');
+  const days = MONDAY_FIRST_DAY_KEYS.map((k) => tCal(`days.${k}`));
 
   return (
     <div className="hidden md:flex flex-col h-full bg-white min-h-0">

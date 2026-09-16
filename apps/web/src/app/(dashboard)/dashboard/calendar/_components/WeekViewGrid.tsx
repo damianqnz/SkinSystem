@@ -66,7 +66,6 @@ export function WeekViewGrid({ weekDays, weekStartIso, locale }: WeekViewGridPro
         <MobileWeekDaySelector
           weekDays={weekDays}
           selectedIdx={mobileDayIdx}
-          locale={locale}
           onChange={setMobileDayIdx}
         />
         <MobileWeekTimeList

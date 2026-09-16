@@ -1,5 +1,28 @@
 {
   "calendar": {
+    "months": {
+      "jan": "Enero",
+      "feb": "Febrero",
+      "mar": "Marzo",
+      "apr": "Abril",
+      "may": "Mayo",
+      "jun": "Junio",
+      "jul": "Julio",
+      "aug": "Agosto",
+      "sep": "Septiembre",
+      "oct": "Octubre",
+      "nov": "Noviembre",
+      "dec": "Diciembre"
+    },
+    "days": {
+      "sun": "Domingo",
+      "mon": "Lunes",
+      "tue": "Martes",
+      "wed": "Miércoles",
+      "thu": "Jueves",
+      "fri": "Viernes",
+      "sat": "Sábado"
+    },
     "view": {
       "day": "Día",
       "week": "Semana",
@@ -84,30 +107,7 @@
     },
     "calendar": {
       "heading": "Elige fecha y hora",
-      "empty":   "No hay horarios disponibles",
-      "months": {
-        "jan": "Enero",
-        "feb": "Febrero",
-        "mar": "Marzo",
-        "apr": "Abril",
-        "may": "Mayo",
-        "jun": "Junio",
-        "jul": "Julio",
-        "aug": "Agosto",
-        "sep": "Septiembre",
-        "oct": "Octubre",
-        "nov": "Noviembre",
-        "dec": "Diciembre"
-      },
-      "days": {
-        "sun": "Dom",
-        "mon": "Lun",
-        "tue": "Mar",
-        "wed": "Mié",
-        "thu": "Jue",
-        "fri": "Vie",
-        "sat": "Sáb"
-      }
+      "empty":   "No hay horarios disponibles"
     },
     "auth": {
       "headingOptions":         "Iniciar sesión para reservar",
@@ -210,6 +210,12 @@
         "location":  "Ubicación",
         "ariaLabel": "Navegación de la página"
       }
+    },
+    "openStatus": {
+      "open": "Abierto",
+      "closedGeneric": "Cerrado",
+      "closedOpensAt": "Cerrado · Abre a las {time}",
+      "closedOpensOnAt": "Cerrado · Abre {day} a las {time}"
     }
   },
   "integrations": {
@@ -766,8 +772,7 @@
         "moreAriaLabel":      "Más opciones",
         "todayLabel":         "Hoy",
         "viewSwitcherLabel":  "Vista del calendario",
-        "viewSwitcherAriaLabel":"Cambiar vista",
-        "months": ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"]
+        "viewSwitcherAriaLabel":"Cambiar vista"
       },
       "dayNav": {
         "prevAriaLabel": "Día anterior",
@@ -775,9 +780,7 @@
         "prevWeekAriaLabel":"Semana anterior",
         "nextWeekAriaLabel":"Semana siguiente",
         "todayBtn":      "Hoy",
-        "weekLabel":     "Semana",
-        "days": ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
-        "months": ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"]
+        "weekLabel":     "Semana"
       },
       "monthAction": {
         "chooseAction":    "¿Qué deseas hacer?",

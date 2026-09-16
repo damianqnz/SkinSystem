@@ -4,6 +4,7 @@ import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { ViewSwitcher, type CalendarView } from './ViewSwitcher';
+import { MONTH_KEYS, DAY_KEYS } from '@/i18n/calendar-keys';
 
 interface CalendarDayNavProps {
   date:   Date;
@@ -27,13 +28,14 @@ function isToday(d: Date, view: CalendarView): boolean {
 
 export function CalendarDayNav({ date, locale, view }: CalendarDayNavProps) {
   const t          = useTranslations('dashboard.calendar.dayNav');
+  const tCal       = useTranslations('calendar');
   const intlLocale = INTL_LOCALE_MAP[useLocale()] ?? 'pt-PT';
   const router     = useRouter();
   const path       = usePathname();
   const params     = useSearchParams();
 
-  const days   = t.raw('days')   as string[];
-  const months = t.raw('months') as string[];
+  const days   = DAY_KEYS.map((k) => tCal(`days.${k}`));
+  const months = MONTH_KEYS.map((k) => tCal(`months.${k}`));
 
   function fmtDate(): { dayName: string; full: string } {
     if (view === 'week') {

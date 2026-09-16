@@ -17,10 +17,11 @@ import { localeFromHeader } from '@/i18n/detect-locale';
 // ── SEO ───────────────────────────────────────────────────────
 
 export async function generateMetadata(): Promise<Metadata> {
-  const hdrs = await headers();
-  const slug = hdrs.get('x-tenant-slug') ?? '';
-  const data = await getLandingData(slug);
-  const name = data?.org.name ?? 'SkinSystem';
+  const hdrs   = await headers();
+  const slug   = hdrs.get('x-tenant-slug') ?? '';
+  const locale = localeFromHeader(hdrs.get('x-locale'));
+  const data   = await getLandingData(slug, locale);
+  const name   = data?.org.name ?? 'SkinSystem';
   return {
     title: `${name} — Reserva Online`,
     description: `Descobre os tratamentos exclusivos de ${name} e reserva a tua consulta online.`,
@@ -36,7 +37,7 @@ export default async function PublicHomePage() {
   const locale = localeFromHeader(hdrs.get('x-locale'));
 
   const [data, sessionUser] = await Promise.all([
-    getLandingData(slug),
+    getLandingData(slug, locale),
     resolvePublicSessionUser(),
   ]);
   if (!data) notFound();

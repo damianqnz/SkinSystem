@@ -32,9 +32,3 @@ export function isToday(d: Date): boolean {
 export function fmtTime(d: Date): string {
   return d.toISOString().slice(11, 16);
 }
-
-export const DAY_LABELS: Record<string, string[]> = {
-  es: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'],
-  pt: ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'],
-  en: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-};

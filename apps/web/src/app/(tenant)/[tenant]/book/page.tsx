@@ -64,7 +64,7 @@ export default async function BookPage({ searchParams }: BookPageProps) {
 
   // ── Mode B: catalog view — no service pre-selected ────────────
   if (!serviceParam) {
-    const data = await getLandingData(slug);
+    const data = await getLandingData(slug, locale);
     if (!data) notFound();
 
     const { org, phones, availability, openStatus, avgRating, reviewCount, categories } = data;

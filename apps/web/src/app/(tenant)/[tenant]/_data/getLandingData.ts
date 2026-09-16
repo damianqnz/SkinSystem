@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { eq, and, isNull, desc, asc } from 'drizzle-orm';
+import { getTranslations }             from 'next-intl/server';
 import { db }                          from '@/infrastructure/db';
 import { organizations }               from '@/infrastructure/db/schema/organizations';
 import {
@@ -10,7 +11,9 @@ import {
 import { googleReviews }               from '@/infrastructure/db/schema/notifications';
 import { availabilityRules }           from '@/infrastructure/db/schema/calendar';
 import { getCategoriesWithServices }   from '@/domains/catalog/service';
+import { DAY_KEYS }                    from '@/i18n/calendar-keys';
 import type { CategoryWithServices }   from '@/domains/catalog/service';
+import type { SupportedLocale }        from '@/i18n/config';
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -58,9 +61,12 @@ function fmtTime(t: string): string {
   return `${h}:${m}`;
 }
 
-const DAY_NAMES_PT = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+async function computeOpenStatus(rules: AvailabilityDay[], timezone: string, locale: SupportedLocale): Promise<OpenStatus> {
+  const [t, tCal] = await Promise.all([
+    getTranslations({ locale, namespace: 'tenant.openStatus' }),
+    getTranslations({ locale, namespace: 'calendar' }),
+  ]);
 
-function computeOpenStatus(rules: AvailabilityDay[], timezone: string): OpenStatus {
   const now   = new Date();
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: timezone, weekday: 'long',
@@ -85,11 +91,11 @@ function computeOpenStatus(rules: AvailabilityDay[], timezone: string): OpenStat
       const nextDow  = (todayDow + delta) % 7;
       const nextRule = rules.find(r => r.dayOfWeek === nextDow && r.isActive);
       if (nextRule) {
-        const dayName = DAY_NAMES_PT[nextDow] ?? '';
-        return { isOpen: false, label: `Fechado · Abre ${dayName} às ${fmtTime(nextRule.openTime)}`, opensAt: nextRule.openTime };
+        const dayName = tCal(`days.${DAY_KEYS[nextDow]}`);
+        return { isOpen: false, label: t('closedOpensOnAt', { day: dayName, time: fmtTime(nextRule.openTime) }), opensAt: nextRule.openTime };
       }
     }
-    return { isOpen: false, label: 'Fechado', opensAt: null };
+    return { isOpen: false, label: t('closedGeneric'), opensAt: null };
   }
 
   const [openH = 0, openM = 0]   = todayRule.openTime.split(':').map(Number);
@@ -98,11 +104,11 @@ function computeOpenStatus(rules: AvailabilityDay[], timezone: string): OpenStat
   const closeMins                = closeH * 60 + closeM;
 
   if (nowMinutes >= openMins && nowMinutes < closeMins) {
-    return { isOpen: true, label: 'Aberto', opensAt: null };
+    return { isOpen: true, label: t('open'), opensAt: null };
   }
 
   if (nowMinutes < openMins) {
-    return { isOpen: false, label: `Fechado · Abre às ${fmtTime(todayRule.openTime)}`, opensAt: todayRule.openTime };
+    return { isOpen: false, label: t('closedOpensAt', { time: fmtTime(todayRule.openTime) }), opensAt: todayRule.openTime };
   }
 
   // Closed for the day — find tomorrow
@@ -110,16 +116,16 @@ function computeOpenStatus(rules: AvailabilityDay[], timezone: string): OpenStat
     const nextDow  = (todayDow + delta) % 7;
     const nextRule = rules.find(r => r.dayOfWeek === nextDow && r.isActive);
     if (nextRule) {
-      const dayName = DAY_NAMES_PT[nextDow] ?? '';
-      return { isOpen: false, label: `Fechado · Abre ${dayName} às ${fmtTime(nextRule.openTime)}`, opensAt: nextRule.openTime };
+      const dayName = tCal(`days.${DAY_KEYS[nextDow]}`);
+      return { isOpen: false, label: t('closedOpensOnAt', { day: dayName, time: fmtTime(nextRule.openTime) }), opensAt: nextRule.openTime };
     }
   }
-  return { isOpen: false, label: 'Fechado', opensAt: null };
+  return { isOpen: false, label: t('closedGeneric'), opensAt: null };
 }
 
 // ── Main loader ───────────────────────────────────────────────
 
-export async function getLandingData(slug: string): Promise<LandingData | null> {
+export async function getLandingData(slug: string, locale: SupportedLocale): Promise<LandingData | null> {
   const orgRows = await db
     .select({
       id: organizations.id, name: organizations.name,
@@ -180,6 +186,7 @@ export async function getLandingData(slug: string): Promise<LandingData | null> 
   const total      = reviews.reduce((s, r) => s + r.rating, 0);
   const avgRating  = reviews.length > 0 ? Math.round((total / reviews.length) * 10) / 10 : 0;
   const availability = rulesRows as AvailabilityDay[];
+  const openStatus   = await computeOpenStatus(availability, org.timezone, locale);
 
   return {
     org,
@@ -187,7 +194,7 @@ export async function getLandingData(slug: string): Promise<LandingData | null> 
     gallery:   galleryRows.map(r => ({ id: r.id, url: storageUrl(r.storagePath), altText: r.altText, sortOrder: r.sortOrder })),
     reviews,
     availability,
-    openStatus: computeOpenStatus(availability, org.timezone),
+    openStatus,
     avgRating,
     reviewCount: reviews.length,
     categories: catalogResult.data?.categories ?? [],

@@ -5,20 +5,9 @@ import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { getAvailableSlotsAction } from '../actions';
 import { toIntlTag } from '@/i18n/intl-tag';
+import { MONTH_KEYS, DAY_KEYS } from '@/i18n/calendar-keys';
 import type { SupportedLocale } from '@/i18n/config';
 import type { PublicSlot } from '../actions';
-
-// ── Ordered calendar label keys ───────────────────────────────
-// The JSON keeps months/days as named keys (charter red line), but the grid
-// needs positional lookup: month index 0-11 and a week rotated by
-// `weekStartDay`. Building the ordered arrays here is what bridges the two.
-
-const MONTH_KEYS = [
-  'jan', 'feb', 'mar', 'apr', 'may', 'jun',
-  'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
-] as const;
-
-const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const;
 
 // ── Date helpers ──────────────────────────────────────────────
 
@@ -153,6 +142,7 @@ export function Step2Calendar({
   onSelect,
 }: Step2CalendarProps) {
   const t = useTranslations('booking');
+  const tCal = useTranslations('calendar');
   const now = new Date();
   now.setUTCHours(0, 0, 0, 0);
 
@@ -172,7 +162,7 @@ export function Step2Calendar({
   const days       = buildCalendarDays(viewYear, viewMonth, weekStartDay);
   const dayHeaders = buildDayHeaders(
     weekStartDay,
-    DAY_KEYS.map((k) => t(`calendar.days.${k}`)),
+    DAY_KEYS.map((k) => tCal(`days.${k}`).slice(0, 3)),
   );
 
   // Load slots on date change
@@ -240,7 +230,7 @@ export function Step2Calendar({
           <ChevronLeft size={16} />
         </button>
         <span className="font-cormorant text-base font-semibold text-stone-800">
-          {t(`calendar.months.${MONTH_KEYS[viewMonth] ?? 'jan'}`)} {viewYear}
+          {tCal(`months.${MONTH_KEYS[viewMonth] ?? 'jan'}`)} {viewYear}
         </span>
         <button
           type="button"
