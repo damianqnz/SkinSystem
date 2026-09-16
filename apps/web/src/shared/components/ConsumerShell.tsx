@@ -23,6 +23,8 @@ import { Cormorant_Garamond, Outfit } from 'next/font/google';
 import { Toaster }        from 'sonner';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages }    from 'next-intl/server';
+import { pickMessages }   from '@/i18n/pick-messages';
+import { CONSUMER_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
 import type { BrandTheme } from '@/shared/lib/brand-theme';
 import type { SupportedLocale } from '@/i18n/config';
 
@@ -50,7 +52,7 @@ interface Props {
 
 export async function ConsumerShell({ theme, locale, children }: Props) {
   // Resolved here rather than passed down, so neither root layout can forget it.
-  const messages = await getMessages();
+  const messages = pickMessages(await getMessages(), CONSUMER_CLIENT_NAMESPACES);
 
   // For system mode: inject an inline script that adds .dark class at runtime
   // before first paint — this avoids the light → dark flash (FOUC).

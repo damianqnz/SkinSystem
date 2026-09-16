@@ -14,6 +14,8 @@ import type { ReactNode } from 'react';
 import { Outfit }         from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
+import { pickMessages }   from '@/i18n/pick-messages';
+import { MARKETING_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
 import '../globals.css';
 
 const outfit = Outfit({
@@ -29,7 +31,7 @@ export default async function MarketingLayout({ children }: { children: ReactNod
   return (
     <html lang={locale} className={outfit.variable}>
       <body className="min-h-screen bg-stone-950 text-stone-100 antialiased">
-        <NextIntlClientProvider locale={locale} messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={pickMessages(messages, MARKETING_CLIENT_NAMESPACES)}>
           {children}
         </NextIntlClientProvider>
       </body>
