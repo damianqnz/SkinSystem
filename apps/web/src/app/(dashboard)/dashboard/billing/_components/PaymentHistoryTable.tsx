@@ -7,19 +7,14 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
-import { DEFAULT_LOCALE } from '@/i18n/config';
+import { DEFAULT_LOCALE, type SupportedLocale } from '@/i18n/config';
+import { toIntlTag } from '@/i18n/intl-tag';
 import { getPaymentHistoryAction } from '../actions';
 import type { PaymentHistoryRow } from '@/domains/billing/service-history';
 
 // ── Constants ─────────────────────────────────────────────────
 
 const PAGE_SIZE = 15;
-
-const INTL_LOCALE_MAP: Record<string, string> = {
-  es: 'es-ES',
-  en: 'en-GB',
-  pt: 'pt-PT',
-};
 
 const STATUS_PRIORITY: Record<string, number> = {
   succeeded: 0,
@@ -38,10 +33,6 @@ type ColDef =
   | { sortKey: null;    label: string; sortable: false };
 
 // ── Helpers ───────────────────────────────────────────────────
-
-function toIntlLocale(locale: string): string {
-  return INTL_LOCALE_MAP[locale] ?? 'pt-PT';
-}
 
 function fmtMoney(cents: number, currency: string, intlLocale: string) {
   return new Intl.NumberFormat(intlLocale, { style: 'currency', currency: currency.toUpperCase() }).format(cents / 100);
@@ -75,7 +66,7 @@ function firstDayOfMonthISO() {
 export function PaymentHistoryTable() {
   const t          = useTranslations('dashboard.billing.history');
   const locale     = useLocale();
-  const intlLocale = toIntlLocale(locale);
+  const intlLocale = toIntlTag(locale as SupportedLocale);
 
   const STATUS_MAP: Record<string, { label: string; cls: string }> = {
     succeeded: { label: t('statusSucceeded'), cls: 'bg-emerald-50 text-emerald-700' },

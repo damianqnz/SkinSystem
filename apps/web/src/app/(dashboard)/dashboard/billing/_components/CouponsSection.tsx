@@ -9,14 +9,10 @@ import { useTranslations, useLocale }                                  from 'nex
 import { toggleCouponAction, deleteCouponAction }                      from '../actions-coupons';
 import type { CouponRow }                                              from '../actions-coupons';
 import { CouponModal }                                                 from './CouponModal';
+import { toIntlTag }                                                   from '@/i18n/intl-tag';
+import type { SupportedLocale }                                        from '@/i18n/config';
 
 // ── Helpers ───────────────────────────────────────────────────
-
-const INTL_LOCALE_MAP: Record<string, string> = {
-  es: 'es-ES',
-  en: 'en-GB',
-  pt: 'pt-PT',
-};
 
 function fmtDiscount(row: CouponRow) {
   return row.discountType === 'percent'
@@ -48,7 +44,7 @@ function CouponItem({
 }) {
   const t = useTranslations('dashboard.billing.coupons');
   const locale = useLocale();
-  const intlLocale = INTL_LOCALE_MAP[locale] ?? 'pt-PT';
+  const intlLocale = toIntlTag(locale as SupportedLocale);
   const [active,  setActive]  = useState(row.isActive);
   const [pending, startTransition] = useTransition();
   const expired = isExpired(row);

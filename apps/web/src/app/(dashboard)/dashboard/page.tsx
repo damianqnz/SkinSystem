@@ -14,6 +14,7 @@ import { getOrganizationBySlug } from '@/domains/organizations/service';
 import { getSlotsByDate }         from '@/domains/booking/service';
 import { getCustomersList }       from '@/domains/customers/service';
 import { localeFromHeader }       from '@/i18n/detect-locale';
+import { toIntlTag }              from '@/i18n/intl-tag';
 
 import { StatsCard }            from './_components/StatsCard';
 import { AppointmentsList }     from './_components/AppointmentsList';
@@ -27,8 +28,6 @@ const SECTION_META    = 'text-[11px] uppercase tracking-[0.16em] text-spa-muted'
 
 const DAY_MS  = 24 * 60 * 60 * 1000;
 const WEEK_MS = 7  * DAY_MS;
-
-const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
 
 // ── Page ──────────────────────────────────────────────────────
 
@@ -67,7 +66,7 @@ export default async function DashboardPage() {
     (c) => new Date(c.createdAt) >= weekAgo,
   ).length;
 
-  const dateTag   = INTL_LOCALE_MAP[locale] ?? 'pt-PT';
+  const dateTag   = toIntlTag(locale);
   const dateLabel = today.toLocaleDateString(dateTag, { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (

@@ -2,6 +2,8 @@
 
 import { Mail, Phone, Calendar, Building, MapPin, Globe, Link2, Tag } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
+import { toIntlTag } from '@/i18n/intl-tag';
+import type { SupportedLocale } from '@/i18n/config';
 
 // ── Social icon + label map ──────────────────────────────────────
 const SOCIAL_META: Record<string, { label: string }> = {
@@ -9,8 +11,6 @@ const SOCIAL_META: Record<string, { label: string }> = {
   x:         { label: 'X (Twitter)' }, youtube:  { label: 'YouTube' },
   linkedin:  { label: 'LinkedIn' },   tiktok:   { label: 'TikTok' },
 };
-
-const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
 
 function SocialIcon({ type }: { type: string }) {
   if (type === 'website') return <Globe size={13} strokeWidth={1.5} className="text-stone-400 shrink-0" />;
@@ -39,7 +39,7 @@ export function SobreTab({ email, phone, createdAtIso, company, country, address
   const t          = useTranslations('dashboard.customers.profile');
   const tForm      = useTranslations('dashboard.customers.form');
   const locale     = useLocale();
-  const intlLocale = INTL_LOCALE_MAP[locale] ?? 'pt-PT';
+  const intlLocale = toIntlTag(locale as SupportedLocale);
 
   const hasAddress    = address || city || state || country || postalCode;
   const socialEntries = socialLinks ? Object.entries(socialLinks) : [];

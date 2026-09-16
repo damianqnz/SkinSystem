@@ -216,6 +216,12 @@
       "closedGeneric": "Closed",
       "closedOpensAt": "Closed · Opens at {time}",
       "closedOpensOnAt": "Closed · Opens {day} at {time}"
+    },
+    "userMenu": {
+      "loginAriaLabel": "Sign in",
+      "menuAriaLabel": "Account menu",
+      "account": "My account",
+      "signOut": "Sign out"
     }
   },
   "integrations": {
@@ -284,6 +290,20 @@
     }
   },
   "dashboard": {
+    "nav": {
+      "panel": "Panel",
+      "calendar": "Calendar",
+      "services": "Services",
+      "clients": "Clients",
+      "payments": "Payments",
+      "integrations": "Integrations",
+      "settings": "Settings"
+    },
+    "sidebar": {
+      "collapse": "Collapse menu",
+      "expand": "Expand menu",
+      "navAriaLabel": "Main navigation"
+    },
     "settings": {
       "sidebar": {
         "title":           "Settings",

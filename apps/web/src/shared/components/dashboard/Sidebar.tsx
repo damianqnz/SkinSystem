@@ -2,17 +2,11 @@
 
 import Link                  from 'next/link';
 import { usePathname }       from 'next/navigation';
+import { useTranslations }   from 'next-intl';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { cn }                from '@/shared/lib/utils';
 import { getNavItems }       from './nav-items';
 import { useSidebarCtx }     from './SidebarContext';
-import { useTenantContext }  from '@/shared/providers/TenantProvider';
-
-const SIDEBAR_LABELS: Record<'pt' | 'es' | 'en', { collapse: string; expand: string }> = {
-  pt: { collapse: 'Recolher menu', expand: 'Expandir menu'  },
-  es: { collapse: 'Contraer menú', expand: 'Expandir menú'  },
-  en: { collapse: 'Collapse menu', expand: 'Expand menu'    },
-};
 
 interface SidebarProps { tenantName: string }
 
@@ -37,10 +31,11 @@ export function SidebarSkeleton() {
 export function Sidebar({ tenantName }: SidebarProps) {
   const pathname  = usePathname();
   const { collapsed, toggle } = useSidebarCtx();
-  const { locale } = useTenantContext();
+  const tNav = useTranslations('dashboard.nav');
+  const tSb  = useTranslations('dashboard.sidebar');
 
-  const navItems = getNavItems(locale);
-  const labels   = SIDEBAR_LABELS[(locale as 'pt' | 'es' | 'en')] ?? SIDEBAR_LABELS['pt'];
+  const navItems = getNavItems(tNav);
+  const labels   = { collapse: tSb('collapse'), expand: tSb('expand') };
 
   const initials = tenantName
     .split(/\s+/)
@@ -68,7 +63,7 @@ export function Sidebar({ tenantName }: SidebarProps) {
         </div>
 
         {/* Icon-only nav items */}
-        <nav className="flex-1 flex flex-col items-center py-2 gap-1" aria-label="Navegação principal">
+        <nav className="flex-1 flex flex-col items-center py-2 gap-1" aria-label={tSb('navAriaLabel')}>
           {navItems.map(({ href, label, icon: Icon }) => {
             const active =
               pathname === href ||
@@ -121,7 +116,7 @@ export function Sidebar({ tenantName }: SidebarProps) {
       </div>
 
       {/* ── Navigation ─────────────────────────────────────────── */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5 no-scrollbar" aria-label="Navegação principal">
+      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5 no-scrollbar" aria-label={tSb('navAriaLabel')}>
         {navItems.map(({ href, label, icon: Icon }) => {
           const active =
             pathname === href ||

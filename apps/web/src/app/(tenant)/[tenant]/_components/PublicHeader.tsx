@@ -123,7 +123,7 @@ export function PublicHeader({ orgName, logoUrl, user }: Props) {
         {/* Right cluster: language selector + user menu + CTA */}
         <div className="flex items-center gap-2 shrink-0">
           <LanguageSwitcher current={locale} scrolled={scrolled} />
-          <UserMenu user={user} locale={locale} scrolled={scrolled} />
+          <UserMenu user={user} scrolled={scrolled} />
 
           <Link
             href="/book"

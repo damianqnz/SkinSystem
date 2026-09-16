@@ -9,11 +9,11 @@ import { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { ImageOff } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
+import { toIntlTag } from '@/i18n/intl-tag';
+import type { SupportedLocale } from '@/i18n/config';
 
 export type SignedPhoto = { id: string; photoType: string; signedUrl: string | null; takenAt: string };
 export type PhotoSession = { sessionId: string; sessionDate: string; serviceName: string; photos: SignedPhoto[] };
-
-const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
 
 function BeforeAfterSlider({ before, after, beforeLabel, afterLabel }: { before: string; after: string; beforeLabel: string; afterLabel: string }) {
   const [pos, setPos] = useState(50);
@@ -60,7 +60,7 @@ function PhotoTile({ photo }: { photo: SignedPhoto }) {
 
 function SessionBlock({ session, beforeLabel, afterLabel }: { session: PhotoSession; beforeLabel: string; afterLabel: string }) {
   const locale     = useLocale();
-  const intlLocale = INTL_LOCALE_MAP[locale] ?? 'pt-PT';
+  const intlLocale = toIntlTag(locale as SupportedLocale);
   const dateStr    = new Date(session.sessionDate).toLocaleDateString(intlLocale, { day: 'numeric', month: 'long', year: 'numeric' });
   const before     = session.photos.find(p => p.photoType === 'before')?.signedUrl;
   const after      = session.photos.find(p => p.photoType === 'after')?.signedUrl;

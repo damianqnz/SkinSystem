@@ -9,6 +9,8 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, Clock, XCircle, AlertCircle, CalendarX } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { RevealField } from './RevealField';
+import { toIntlTag } from '@/i18n/intl-tag';
+import type { SupportedLocale } from '@/i18n/config';
 
 export type TimelineEntry = {
   appointmentId: string;
@@ -29,8 +31,6 @@ const STATUS_ICON: Record<string, { icon: typeof CheckCircle2; color: string }> 
   no_show:   { icon: AlertCircle,   color: '#F59E0B' },
 };
 
-const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
-
 function formatCents(cents: number) {
   return (cents / 100).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
 }
@@ -43,7 +43,7 @@ interface Props { entries: TimelineEntry[]; locale: string }
 
 export function TreatmentTimeline({ entries, locale }: Props) {
   const t          = useTranslations('dashboard.customers.ficha');
-  const intlLocale = INTL_LOCALE_MAP[useLocale()] ?? 'pt-PT';
+  const intlLocale = toIntlTag(useLocale() as SupportedLocale);
 
   if (entries.length === 0) {
     return (

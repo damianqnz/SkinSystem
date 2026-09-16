@@ -216,6 +216,12 @@
       "closedGeneric": "Cerrado",
       "closedOpensAt": "Cerrado · Abre a las {time}",
       "closedOpensOnAt": "Cerrado · Abre {day} a las {time}"
+    },
+    "userMenu": {
+      "loginAriaLabel": "Iniciar sesión",
+      "menuAriaLabel": "Menú de la cuenta",
+      "account": "Mi cuenta",
+      "signOut": "Cerrar sesión"
     }
   },
   "integrations": {
@@ -284,6 +290,20 @@
     }
   },
   "dashboard": {
+    "nav": {
+      "panel": "Panel",
+      "calendar": "Calendario",
+      "services": "Servicios",
+      "clients": "Clientes",
+      "payments": "Pagos",
+      "integrations": "Integraciones",
+      "settings": "Configuración"
+    },
+    "sidebar": {
+      "collapse": "Contraer menú",
+      "expand": "Expandir menú",
+      "navAriaLabel": "Navegación principal"
+    },
     "settings": {
       "sidebar": {
         "title":           "Configuración",

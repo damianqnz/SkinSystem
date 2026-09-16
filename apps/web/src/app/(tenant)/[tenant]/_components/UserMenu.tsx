@@ -18,12 +18,11 @@ import { useTransition }   from 'react';
 import Link                from 'next/link';
 import * as DropdownMenu   from '@radix-ui/react-dropdown-menu';
 import { User, LogOut, UserCircle } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn }              from '@/shared/lib/utils';
 import { signOutAction }   from '../actions';
 
 // ── Types ─────────────────────────────────────────────────────
-
-type Locale = 'pt' | 'es' | 'en';
 
 export interface PublicSessionUser {
   /** Display name — full name on profile/customer, falls back to email prefix. */
@@ -36,28 +35,14 @@ export interface PublicSessionUser {
 
 interface Props {
   user:     PublicSessionUser | null;
-  locale:   Locale;
   scrolled: boolean;
 }
 
-// ── Copy ──────────────────────────────────────────────────────
-
-const COPY: Record<Locale, {
-  loginAria:   string;
-  menuAria:    string;
-  account:     string;
-  signOut:     string;
-}> = {
-  pt: { loginAria: 'Entrar',       menuAria: 'Menu da conta',    account: 'A minha conta', signOut: 'Terminar sessão' },
-  es: { loginAria: 'Iniciar sesión', menuAria: 'Menú de la cuenta', account: 'Mi cuenta',     signOut: 'Cerrar sesión' },
-  en: { loginAria: 'Sign in',      menuAria: 'Account menu',     account: 'My account',    signOut: 'Sign out' },
-};
-
 // ── Component ─────────────────────────────────────────────────
 
-export function UserMenu({ user, locale, scrolled }: Props) {
+export function UserMenu({ user, scrolled }: Props) {
   const [isPending, startTransition] = useTransition();
-  const t = COPY[locale];
+  const t = useTranslations('tenant.userMenu');
 
   // Shared button shape so the login trigger and the authed avatar button
   // line up visually with the `LanguageSwitcher`.
@@ -73,7 +58,7 @@ export function UserMenu({ user, locale, scrolled }: Props) {
   // ── Unauthenticated: direct link to /login ──────────────────
   if (!user) {
     return (
-      <Link href="/login" aria-label={t.loginAria} className={triggerClass}>
+      <Link href="/login" aria-label={t('loginAriaLabel')} className={triggerClass}>
         <User className="h-4 w-4" aria-hidden />
       </Link>
     );
@@ -94,7 +79,7 @@ export function UserMenu({ user, locale, scrolled }: Props) {
       <DropdownMenu.Trigger asChild>
         <button
           type="button"
-          aria-label={t.menuAria}
+          aria-label={t('menuAriaLabel')}
           className={cn(
             triggerClass,
             'relative overflow-hidden border',
@@ -157,7 +142,7 @@ export function UserMenu({ user, locale, scrolled }: Props) {
               )}
             >
               <UserCircle className="h-4 w-4" aria-hidden />
-              <span>{t.account}</span>
+              <span>{t('account')}</span>
             </Link>
           </DropdownMenu.Item>
 
@@ -175,7 +160,7 @@ export function UserMenu({ user, locale, scrolled }: Props) {
             )}
           >
             <LogOut className="h-4 w-4" aria-hidden />
-            <span>{t.signOut}</span>
+            <span>{t('signOut')}</span>
           </DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>

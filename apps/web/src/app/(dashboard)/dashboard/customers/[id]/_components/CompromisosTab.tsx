@@ -5,9 +5,10 @@ import { CalendarX } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
 import { getCustomerAppointmentsAction } from '../../actions/get-customer-appointments';
 import type { AppointmentHistoryData, AppointmentHistoryItem } from '@/domains/customers/service-appointments';
+import { toIntlTag } from '@/i18n/intl-tag';
+import type { SupportedLocale } from '@/i18n/config';
 
 // ── Helpers ──────────────────────────────────────────────────────
-const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
 
 function svcName(name: Record<string, string> | null, locale: string): string {
   if (!name) return '—';
@@ -41,7 +42,7 @@ function StatCard({ value, label, hint }: { value: string | number; label: strin
 }
 
 function ApptRow({ item, locale, statusLabels }: { item: AppointmentHistoryItem; locale: string; statusLabels: Record<string, string> }) {
-  const intlLocale = INTL_LOCALE_MAP[locale] ?? 'pt-PT';
+  const intlLocale = toIntlTag(locale as SupportedLocale);
   const d    = new Date(item.startAt);
   const date = d.toLocaleDateString(intlLocale,  { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
   const time = d.toLocaleTimeString(intlLocale,  { hour: '2-digit', minute: '2-digit' });

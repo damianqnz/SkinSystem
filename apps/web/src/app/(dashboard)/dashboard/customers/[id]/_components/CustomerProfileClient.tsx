@@ -18,6 +18,8 @@ import { CompromisosTab }       from './CompromisosTab';
 import { NewAppointmentFAB }    from '@/app/(dashboard)/dashboard/calendar/_components/NewAppointmentFAB';
 import { uploadAvatarAction }   from '../../actions/upload-avatar';
 import { cn }        from '@/shared/lib/utils';
+import { toIntlTag } from '@/i18n/intl-tag';
+import type { SupportedLocale } from '@/i18n/config';
 import type { ClientStatus } from '@/domains/customers/service';
 import type { CustomerMatch } from '@/app/(dashboard)/dashboard/calendar/actions/search-customers';
 
@@ -44,8 +46,6 @@ interface Props {
 
 const TR = 'px-3 py-2.5 font-sans text-[11px] uppercase tracking-wider border-b-2 border-transparent transition-colors data-[state=active]:border-[#D4AF37] data-[state=active]:text-stone-900 text-stone-400 disabled:opacity-30 disabled:cursor-not-allowed';
 
-const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
-
 export function CustomerProfileClient({ id, fullName, email, phone, isGuest, visitCount, lastVisitAtIso, status, createdAtIso, locale, isBlocked: initialBlocked, avatarUrl: initialAvatarUrl, notes, company, country, countryIso, address, city, state, postalCode, socialLinks }: Props) {
   const t            = useTranslations('dashboard.customers.profile');
   const intlLocale   = useLocale();
@@ -66,7 +66,7 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
     const now  = new Date();
     const diff = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
     if (diff === 0) return t('today');
-    const tag = INTL_LOCALE_MAP[intlLocale] ?? 'pt-PT';
+    const tag = toIntlTag(intlLocale as SupportedLocale);
     return d.toLocaleDateString(tag, { day: 'numeric', month: 'short', year: 'numeric' });
   }
 

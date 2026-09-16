@@ -12,10 +12,10 @@ import { getActiveServices } from '@/domains/catalog/service';
 import { getTranslations } from 'next-intl/server';
 import { EmptyState } from './EmptyState';
 import { Clock, User } from 'lucide-react';
+import { toIntlTag } from '@/i18n/intl-tag';
+import type { SupportedLocale } from '@/i18n/config';
 
 // ── Helpers ───────────────────────────────────────────────────
-
-const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
 
 const STATUS_STYLES: Record<string, string> = {
   pending:   'bg-amber-50    text-amber-700    border-amber-200',
@@ -33,7 +33,7 @@ interface Props {
 
 export async function AppointmentsList({ organizationId, locale, limit = 20 }: Props) {
   const t          = await getTranslations({ locale, namespace: 'dashboard.home.appointments_list' });
-  const intlLocale = INTL_LOCALE_MAP[locale] ?? 'pt-PT';
+  const intlLocale = toIntlTag(locale as SupportedLocale);
 
   function resolveServiceName(nameI18n: unknown): string {
     const map = nameI18n as Record<string, string> | null;

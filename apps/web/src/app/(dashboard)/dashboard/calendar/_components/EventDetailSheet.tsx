@@ -12,7 +12,8 @@ import { Clock, CreditCard, Mail, Phone, RotateCcw, User, X } from 'lucide-react
 import { toast } from 'sonner';
 import { cn } from '@/shared/lib/utils';
 import { useTranslations, useLocale } from 'next-intl';
-import { DEFAULT_LOCALE } from '@/i18n/config';
+import { DEFAULT_LOCALE, type SupportedLocale } from '@/i18n/config';
+import { toIntlTag } from '@/i18n/intl-tag';
 import {
   cancelAppointmentAction,
   getAppointmentDetailAction,
@@ -43,8 +44,6 @@ const STATUS_TONE: Record<string, string> = {
   no_show:   'stone',
 };
 
-const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
-
 function fmtPrice(cents: number) { return `€${(cents / 100).toFixed(2)}`; }
 
 function resolveServiceName(map: Record<string, string>, locale: string): string {
@@ -60,7 +59,7 @@ export function EventDetailSheet({
 }: EventDetailSheetProps) {
   const t          = useTranslations('dashboard.calendar.eventDetail');
   const tAppt      = useTranslations('dashboard.customers.appointments');
-  const intlLocale = INTL_LOCALE_MAP[useLocale()] ?? 'pt-PT';
+  const intlLocale = toIntlTag(useLocale() as SupportedLocale);
 
   const [data, setData] = useState<AppointmentFull | null>(null);
   const [loading, setLoading] = useState(false);

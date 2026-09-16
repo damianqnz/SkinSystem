@@ -6,6 +6,8 @@ import { useLocale, useTranslations } from 'next-intl';
 import { CustomerStatusBadge } from './CustomerStatusBadge';
 import { cn } from '@/shared/lib/utils';
 import type { ClientStatus } from '@/domains/customers/service';
+import { toIntlTag } from '@/i18n/intl-tag';
+import type { SupportedLocale } from '@/i18n/config';
 
 export type CustomerSer = {
   id: string;
@@ -26,8 +28,6 @@ const PALETTES = [
   { bg: '#FDF4FF', fg: '#9333EA' },
   { bg: '#F0FDFA', fg: '#0F766E' },
 ];
-
-const INTL_LOCALE_MAP: Record<string, string> = { pt: 'pt-PT', es: 'es-ES', en: 'en-GB' };
 
 function avatarPalette(name: string) {
   let h = 0; for (const c of name) h = (h << 5) - h + c.charCodeAt(0);
@@ -56,7 +56,7 @@ export function CustomerListItem({ customer, locale, isSelected }: Props) {
     const diff = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
     if (diff === 0) return t('today');
     if (diff < 7)   return `${diff}d`;
-    const tag = INTL_LOCALE_MAP[intlLocale] ?? 'pt-PT';
+    const tag = toIntlTag(intlLocale as SupportedLocale);
     return d.toLocaleDateString(tag, { day: 'numeric', month: 'short' });
   }
 

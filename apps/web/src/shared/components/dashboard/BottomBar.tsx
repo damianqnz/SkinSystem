@@ -2,9 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/shared/lib/utils';
 import { getBottomNavItems } from './nav-items';
-import { useTenantContext }  from '@/shared/providers/TenantProvider';
 
 /**
  * Mobile bottom navigation — Thumb Zone law (DESIGN_SYSTEM.md §4.1).
@@ -12,8 +12,8 @@ import { useTenantContext }  from '@/shared/providers/TenantProvider';
  */
 export function BottomBar() {
   const pathname = usePathname();
-  const { locale } = useTenantContext();
-  const items = getBottomNavItems(locale);
+  const tNav = useTranslations('dashboard.nav');
+  const items = getBottomNavItems(tNav);
 
   return (
     <nav
