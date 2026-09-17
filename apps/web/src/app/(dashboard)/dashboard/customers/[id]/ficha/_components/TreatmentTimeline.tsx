@@ -39,6 +39,7 @@ interface Props { entries: TimelineEntry[]; locale: string }
 
 export function TreatmentTimeline({ entries, locale }: Props) {
   const t          = useTranslations('dashboard.customers.ficha');
+  const tStatus    = useTranslations('dashboard.customers.appointments');
   const intlLocale = toIntlTag(useLocale() as SupportedLocale);
 
   if (entries.length === 0) {
@@ -74,7 +75,7 @@ export function TreatmentTimeline({ entries, locale }: Props) {
                   <span className="font-sans text-sm text-spa-muted tabular-nums">{formatCents(entry.totalCents, intlLocale, entry.currency)}</span>
                   <div className="flex items-center gap-1">
                     <Icon size={13} strokeWidth={1.5} style={{ color: meta.color }} />
-                    <span className="font-sans text-[10px] uppercase tracking-wider" style={{ color: meta.color }}>{entry.status}</span>
+                    <span className="font-sans text-[10px] uppercase tracking-wider" style={{ color: meta.color }}>{tStatus(`status.${entry.status}` as Parameters<typeof tStatus>[0])}</span>
                   </div>
                 </div>
               </div>
