@@ -4,7 +4,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { db }            from '@/infrastructure/db';
 import { appointments }  from '@/infrastructure/db/schema/booking';
 import { catalogServices } from '@/infrastructure/db/schema/catalog';
-import { profiles }      from '@/infrastructure/db/schema/organizations';
+import { profiles, organizations } from '@/infrastructure/db/schema/organizations';
 import type { Result }   from '@/shared/types/result';
 
 export type AppointmentHistoryItem = {
@@ -14,6 +14,7 @@ export type AppointmentHistoryItem = {
   status:      string;
   priceCents:  number;
   totalCents:  number;
+  currency:    string;
   serviceId:   string;
   serviceName: Record<string, string> | null; // { es, en, pt }
   staffName:   string | null;
@@ -27,8 +28,10 @@ export type AppointmentHistoryStats = {
 };
 
 export type AppointmentHistoryData = {
-  items: AppointmentHistoryItem[];
-  stats: AppointmentHistoryStats;
+  items:    AppointmentHistoryItem[];
+  stats:    AppointmentHistoryStats;
+  /** All appointments in an org share one currency (org-level setting). */
+  currency: string;
 };
 
 function computeStats(rows: AppointmentHistoryItem[]): AppointmentHistoryStats {
@@ -50,27 +53,34 @@ export async function getCustomerAppointmentHistory(
   customerId:     string,
 ): Promise<Result<AppointmentHistoryData>> {
   try {
-    const rows = await db
-      .select({
-        id:          appointments.id,
-        startAt:     appointments.startAt,
-        endAt:       appointments.endAt,
-        status:      appointments.status,
-        priceCents:  appointments.priceCents,
-        totalCents:  appointments.totalCents,
-        serviceId:   appointments.serviceId,
-        serviceName: catalogServices.nameI18n,
-        staffName:   profiles.fullName,
-      })
-      .from(appointments)
-      .leftJoin(catalogServices, eq(catalogServices.id, appointments.serviceId))
-      .leftJoin(profiles, eq(profiles.id, appointments.staffProfileId))
-      .where(and(
-        eq(appointments.organizationId, organizationId),
-        eq(appointments.customerId,     customerId),
-      ))
-      .orderBy(desc(appointments.startAt))
-      .limit(200);
+    const [orgRows, rows] = await Promise.all([
+      db.select({ defaultCurrency: organizations.defaultCurrency })
+        .from(organizations)
+        .where(eq(organizations.id, organizationId))
+        .limit(1),
+
+      db.select({
+          id:          appointments.id,
+          startAt:     appointments.startAt,
+          endAt:       appointments.endAt,
+          status:      appointments.status,
+          priceCents:  appointments.priceCents,
+          totalCents:  appointments.totalCents,
+          currency:    catalogServices.currency,
+          serviceId:   appointments.serviceId,
+          serviceName: catalogServices.nameI18n,
+          staffName:   profiles.fullName,
+        })
+        .from(appointments)
+        .leftJoin(catalogServices, eq(catalogServices.id, appointments.serviceId))
+        .leftJoin(profiles, eq(profiles.id, appointments.staffProfileId))
+        .where(and(
+          eq(appointments.organizationId, organizationId),
+          eq(appointments.customerId,     customerId),
+        ))
+        .orderBy(desc(appointments.startAt))
+        .limit(200),
+    ]);
 
     const items: AppointmentHistoryItem[] = rows.map(r => ({
       id:          r.id,
@@ -79,12 +89,14 @@ export async function getCustomerAppointmentHistory(
       status:      r.status,
       priceCents:  r.priceCents,
       totalCents:  r.totalCents,
+      currency:    r.currency ?? 'EUR',
       serviceId:   r.serviceId,
       serviceName: r.serviceName as Record<string, string> | null,
       staffName:   r.staffName ?? null,
     }));
 
-    return { data: { items, stats: computeStats(items) }, error: null };
+    const currency = orgRows[0]?.defaultCurrency ?? items[0]?.currency ?? 'EUR';
+    return { data: { items, stats: computeStats(items), currency }, error: null };
   } catch {
     return { data: null, error: { message: 'Failed to fetch appointment history', code: 'DB_ERROR' } };
   }

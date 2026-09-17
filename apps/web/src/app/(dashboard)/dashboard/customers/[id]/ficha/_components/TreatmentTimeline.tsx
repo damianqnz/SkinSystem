@@ -12,6 +12,7 @@ export type TimelineEntry = {
   startAt: string;
   status: string;
   totalCents: number;
+  currency: string;
   serviceName: string;
   clinicalSessionId: string | null;
   professionalNotes: string | null;
@@ -26,8 +27,8 @@ const STATUS_ICON: Record<string, { icon: typeof CheckCircle2; color: string }> 
   no_show:   { icon: AlertCircle,   color: '#F59E0B' },
 };
 
-function formatCents(cents: number) {
-  return (cents / 100).toLocaleString('es-ES', { style: 'currency', currency: 'EUR' });
+function formatCents(cents: number, intlLocale: string, currency: string) {
+  return (cents / 100).toLocaleString(intlLocale, { style: 'currency', currency });
 }
 
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.06 } } };
@@ -70,7 +71,7 @@ export function TreatmentTimeline({ entries, locale }: Props) {
                   <p className="font-sans text-xs text-spa-muted">{date} · {time}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-sans text-sm text-spa-muted tabular-nums">{formatCents(entry.totalCents)}</span>
+                  <span className="font-sans text-sm text-spa-muted tabular-nums">{formatCents(entry.totalCents, intlLocale, entry.currency)}</span>
                   <div className="flex items-center gap-1">
                     <Icon size={13} strokeWidth={1.5} style={{ color: meta.color }} />
                     <span className="font-sans text-[10px] uppercase tracking-wider" style={{ color: meta.color }}>{entry.status}</span>

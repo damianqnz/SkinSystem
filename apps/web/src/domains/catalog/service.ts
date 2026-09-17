@@ -2,6 +2,7 @@ import 'server-only';
 
 import { eq, and, asc } from 'drizzle-orm';
 import { db }              from '@/infrastructure/db';
+import { organizations }   from '@/infrastructure/db/schema/organizations';
 import { catalogCategories, catalogServices } from './schema';
 import type {
   SelectCategory,
@@ -192,6 +193,16 @@ export async function createService(
   input: CreateServiceInput,
 ): Promise<Result<{ id: string }>> {
   try {
+    let currency = input.currency;
+    if (!currency) {
+      const orgRows = await db
+        .select({ defaultCurrency: organizations.defaultCurrency })
+        .from(organizations)
+        .where(eq(organizations.id, input.organizationId))
+        .limit(1);
+      currency = orgRows[0]?.defaultCurrency ?? 'EUR';
+    }
+
     const rows = await db
       .insert(catalogServices)
       .values({
@@ -201,7 +212,7 @@ export async function createService(
         descriptionI18n:     input.descriptionI18n ?? {},
         durationMinutes:     input.durationMinutes,
         priceCents:          input.priceCents,
-        currency:            input.currency ?? 'EUR',
+        currency,
         bufferBeforeMinutes: input.bufferBeforeMinutes ?? 0,
         bufferAfterMinutes:  input.bufferAfterMinutes ?? 0,
         depositPercent:      input.depositPercent ?? 100,

@@ -17,7 +17,7 @@ export type PhotoRecord = {
 
 export type AppointmentHistoryRow = {
   appointmentId: string;
-  startAt: Date; endAt: Date; status: string; totalCents: number;
+  startAt: Date; endAt: Date; status: string; totalCents: number; currency: string;
   serviceNameI18n: unknown;
   clinicalSessionId: string | null;
   professionalNotes: string | null;
@@ -56,7 +56,7 @@ async function fetchAppointmentRows(customerId: string, orgId: string) {
     .select({
       appointmentId: appointments.id,
       startAt: appointments.startAt, endAt: appointments.endAt,
-      status: appointments.status, totalCents: appointments.totalCents,
+      status: appointments.status, totalCents: appointments.totalCents, currency: catalogServices.currency,
       serviceNameI18n: catalogServices.nameI18n,
       clinicalSessionId: clinicalSessions.id,
       professionalNotes: clinicalSessions.professionalNotes,
@@ -110,6 +110,7 @@ export async function getCustomerFullHistory(
         onboarding: onboardingRows[0] ?? null,
         appointments: apptRows.map(r => ({
           ...r,
+          currency: r.currency ?? 'EUR',
           photos: r.clinicalSessionId ? (bySession.get(r.clinicalSessionId) ?? []) : [],
         })) as AppointmentHistoryRow[],
       },

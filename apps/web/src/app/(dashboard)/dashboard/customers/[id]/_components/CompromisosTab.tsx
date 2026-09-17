@@ -15,9 +15,9 @@ function svcName(name: Record<string, string> | null, locale: string): string {
   return name[locale] ?? name['es'] ?? Object.values(name)[0] ?? '—';
 }
 
-function fmtEur(cents: number | null): string {
+function fmtMoney(cents: number | null, intlLocale: string, currency: string): string {
   if (cents == null) return '—';
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+  return new Intl.NumberFormat(intlLocale, { style: 'currency', currency }).format(cents / 100);
 }
 
 const STATUS_CLS: Record<string, string> = {
@@ -60,7 +60,7 @@ function ApptRow({ item, locale, statusLabels }: { item: AppointmentHistoryItem;
       </div>
       <div className="shrink-0 flex flex-col items-end gap-1">
         <span className={`font-sans text-[10px] px-1.5 py-0.5 border rounded-sm ${statusCls}`}>{statusLabel}</span>
-        <span className="font-sans text-xs text-stone-500 tabular-nums">{fmtEur(item.totalCents)}</span>
+        <span className="font-sans text-xs text-stone-500 tabular-nums">{fmtMoney(item.totalCents, intlLocale, item.currency)}</span>
       </div>
     </div>
   );
@@ -103,7 +103,8 @@ export function CompromisosTab({ customerId, locale }: Props) {
   if (errMsg)  return <p className="font-sans text-sm text-rose-500 py-4 text-center">{errMsg}</p>;
   if (!data)   return null;
 
-  const { stats, items } = data;
+  const { stats, items, currency } = data;
+  const intlLocale = toIntlTag(locale as SupportedLocale);
 
   const statusLabels: Record<string, string> = {
     pending:   t('status.pending'),
@@ -118,7 +119,7 @@ export function CompromisosTab({ customerId, locale }: Props) {
       <div className="grid grid-cols-2 gap-3">
         <StatCard value={stats.totalThisYear}         label={t('yearLabel')}      hint={t('yearHint')}      />
         <StatCard value={stats.cancelledCount}        label={t('cancelledLabel')} hint={t('cancelledHint')} />
-        <StatCard value={fmtEur(stats.avgSpendCents)} label={t('avgSpendLabel')}  hint={t('avgSpendHint')}  />
+        <StatCard value={fmtMoney(stats.avgSpendCents, intlLocale, currency)} label={t('avgSpendLabel')}  hint={t('avgSpendHint')}  />
         <StatCard value={stats.distinctServices}      label={t('servicesLabel')}  hint={t('servicesHint')}  />
       </div>
 

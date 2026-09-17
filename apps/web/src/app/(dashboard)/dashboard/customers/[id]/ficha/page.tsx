@@ -66,6 +66,7 @@ async function ClinicalContent({ customerId, orgId, locale }: { customerId: stri
     startAt:          a.startAt instanceof Date ? a.startAt.toISOString() : String(a.startAt),
     status:           a.status,
     totalCents:       a.totalCents,
+    currency:         a.currency,
     serviceName:      resolveName(a.serviceNameI18n, locale, t('serviceNameFallback')),
     clinicalSessionId: a.clinicalSessionId,
     professionalNotes: a.professionalNotes,
