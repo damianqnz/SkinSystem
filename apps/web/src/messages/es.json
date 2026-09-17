@@ -483,7 +483,38 @@
       "profile": {
         "title":       "Tu perfil",
         "description": "Gestiona tu información personal y de acceso.",
-        "comingSoon":  "Próximamente."
+        "email": {
+          "label": "Email",
+          "hint":  "El email no puede modificarse desde aquí."
+        },
+        "fullName": {
+          "label":       "Nombre completo",
+          "placeholder": "Tu nombre"
+        },
+        "phone": {
+          "label":       "Teléfono",
+          "placeholder": "+34 600 000 000"
+        },
+        "avatar": {
+          "label":  "Foto de perfil",
+          "hint":   "JPEG, PNG, WebP, GIF, AVIF o SVG, hasta {maxMb} MB.",
+          "add":    "Añadir foto",
+          "change": "Cambiar foto"
+        },
+        "save":         "Guardar cambios",
+        "saving":       "Guardando…",
+        "saved":        "Guardado",
+        "toastSuccess": "Perfil actualizado",
+        "toastError":   "No se pudo actualizar el perfil",
+        "errors": {
+          "notAuthorized":     "Debes iniciar sesión para actualizar el perfil",
+          "notFound":          "Perfil no encontrado",
+          "invalidData":       "Datos inválidos",
+          "avatarNoFile":      "Ningún archivo seleccionado",
+          "avatarTooLarge":    "El archivo debe ser menor de {maxMb} MB",
+          "avatarInvalidType": "Formato de imagen no soportado",
+          "storage":           "Error al subir la imagen"
+        }
       },
       "team": {
         "pageTitle":       "Tu equipo",

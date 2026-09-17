@@ -483,7 +483,38 @@
       "profile": {
         "title":       "Your profile",
         "description": "Manage your personal information and access.",
-        "comingSoon":  "Coming soon."
+        "email": {
+          "label": "Email",
+          "hint":  "Email can't be changed from here."
+        },
+        "fullName": {
+          "label":       "Full name",
+          "placeholder": "Your name"
+        },
+        "phone": {
+          "label":       "Phone",
+          "placeholder": "+1 555 000 0000"
+        },
+        "avatar": {
+          "label":  "Profile photo",
+          "hint":   "JPEG, PNG, WebP, GIF, AVIF or SVG, up to {maxMb} MB.",
+          "add":    "Add photo",
+          "change": "Change photo"
+        },
+        "save":         "Save changes",
+        "saving":       "Saving…",
+        "saved":        "Saved",
+        "toastSuccess": "Profile updated",
+        "toastError":   "Could not update the profile",
+        "errors": {
+          "notAuthorized":     "You must sign in to update your profile",
+          "notFound":          "Profile not found",
+          "invalidData":       "Invalid data",
+          "avatarNoFile":      "No file selected",
+          "avatarTooLarge":    "The file must be under {maxMb} MB",
+          "avatarInvalidType": "Unsupported image format",
+          "storage":           "Error uploading the image"
+        }
       },
       "team": {
         "pageTitle":       "Your team",
