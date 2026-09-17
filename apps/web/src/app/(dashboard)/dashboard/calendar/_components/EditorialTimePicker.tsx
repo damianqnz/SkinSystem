@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { Clock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/shared/lib/utils';
 
 interface EditorialTimePickerProps {
@@ -30,6 +31,7 @@ export function EditorialTimePicker({
   toHour = 22,
   disabled,
 }: EditorialTimePickerProps) {
+  const tDp = useTranslations('dashboard.calendar.datePicker');
   const [open, setOpen] = useState(false);
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -72,7 +74,7 @@ export function EditorialTimePicker({
               disabled && 'opacity-50 cursor-not-allowed',
             )}
             style={{ fontFamily: 'var(--font-sans)' }}
-            aria-label="Selecionar hora"
+            aria-label={tDp('selectTimeAriaLabel')}
           >
             <Clock size={13} strokeWidth={1.5} className="text-spa-muted" />
             <span className="tabular-nums">{value}</span>

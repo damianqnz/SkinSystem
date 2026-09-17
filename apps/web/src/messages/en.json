@@ -43,7 +43,9 @@
       "to": "To (hrs)",
       "reasonLabel": "Reason",
       "confirm": "Confirm block",
+      "confirming": "Blocking…",
       "success": "Time slot blocked successfully",
+      "endBeforeStartError": "The end date must be after the start date",
       "reason": {
         "illness": "Illness",
         "vacation": "Vacation",
@@ -832,7 +834,8 @@
         "toastSoonDesc":"This action arrives in the next phase."
       },
       "datePicker": {
-        "selectDateAriaLabel": "Select date"
+        "selectDateAriaLabel": "Select date",
+        "selectTimeAriaLabel": "Select time"
       },
       "blockDays": {
         "from": "From",

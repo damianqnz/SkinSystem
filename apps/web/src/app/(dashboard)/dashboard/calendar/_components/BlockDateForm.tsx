@@ -4,6 +4,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useTransition } from 'react';
 import { ArrowLeft, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/shared/lib/utils';
 
 import { EditorialDatePicker } from './EditorialDatePicker';
@@ -19,14 +20,8 @@ interface BlockDateFormProps {
   onSuccess: () => void;
 }
 
-const REASONS = [
-  { id: 'vacation', label: 'Férias'    },
-  { id: 'illness',  label: 'Doença'    },
-  { id: 'training', label: 'Formação'  },
-  { id: 'other',    label: 'Outro'     },
-] as const;
-
-type Reason = (typeof REASONS)[number]['id'];
+const REASON_IDS = ['vacation', 'illness', 'training', 'other'] as const;
+type Reason = (typeof REASON_IDS)[number];
 
 function isoFromDateTime(dateIso: string, hhmm: string): string {
   return new Date(`${dateIso}T${hhmm}:00`).toISOString();
@@ -39,6 +34,9 @@ export function BlockDateForm({
   defaultDateIso,
   onSuccess,
 }: BlockDateFormProps) {
+  const t   = useTranslations('calendar.block');
+  const tNa = useTranslations('dashboard.calendar.newAppointment');
+
   const [fromDate, setFromDate] = useState(defaultDateIso);
   const [fromTime, setFromTime] = useState('09:00');
   const [toDate,   setToDate]   = useState(defaultDateIso);
@@ -51,14 +49,14 @@ export function BlockDateForm({
     const startAt = isoFromDateTime(fromDate, fromTime);
     const endAt   = isoFromDateTime(toDate,   toTime);
     if (new Date(endAt) <= new Date(startAt)) {
-      toast.error('A data final deve ser depois da inicial');
+      toast.error(t('endBeforeStartError'));
       return;
     }
 
     startTransition(async () => {
       const res = await createBlockedIntervalAction({ startAt, endAt, reason });
       if (res.status === 'success') {
-        toast.success(res.message ?? 'Período bloqueado');
+        toast.success(res.message ?? t('success'));
         onSuccess();
       } else if (res.status === 'error') {
         toast.error(res.message);
@@ -95,17 +93,17 @@ export function BlockDateForm({
               style={{ fontFamily: 'var(--font-sans)' }}
             >
               <ArrowLeft size={12} strokeWidth={1.5} />
-              Voltar
+              {tNa('back')}
             </button>
             <Dialog.Title
               className="text-[16px] tracking-wide text-(--color-spa-stone)"
               style={{ fontFamily: 'var(--font-serif)' }}
             >
-              Bloquear data
+              {t('title')}
             </Dialog.Title>
             <Dialog.Close
               className="p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-50 transition-colors"
-              aria-label="Fechar"
+              aria-label={tNa('closeAriaLabel')}
             >
               <X size={14} strokeWidth={1.5} />
             </Dialog.Close>
@@ -117,7 +115,7 @@ export function BlockDateForm({
             <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-[0.16em] text-spa-muted"
                  style={{ fontFamily: 'var(--font-sans)' }}>
-                Desde
+                {t('from')}
               </p>
               <div className="flex items-center gap-2">
                 <EditorialDatePicker value={fromDate} onChange={setFromDate} />
@@ -129,7 +127,7 @@ export function BlockDateForm({
             <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-[0.16em] text-spa-muted"
                  style={{ fontFamily: 'var(--font-sans)' }}>
-                Até
+                {t('to')}
               </p>
               <div className="flex items-center gap-2">
                 <EditorialDatePicker value={toDate} onChange={setToDate} />
@@ -141,23 +139,23 @@ export function BlockDateForm({
             <div className="space-y-2">
               <p className="text-[10px] uppercase tracking-[0.16em] text-spa-muted"
                  style={{ fontFamily: 'var(--font-sans)' }}>
-                Motivo
+                {t('reasonLabel')}
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {REASONS.map((r) => (
+                {REASON_IDS.map((id) => (
                   <button
-                    key={r.id}
+                    key={id}
                     type="button"
-                    onClick={() => setReason(r.id)}
+                    onClick={() => setReason(id)}
                     className={cn(
                       'px-3 py-1.5 rounded-full text-[12px] tracking-wide transition-colors',
-                      reason === r.id
+                      reason === id
                         ? 'bg-(--color-spa-stone) text-white border border-(--color-spa-stone)'
                         : 'bg-white text-(--color-spa-stone) border border-spa-border hover:border-stone-400',
                     )}
                     style={{ fontFamily: 'var(--font-sans)' }}
                   >
-                    {r.label}
+                    {t(`reason.${id}`)}
                   </button>
                 ))}
               </div>
@@ -170,7 +168,7 @@ export function BlockDateForm({
               className="px-3 py-1.5 rounded-md text-[12px] text-spa-muted hover:text-(--color-spa-stone) transition-colors"
               style={{ fontFamily: 'var(--font-sans)' }}
             >
-              Cancelar
+              {tNa('cancelBtn')}
             </Dialog.Close>
             <button
               type="button"
@@ -183,7 +181,7 @@ export function BlockDateForm({
               )}
               style={{ fontFamily: 'var(--font-sans)' }}
             >
-              {pending ? 'A bloquear…' : 'Bloquear →'}
+              {pending ? t('confirming') : t('confirm')}
             </button>
           </div>
         </Dialog.Content>

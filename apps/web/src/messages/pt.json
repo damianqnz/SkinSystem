@@ -43,7 +43,9 @@
       "to": "Até (hs)",
       "reasonLabel": "Motivo",
       "confirm": "Confirmar bloqueio",
+      "confirming": "A bloquear…",
       "success": "Horário bloqueado com sucesso",
+      "endBeforeStartError": "A data final deve ser depois da inicial",
       "reason": {
         "illness": "Doença",
         "vacation": "Férias",
@@ -832,7 +834,8 @@
         "toastSoonDesc":"Esta ação chega na próxima fase."
       },
       "datePicker": {
-        "selectDateAriaLabel": "Selecionar data"
+        "selectDateAriaLabel": "Selecionar data",
+        "selectTimeAriaLabel": "Selecionar hora"
       },
       "blockDays": {
         "from": "Desde",
