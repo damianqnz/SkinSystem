@@ -72,6 +72,14 @@ export async function ConsumerShell({ theme, locale, children }: Props) {
 
   return (
     <html lang={locale} className={htmlClass} suppressHydrationWarning>
+      {/*
+        eslint-disable-next-line @next/next/no-head-element -- this <head> is the root
+        layout's own <head> (ConsumerShell renders <html>/<body> for both the (tenant)
+        and (account) route groups — there is no other app/layout.tsx above it). It
+        injects a per-request inline <style> (tenant brand CSS vars) and a pre-paint
+        FOUC-prevention <script>, neither of which the declarative Metadata API can
+        express; next/head is Pages-Router-only and does not apply here.
+      */}
       <head>
         <style dangerouslySetInnerHTML={{
           __html: `:root{--brand-color:${theme.brandColor};--btn-radius:${theme.btnRadius};}`,

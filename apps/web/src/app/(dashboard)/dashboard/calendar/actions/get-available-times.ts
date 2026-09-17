@@ -1,6 +1,5 @@
 'use server';
 
-import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import 'server-only';
 
 import { z } from 'zod';

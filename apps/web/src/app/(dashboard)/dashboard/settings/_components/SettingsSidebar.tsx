@@ -23,7 +23,7 @@ interface Section {
 
 // ── Component ─────────────────────────────────────────────────
 
-export function SettingsSidebar({ tenantSlug }: { tenantSlug: string }) {
+export function SettingsSidebar({ tenantSlug: _tenantSlug }: { tenantSlug: string }) {
   const t    = useTranslations('dashboard.settings.sidebar');
   const path = usePathname();
 

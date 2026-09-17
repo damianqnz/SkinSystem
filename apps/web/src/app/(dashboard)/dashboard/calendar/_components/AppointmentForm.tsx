@@ -32,11 +32,11 @@ export function AppointmentForm({ locale, date, initialTime, selectedCustomer, o
   const [notes,     setNotes]     = useState('');
   const [pending,   startTransition] = useTransition();
 
-  useEffect(() => { // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
     getServicesAction(locale).then((res) => {
       setServices(res.error || !res.data ? { status: 'error' } : { status: 'ready', data: res.data });
     });
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     setTimes(null);

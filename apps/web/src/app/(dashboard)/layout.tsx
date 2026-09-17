@@ -52,10 +52,12 @@ async function DashboardShell({ children }: { children: ReactNode }) {
       case 'NO_AUTH':
         // Proxy should catch this first; redundant defense in depth.
         redirect('/login');
+        break;
       case 'NOT_MEMBER':
         // Authenticated but not staff here → they're a customer (or staff
         // of another tenant). Send them to their own space.
         redirect('/me');
+        break;
       case 'INACTIVE':
       case 'FORBIDDEN':
       case 'NO_TENANT':

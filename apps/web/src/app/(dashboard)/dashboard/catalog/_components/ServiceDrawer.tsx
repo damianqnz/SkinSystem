@@ -33,7 +33,7 @@ function resolveI18n(obj: unknown, locale: string): string {
 }
 
 export function ServiceDrawer({
-  open, onClose, onSuccess, categories, locale, service, defaultCategoryId, organizationId,
+  open, onClose, onSuccess, categories, locale: _locale, service, defaultCategoryId, organizationId,
 }: ServiceDrawerProps) {
   const t          = useTranslations('dashboard.catalog');
   const intlLocale = useLocale();
@@ -81,9 +81,14 @@ export function ServiceDrawer({
   const action = isEdit ? updateServiceAction : createServiceAction;
   const [state, dispatch, isPending] = useActionState<CatalogActionState, unknown>(action, IDLE);
 
+  // onClose/onSuccess are recreated every render by the parent (inline arrow props);
+  // depending on them would re-run this effect — and re-invoke onSuccess/onClose — on
+  // unrelated parent re-renders while `state.status` stays 'success'/'error'. Only
+  // `state` should retrigger this effect.
   useEffect(() => {
     if (state.status === 'success') { toast.success(state.message); onSuccess(); onClose(); }
     if (state.status === 'error')   toast.error(state.message);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   function handleSubmit(e: React.FormEvent) {

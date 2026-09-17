@@ -81,6 +81,9 @@ export function ProfileForm({ email, initial }: Props) {
           onClick={() => avatarInput.current?.click()}
         >
           {avatarUrl ? (
+            // avatarUrl briefly holds a local `blob:` object URL for the instant upload
+            // preview before the Supabase URL resolves; next/image cannot load blob: URLs.
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt={t('avatar.label')} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-stone-400">

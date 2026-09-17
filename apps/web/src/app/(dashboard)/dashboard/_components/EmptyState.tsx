@@ -1,6 +1,7 @@
 'use client';
 
 import { Calendar } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 /**
@@ -32,13 +33,13 @@ export function EmptyState() {
       </div>
 
       {/* CTA */}
-      <a
+      <Link
         href="/settings/calendar"
         className="inline-flex items-center gap-2 px-5 py-2.5 shimmer-btn font-sans text-sm font-medium text-(--color-spa-stone) border border-(--color-spa-stone) rounded-sm hover:bg-(--color-spa-stone) hover:text-(--color-spa-bg) transition-colors duration-200"
       >
         <Calendar size={14} strokeWidth={1.5} />
         {t('cta')}
-      </a>
+      </Link>
     </div>
   );
 }

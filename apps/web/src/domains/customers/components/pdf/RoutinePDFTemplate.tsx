@@ -11,7 +11,7 @@
  * NOTE: Import this file ONLY via dynamic() with { ssr: false } in a Client Component.
  */
 
-import { Document, Page, View, Text, StyleSheet, Font, Line, Svg } from '@react-pdf/renderer';
+import { Document, Page, View, Text, StyleSheet, Font } from '@react-pdf/renderer';
 import type { RoutineStep } from '../../service-routines';
 
 // ── Font registration ─────────────────────────────────────────

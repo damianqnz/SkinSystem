@@ -133,7 +133,7 @@ export function CustomerFormModal(props: Props) {
   const title  = mode === 'add' ? t('addTitle') : t('editTitle');
 
   const fileInputRef    = useRef<HTMLInputElement>(null);
-  const [avatarUrl,     setAvatarUrl]     = useState<string | null>(customer?.avatarUrl ?? null);
+  const [avatarUrl]                       = useState<string | null>(customer?.avatarUrl ?? null);
   const [avatarFile,    setAvatarFile]    = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 

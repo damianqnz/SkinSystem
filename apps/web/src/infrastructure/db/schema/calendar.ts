@@ -10,7 +10,6 @@ import {
 } from 'drizzle-orm/pg-core';
 import {
   calendarProviderEnum,
-  sessionPhotoTypeEnum,
   invitationStatusEnum,
   blockReasonEnum,
   recurrenceTypeEnum,

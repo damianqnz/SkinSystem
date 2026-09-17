@@ -3,7 +3,7 @@
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { revalidatePath }             from 'next/cache';
 import { z }                          from 'zod';
-import { eq, and }                    from 'drizzle-orm';
+import { eq }                         from 'drizzle-orm';
 import { db }                         from '@/infrastructure/db';
 import { bookingSettings }            from '@/domains/booking/schema';
 import { getPaymentHistory }          from '@/domains/billing/service-history';

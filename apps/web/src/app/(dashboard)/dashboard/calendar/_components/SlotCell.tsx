@@ -25,7 +25,7 @@ const pulse = keyframes({
   '50%':      { opacity: 0.65 },
 });
 
-const { styled, css } = createStitches({
+const { styled } = createStitches({
   theme: {
     colors: {
       gold:       '#D4AF37',

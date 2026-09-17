@@ -5,7 +5,6 @@ import {
   boolean,
   jsonb,
   timestamp,
-  unique,
 } from 'drizzle-orm/pg-core';
 import { userRoleEnum } from './enums';
 

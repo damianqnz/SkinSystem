@@ -1,6 +1,5 @@
 'use server';
 
-import { z } from 'zod';
 import { createSupabaseServerClient }  from '@/infrastructure/supabase/server';
 import { saveCustomerRoutine, saveRoutineSchema } from '@/domains/customers/service-routines';
 

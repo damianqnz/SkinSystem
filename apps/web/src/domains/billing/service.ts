@@ -3,7 +3,6 @@ import 'server-only';
 import { eq, and }         from 'drizzle-orm';
 import { db }              from '@/infrastructure/db';
 import { payments }        from './schema';
-import { appointments }    from '@/domains/booking/schema';
 import { catalogServices } from '@/domains/catalog/schema';
 import { organizations }   from '@/infrastructure/db/schema/organizations';
 import {

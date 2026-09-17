@@ -51,7 +51,7 @@ export function SlotActionModal({ open, onClose, slot, locale, onSchedule, isBus
   );
 }
 
-function AnimatedShell({ view, setView, slot, tSlot, tBlock, isBusinessHour, locale, onClose, onSchedule }: {
+function AnimatedShell({ view, setView, slot, tSlot, tBlock, isBusinessHour, locale: _locale, onClose, onSchedule }: {
   view: View; setView: (v: View) => void; slot: SlotInfo | null;
   tSlot: ReturnType<typeof useTranslations<'calendar.slot'>>;
   tBlock: ReturnType<typeof useTranslations<'calendar.block'>>;

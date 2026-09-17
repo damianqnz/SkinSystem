@@ -4,7 +4,6 @@ import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Database, Loader2 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
 import { seedTenantDataAction } from '../actions';
 
 /**
@@ -13,7 +12,6 @@ import { seedTenantDataAction } from '../actions';
  * On click → wipes previous seed data and re-injects a fresh dataset.
  */
 export function MockDataButton() {
-  const t      = useTranslations('dashboard.home');
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 

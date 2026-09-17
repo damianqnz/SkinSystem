@@ -46,7 +46,7 @@ interface Props {
 
 const TR = 'px-3 py-2.5 font-sans text-[11px] uppercase tracking-wider border-b-2 border-transparent transition-colors data-[state=active]:border-[#D4AF37] data-[state=active]:text-stone-900 text-stone-400 disabled:opacity-30 disabled:cursor-not-allowed';
 
-export function CustomerProfileClient({ id, fullName, email, phone, isGuest, visitCount, lastVisitAtIso, status, createdAtIso, locale, isBlocked: initialBlocked, avatarUrl: initialAvatarUrl, notes, company, country, countryIso, address, city, state, postalCode, socialLinks }: Props) {
+export function CustomerProfileClient({ id, fullName, email, phone, isGuest, visitCount, lastVisitAtIso, status, createdAtIso, locale, isBlocked: initialBlocked, avatarUrl: initialAvatarUrl, notes, company, country, countryIso: _countryIso, address, city, state, postalCode, socialLinks }: Props) {
   const t            = useTranslations('dashboard.customers.profile');
   const intlLocale   = useLocale();
   const router       = useRouter();

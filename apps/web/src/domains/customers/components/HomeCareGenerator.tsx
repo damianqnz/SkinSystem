@@ -15,7 +15,7 @@
 
 import { useState, useActionState, useTransition, useCallback } from 'react';
 import dynamic from 'next/dynamic';
-import { Plus, Trash2, Download, Loader2, CheckCircle2 } from 'lucide-react';
+import { Trash2, Download, Loader2, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
 import { saveRoutineAction } from '@/app/(dashboard)/dashboard/customers/[id]/routine/actions';
 import type { RoutineStep } from '../service-routines';

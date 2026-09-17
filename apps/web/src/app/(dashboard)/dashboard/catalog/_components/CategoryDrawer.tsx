@@ -48,9 +48,14 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
   const action = isEdit ? updateCategoryAction : createCategoryAction;
   const [state, dispatch, isPending] = useActionState<CatalogActionState, unknown>(action, IDLE);
 
+  // onClose/onSuccess are recreated every render by the parent (inline arrow props);
+  // depending on them would re-run this effect — and re-invoke onSuccess/onClose — on
+  // unrelated parent re-renders while `state.status` stays 'success'/'error'. Only
+  // `state` should retrigger this effect.
   useEffect(() => {
     if (state.status === 'success') { toast.success(state.message); onSuccess(); onClose(); }
     if (state.status === 'error')   toast.error(state.message);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   function handleSubmit(e: React.FormEvent) {

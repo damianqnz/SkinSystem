@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { loginAction, type LoginState } from '../actions';
 import { MagicCard } from '@/shared/components/ui/magic-card';
@@ -151,12 +152,12 @@ export function LoginForm({ next, t }: LoginFormProps) {
               className="mt-4 text-center font-sans text-xs text-stone-500"
             >
               {t.noAccountCtaLead}{' '}
-              <a
+              <Link
                 href="/book"
                 className="font-medium text-stone-800 underline-offset-4 transition-colors hover:text-stone-950 hover:underline"
               >
                 {t.noAccountCtaAction}
-              </a>
+              </Link>
             </motion.p>
           )}
         </AnimatePresence>

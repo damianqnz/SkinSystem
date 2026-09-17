@@ -32,7 +32,7 @@ function fmtPrice(cents: number, currency: string): string {
   }).format(cents / 100);
 }
 
-export function ServiceRow({ service, locale, onEdit, index }: ServiceRowProps) {
+export function ServiceRow({ service, locale: _locale, onEdit, index }: ServiceRowProps) {
   const t          = useTranslations('dashboard.catalog');
   const intlLocale = useLocale();
   const [state, dispatch, isPending] = useActionState<CatalogActionState, unknown>(toggleServiceStatusAction, IDLE);

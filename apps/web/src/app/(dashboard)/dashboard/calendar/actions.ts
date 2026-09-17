@@ -1,6 +1,5 @@
 'use server';
 
-import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 /**
  * /dashboard/agenda — Server Actions for the management calendar.
  *

@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { StripeCallbackBridge } from './_callback-bridge';
 import { localeFromHeader } from '@/i18n/detect-locale';
@@ -35,14 +36,14 @@ export default async function StripeCallbackPage({ searchParams }: StripeCallbac
       </h1>
       <p className="mt-3 text-sm leading-relaxed text-stone-500">{body}</p>
 
-      <a
+      <Link
         href="/dashboard/integrations"
         className="mt-6 inline-flex items-center justify-center rounded-xl bg-stone-900 px-5 py-2.5 text-sm font-medium text-white
                    transition-colors hover:bg-stone-800
                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
       >
         {t('callback.backToIntegrations')}
-      </a>
+      </Link>
     </div>
   );
 }

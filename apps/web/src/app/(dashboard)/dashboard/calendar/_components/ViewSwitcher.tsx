@@ -1,7 +1,7 @@
 'use client';
 
 import * as Popover from '@radix-ui/react-popover';
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTransition, useRef } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { cn } from '@/shared/lib/utils';
@@ -25,7 +25,6 @@ export function ViewSwitcher({ current }: ViewSwitcherProps) {
   const tHeader  = useTranslations('dashboard.calendar.header');
   const router   = useRouter();
   const params   = useSearchParams();
-  const pathname = usePathname();
   const [pending, startTransition] = useTransition();
 
   const containerRef = useRef<HTMLDivElement>(null);

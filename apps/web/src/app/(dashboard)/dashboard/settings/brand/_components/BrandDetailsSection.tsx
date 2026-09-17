@@ -134,6 +134,9 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
           onClick={() => bannerInput.current?.click()}
         >
           {bannerUrl ? (
+            // bannerUrl briefly holds a local `blob:` object URL for the instant upload
+            // preview before the Supabase URL resolves; next/image cannot load blob: URLs.
+            // eslint-disable-next-line @next/next/no-img-element
             <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-stone-400">
@@ -162,6 +165,9 @@ export function BrandDetailsSection({ orgId: _orgId, initial }: Props) {
               onClick={() => logoInput.current?.click()}
             >
               {logoUrl ? (
+                // logoUrl briefly holds a local `blob:` object URL for the instant upload
+                // preview before the Supabase URL resolves; next/image cannot load blob: URLs.
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-stone-100 text-stone-400">

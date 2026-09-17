@@ -41,7 +41,7 @@ const item = { hidden: { opacity: 0, x: -16 }, show: { opacity: 1, x: 0, transit
 
 interface Props { entries: TimelineEntry[]; locale: string }
 
-export function TreatmentTimeline({ entries, locale }: Props) {
+export function TreatmentTimeline({ entries, locale: _locale }: Props) {
   const t          = useTranslations('dashboard.customers.ficha');
   const intlLocale = toIntlTag(useLocale() as SupportedLocale);
 

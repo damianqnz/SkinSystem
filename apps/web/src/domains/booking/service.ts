@@ -9,7 +9,7 @@ import { profiles }          from '@/infrastructure/db/schema/organizations';
 import { availabilityRules, blockedIntervals } from '@/infrastructure/db/schema/calendar';
 import type { SelectAppointment, AppointmentStatus, CreateAppointmentInput } from './schema';
 import type { Result } from '@/shared/types/result';
-import { buildSlotKey, getLockedSlotKeys, checkSlotLocks } from '@/shared/lib/redis-lock';
+import { getLockedSlotKeys, checkSlotLocks } from '@/shared/lib/redis-lock';
 
 // ── Shared helpers ────────────────────────────────────────────
 
@@ -344,7 +344,7 @@ export async function calculateAvailableSlots(
     }
 
     return { data: slots, error: null };
-  } catch (err) {
+  } catch (_err) {
     return dbErr('Failed to calculate availability');
   }
 }

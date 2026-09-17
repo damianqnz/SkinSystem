@@ -47,7 +47,6 @@ export function StickyInfoCard({ org, phones, availability, openStatus, avgRatin
   const [contactOpen, setContactOpen] = useState(false);
 
   const socialLinks = org.socialLinks as Record<string, unknown>;
-  const primaryPhone = phones.find(p => p.isPrimary) ?? phones[0];
 
   const address = [org.address, org.city, org.postalCode].filter(Boolean).join(', ');
 

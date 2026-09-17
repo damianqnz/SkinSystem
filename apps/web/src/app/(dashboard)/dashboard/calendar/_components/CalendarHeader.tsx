@@ -3,11 +3,9 @@
 import Link from 'next/link';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, MoreHorizontal, Plus } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { ViewSwitcher, type CalendarView } from './ViewSwitcher';
 import { MONTH_KEYS } from '@/i18n/calendar-keys';
-import { toIntlTag } from '@/i18n/intl-tag';
-import type { SupportedLocale } from '@/i18n/config';
 
 interface CalendarHeaderProps {
   monthStart: Date;
@@ -24,7 +22,6 @@ function shiftMonthIso(monthStart: Date, delta: number): string {
 export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps) {
   const t          = useTranslations('dashboard.calendar.header');
   const tCal       = useTranslations('calendar');
-  const intlLocale = toIntlTag(useLocale() as SupportedLocale);
   const pathname   = usePathname();
   const params     = useSearchParams();
 

@@ -29,9 +29,6 @@ import type { Result } from '@/shared/types/result';
 // ── Marker (every seeded row carries it for safe cleanup) ─────────
 export const SEED_TAG = '__seed__';
 
-const dbErr = (msg: string): Result<never> =>
-  ({ data: null, error: { message: msg, code: 'DB_ERROR' } });
-
 // ── Payment seed helpers ───────────────────────────────────────
 type SeedPaymentStatus = 'succeeded' | 'pending' | 'failed' | 'refunded';
 

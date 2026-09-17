@@ -1,7 +1,7 @@
 'use server';
 import { eq } from 'drizzle-orm';
 
-import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';import 'server-only';
+import 'server-only';
 
 import { z }                  from 'zod';
 import { revalidatePath }     from 'next/cache';

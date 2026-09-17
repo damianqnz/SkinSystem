@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition, useOptimistic } from 'react';
+import { useState, useTransition } from 'react';
+import Image from 'next/image';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { MoreHorizontal, UserPlus, Mail, Loader2, ShieldCheck, User, X, Clock } from 'lucide-react';
 import { toast } from 'sonner';
@@ -35,8 +36,9 @@ interface Props {
 
 function Avatar({ name, url, size = 'md' }: { name: string | null; url: string | null; size?: 'md' | 'sm' }) {
   const dim = size === 'md' ? 'w-9 h-9 text-sm' : 'w-7 h-7 text-xs';
+  const px = size === 'md' ? 36 : 28;
   const initials = (name ?? '?').split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
-  if (url) return <img src={url} alt={name ?? ''} className={`${dim} rounded-full object-cover shrink-0`} />;
+  if (url) return <Image src={url} alt={name ?? ''} width={px} height={px} className={`${dim} rounded-full object-cover shrink-0`} />;
   return (
     <div className={`${dim} rounded-full bg-amber-100 text-amber-700 font-medium flex items-center justify-center shrink-0`}>
       {initials}

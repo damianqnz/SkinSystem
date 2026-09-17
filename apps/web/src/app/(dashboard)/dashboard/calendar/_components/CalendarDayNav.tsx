@@ -2,11 +2,9 @@
 
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
-import { useTranslations, useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { ViewSwitcher, type CalendarView } from './ViewSwitcher';
 import { MONTH_KEYS, DAY_KEYS } from '@/i18n/calendar-keys';
-import { toIntlTag } from '@/i18n/intl-tag';
-import type { SupportedLocale } from '@/i18n/config';
 
 interface CalendarDayNavProps {
   date:   Date;
@@ -29,7 +27,6 @@ function isToday(d: Date, view: CalendarView): boolean {
 export function CalendarDayNav({ date, locale, view }: CalendarDayNavProps) {
   const t          = useTranslations('dashboard.calendar.dayNav');
   const tCal       = useTranslations('calendar');
-  const intlLocale = toIntlTag(useLocale() as SupportedLocale);
   const router     = useRouter();
   const path       = usePathname();
   const params     = useSearchParams();

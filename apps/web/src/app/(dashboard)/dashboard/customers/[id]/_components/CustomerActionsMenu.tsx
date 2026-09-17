@@ -19,7 +19,7 @@ interface Props {
   onBlockToggled: (next: boolean) => void;
 }
 
-export function CustomerActionsMenu({ customerId, fullName, locale, isBlocked, onBlockToggled }: Props) {
+export function CustomerActionsMenu({ customerId, fullName, locale: _locale, isBlocked, onBlockToggled }: Props) {
   const t       = useTranslations('dashboard.customers.actions');
   const router  = useRouter();
   const [deleteOpen,    setDeleteOpen]   = useState(false);
