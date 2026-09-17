@@ -9,6 +9,7 @@ import { MeSidebar }                  from './_components/MeSidebar';
 import { LanguageSwitcher }           from '@/shared/components/LanguageSwitcher';
 import { localeFromHeader }           from '@/i18n/detect-locale';
 import { getTranslations }            from 'next-intl/server';
+import { buildLoginUrl }              from '@/infrastructure/auth/build-login-url';
 
 export default async function MeLayout({ children }: { children: ReactNode }) {
   const hdrs   = await headers();
@@ -20,9 +21,17 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   // El proxy ya guarda `/me` (AUTH_REQUIRED_PREFIXES) y responde con un 307
   // real antes de llegar aquí; este chequeo es defensa en profundidad
   // redundante, mismo patrón que `DashboardShell` en (dashboard)/layout.tsx.
+  // `buildLoginUrl` arma una URL ABSOLUTA (no un `next` relativo) porque
+  // `resolveRedirectUrl()` en (auth)/login/actions.ts descarta en silencio
+  // cualquier `next` que no sea una URL válida — un path relativo fallaba
+  // esa validación y siempre caía al default. Este layout no tiene acceso
+  // al subpath exacto solicitado (p. ej. `/me/perfil`), así que el `next`
+  // apunta al `/me` genérico; la preservación del subpath real ya la
+  // resuelve el guard principal del proxy (MW-03), que sí conoce el
+  // pathname completo — este es solo el fallback redundante, ahora correcto.
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/login?next=/me');
+  if (!user) redirect(buildLoginUrl(hdrs.get('host'), '/me').toString());
 
   // El proxy sólo inyecta `x-tenant-slug` para tenants existentes, así que
   // `org not found` aquí es una anomalía de infraestructura, no un caso

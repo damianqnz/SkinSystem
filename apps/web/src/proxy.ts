@@ -107,7 +107,7 @@ export async function proxy(request: NextRequest) {
   // Auth guard — runs on EVERY host, apex included. Answers with a real 307
   // instead of streaming a 200 that redirects from inside the layout.
   if (requiresAuth && !user) {
-    return redirectWithSession(response, buildLoginUrl(request, pathname));
+    return redirectWithSession(response, buildLoginUrl(request.headers.get('host'), pathname));
   }
   if (requiresAuth && !tenantSlug) {
     return redirectWithSession(response, new URL('/', request.url));
