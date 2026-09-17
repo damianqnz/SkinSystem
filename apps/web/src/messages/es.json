@@ -194,10 +194,36 @@
   "account": {
     "me": {
       "bookCta": "Reservar cita →",
+      "defaultName": "Usuario",
+      "nav": {
+        "citas":           "Mis citas",
+        "perfil":          "Mis datos",
+        "recomendaciones": "Recomendaciones"
+      },
       "citas": {
         "emptyTitle": "Sin reservas futuras",
         "emptySubtitle": "¿Repetimos la experiencia?",
-        "bookCta": "Hacer una reserva"
+        "bookCta": "Hacer una reserva",
+        "total": "Total",
+        "serviceFallback": "Servicio",
+        "emptyPast": "Aún no tienes citas pasadas",
+        "tabs": {
+          "upcoming": "Próximas",
+          "past":     "Pasadas"
+        },
+        "status": {
+          "pending":   "Pendiente",
+          "confirmed": "Confirmada",
+          "completed": "Completada",
+          "cancelled": "Cancelada",
+          "no_show":   "No asistió"
+        }
+      },
+      "recomendaciones": {
+        "title":            "Recomendaciones",
+        "description":      "Consejos personalizados de tu especialista.",
+        "emptyTitle":       "De momento, nada por aquí",
+        "emptyDescription": "Cuando tu especialista añada recomendaciones personalizadas para ti, aparecerán en esta sección."
       },
       "perfil": {
         "title":       "Tus datos",

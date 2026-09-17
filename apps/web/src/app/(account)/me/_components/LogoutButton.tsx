@@ -3,10 +3,12 @@
 import { useRouter }          from 'next/navigation';
 import { useState }           from 'react';
 import { Loader2, LogOut }    from 'lucide-react';
+import { useTranslations }    from 'next-intl';
 import { createSupabaseClient } from '@/infrastructure/supabase/client';
 
 export function LogoutButton() {
   const router = useRouter();
+  const t = useTranslations('tenant.userMenu');
   const [loading, setLoading] = useState(false);
 
   async function handleLogout() {
@@ -30,7 +32,7 @@ export function LogoutButton() {
       {loading
         ? <Loader2 size={14} className="animate-spin" />
         : <LogOut size={14} />}
-      Cerrar sesión
+      {t('signOut')}
     </button>
   );
 }

@@ -194,10 +194,36 @@
   "account": {
     "me": {
       "bookCta": "Reservar consulta →",
+      "defaultName": "Utilizador",
+      "nav": {
+        "citas":           "Marcações",
+        "perfil":          "Os meus dados",
+        "recomendaciones": "Recomendações"
+      },
       "citas": {
         "emptyTitle": "Sem marcações futuras",
         "emptySubtitle": "Repetimos a experiência?",
-        "bookCta": "Fazer uma marcação"
+        "bookCta": "Fazer uma marcação",
+        "total": "Total",
+        "serviceFallback": "Serviço",
+        "emptyPast": "Ainda não tem marcações passadas",
+        "tabs": {
+          "upcoming": "Próximas",
+          "past":     "Passadas"
+        },
+        "status": {
+          "pending":   "Pendente",
+          "confirmed": "Confirmada",
+          "completed": "Concluída",
+          "cancelled": "Cancelada",
+          "no_show":   "Faltou"
+        }
+      },
+      "recomendaciones": {
+        "title":            "Recomendações",
+        "description":      "Conselhos personalizados do seu especialista.",
+        "emptyTitle":       "Por agora, nada por aqui",
+        "emptyDescription": "Quando o seu especialista adicionar recomendações personalizadas para si, vão aparecer nesta secção."
       },
       "perfil": {
         "title":       "Os seus dados",

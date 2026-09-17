@@ -1,12 +1,19 @@
+import { headers }          from 'next/headers';
+import { getTranslations }  from 'next-intl/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
 import { Sparkles } from 'lucide-react';
 
-export default function RecomendacionesPage() {
+export default async function RecomendacionesPage() {
+  const hdrs   = await headers();
+  const locale = localeFromHeader(hdrs.get('x-locale'));
+  const t      = await getTranslations({ locale, namespace: 'account.me.recomendaciones' });
+
   return (
     <div className="space-y-5">
       <div>
-        <h2 className="font-cormorant text-xl font-semibold text-stone-900">Recomendaciones</h2>
+        <h2 className="font-cormorant text-xl font-semibold text-stone-900">{t('title')}</h2>
         <p className="text-xs text-stone-400 mt-0.5 font-outfit">
-          Consejos personalizados de tu especialista.
+          {t('description')}
         </p>
       </div>
 
@@ -17,11 +24,10 @@ export default function RecomendacionesPage() {
         </div>
         <div className="text-center max-w-xs">
           <p className="font-outfit text-sm font-medium text-stone-600">
-            De momento, nada por aquí
+            {t('emptyTitle')}
           </p>
           <p className="text-xs text-stone-400 mt-1.5 leading-relaxed">
-            Cuando tu especialista añada recomendaciones personalizadas para ti,
-            aparecerán en esta sección.
+            {t('emptyDescription')}
           </p>
         </div>
       </div>

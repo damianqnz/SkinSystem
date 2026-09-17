@@ -3,14 +3,15 @@
 import Link        from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Calendar, User, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { LogoutButton } from './LogoutButton';
 
 // ── Nav items ─────────────────────────────────────────────────
 
-const NAV = [
-  { href: '/me/citas',            label: 'Mis citas',        icon: Calendar  },
-  { href: '/me/perfil',           label: 'Mis datos',        icon: User      },
-  { href: '/me/recomendaciones',  label: 'Recomendaciones',  icon: Sparkles  },
+const NAV_ITEMS = [
+  { href: '/me/citas',            key: 'citas',           icon: Calendar  },
+  { href: '/me/perfil',           key: 'perfil',          icon: User      },
+  { href: '/me/recomendaciones',  key: 'recomendaciones', icon: Sparkles  },
 ] as const;
 
 // ── Avatar ────────────────────────────────────────────────────
@@ -43,6 +44,7 @@ interface MeSidebarProps {
 
 export function MeSidebar({ name, email }: MeSidebarProps) {
   const pathname = usePathname();
+  const t = useTranslations('account.me.nav');
 
   return (
     <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 space-y-5">
@@ -62,7 +64,7 @@ export function MeSidebar({ name, email }: MeSidebarProps) {
 
       {/* Nav links */}
       <nav className="space-y-0.5">
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {NAV_ITEMS.map(({ href, key, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
             <Link
@@ -76,7 +78,7 @@ export function MeSidebar({ name, email }: MeSidebarProps) {
               ].join(' ')}
             >
               <Icon size={16} className={active ? 'text-stone-700' : 'text-stone-400'} />
-              {label}
+              {t(key)}
             </Link>
           );
         })}

@@ -45,7 +45,7 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   const metaName = (user.user_metadata?.full_name as string)
     ?? (user.user_metadata?.name as string)
     ?? null;
-  const displayName = dbName ?? metaName ?? user.email?.split('@')[0] ?? 'Usuario';
+  const displayName = dbName ?? metaName ?? user.email?.split('@')[0] ?? t('defaultName');
   const email       = user.email ?? '';
 
   return (

@@ -194,10 +194,36 @@
   "account": {
     "me": {
       "bookCta": "Book appointment →",
+      "defaultName": "User",
+      "nav": {
+        "citas":           "My appointments",
+        "perfil":          "My details",
+        "recomendaciones": "Recommendations"
+      },
       "citas": {
         "emptyTitle": "No upcoming bookings",
         "emptySubtitle": "Shall we do it again?",
-        "bookCta": "Make a booking"
+        "bookCta": "Make a booking",
+        "total": "Total",
+        "serviceFallback": "Service",
+        "emptyPast": "No past appointments yet",
+        "tabs": {
+          "upcoming": "Upcoming",
+          "past":     "Past"
+        },
+        "status": {
+          "pending":   "Pending",
+          "confirmed": "Confirmed",
+          "completed": "Completed",
+          "cancelled": "Cancelled",
+          "no_show":   "No-show"
+        }
+      },
+      "recomendaciones": {
+        "title":            "Recommendations",
+        "description":      "Personalized tips from your specialist.",
+        "emptyTitle":       "Nothing here yet",
+        "emptyDescription": "When your specialist adds personalized recommendations for you, they'll appear in this section."
       },
       "perfil": {
         "title":       "Your details",
