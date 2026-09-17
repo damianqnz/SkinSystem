@@ -8,6 +8,7 @@ import { getMyCustomer, getMyAppointments } from '@/domains/customers/service-me
 import { AppointmentTabs } from './_components/AppointmentTabs';
 import { localeFromHeader } from '@/i18n/detect-locale';
 import { getTranslations } from 'next-intl/server';
+import { buildLoginUrl } from '@/infrastructure/auth/build-login-url';
 
 export default async function CitasPage() {
   const hdrs   = await headers();
@@ -20,7 +21,7 @@ export default async function CitasPage() {
   // page fuera del layout esperado.
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) redirect('/login?next=/me/citas');
+  if (!user?.email) redirect(buildLoginUrl(hdrs.get('host'), '/me/citas').toString());
 
   const orgResult = await getOrganizationBySlug(slug);
   if (orgResult.error || !orgResult.data) redirect('/');

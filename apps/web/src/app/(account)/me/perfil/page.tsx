@@ -4,6 +4,7 @@ import { getOrganizationBySlug }      from '@/domains/organizations/service';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { getMyCustomer }              from '@/domains/customers/service-me';
 import { ProfileForm } from '../_components/ProfileForm';
+import { buildLoginUrl } from '@/infrastructure/auth/build-login-url';
 
 export default async function PerfilPage() {
   const hdrs = await headers();
@@ -14,7 +15,7 @@ export default async function PerfilPage() {
   // page fuera del layout esperado.
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) redirect('/login?next=/me/perfil');
+  if (!user?.email) redirect(buildLoginUrl(hdrs.get('host'), '/me/perfil').toString());
 
   const orgResult = await getOrganizationBySlug(slug);
   if (orgResult.error || !orgResult.data) redirect('/');
