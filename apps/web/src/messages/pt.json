@@ -844,6 +844,18 @@
         "success": "Dias bloqueados com sucesso",
         "conflictHint": "Reserva existente:"
       },
+      "actions": {
+        "notAuthorized": "Não autorizado",
+        "orgNotFoundInSession": "Organização não encontrada na sessão",
+        "invalidData": "Dados inválidos",
+        "noStaffInOrg": "Sem profissional na organização",
+        "serviceNotFound": "Serviço não encontrado",
+        "invalidId": "ID inválido",
+        "notFoundGeneric": "Não encontrada",
+        "alreadyCancelled": "Esta marcação já está cancelada",
+        "couldNotCreateCustomer": "Não foi possível criar o cliente",
+        "errorCreatingCustomer": "Erro ao criar o cliente"
+      },
       "newAppointment": {
         "back": "Voltar",
         "title": "Marcação",

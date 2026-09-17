@@ -844,6 +844,18 @@
         "success": "Días bloqueados correctamente",
         "conflictHint": "Reserva existente:"
       },
+      "actions": {
+        "notAuthorized": "No autorizado",
+        "orgNotFoundInSession": "Organización no encontrada en la sesión",
+        "invalidData": "Datos inválidos",
+        "noStaffInOrg": "Sin profesional en la organización",
+        "serviceNotFound": "Servicio no encontrado",
+        "invalidId": "ID inválido",
+        "notFoundGeneric": "No encontrada",
+        "alreadyCancelled": "Esta cita ya está cancelada",
+        "couldNotCreateCustomer": "No se pudo crear el cliente",
+        "errorCreatingCustomer": "Error al crear el cliente"
+      },
       "newAppointment": {
         "back": "Volver",
         "title": "Cita",

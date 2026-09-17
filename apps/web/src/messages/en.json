@@ -844,6 +844,18 @@
         "success": "Days blocked successfully",
         "conflictHint": "Existing booking:"
       },
+      "actions": {
+        "notAuthorized": "Not authorized",
+        "orgNotFoundInSession": "Organization not found in session",
+        "invalidData": "Invalid data",
+        "noStaffInOrg": "No staff member in the organization",
+        "serviceNotFound": "Service not found",
+        "invalidId": "Invalid ID",
+        "notFoundGeneric": "Not found",
+        "alreadyCancelled": "This appointment is already cancelled",
+        "couldNotCreateCustomer": "Could not create the client",
+        "errorCreatingCustomer": "Error creating the client"
+      },
       "newAppointment": {
         "back": "Back",
         "title": "Appointment",

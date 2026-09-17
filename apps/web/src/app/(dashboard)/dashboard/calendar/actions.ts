@@ -13,6 +13,8 @@ import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
  */
 
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 import { eq, and } from 'drizzle-orm';
 
@@ -22,6 +24,7 @@ import { customers } from '@/infrastructure/db/schema/customers';
 import { catalogServices } from '@/domains/catalog/schema';
 import { appointments } from '@/domains/booking/schema';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
 
 import {
   cancelAppointment,
@@ -40,10 +43,23 @@ import { APPOINTMENT_STATUS, type AppointmentStatus } from '@/domains/booking/sc
 
 type AuthOk = { orgId: string; userId: string };
 
+/** Resolves the request locale for `getTranslations` — Server Actions have no
+ *  `NextIntlClientProvider`, so each one reads `x-locale` directly. */
+async function getActionLocale() {
+  const hdrs = await headers();
+  return localeFromHeader(hdrs.get('x-locale'));
+}
+
+/** Shorthand for this file's shared error-message namespace. */
+async function getActionTranslations() {
+  return getTranslations({ locale: await getActionLocale(), namespace: 'dashboard.calendar.actions' });
+}
+
 async function getAuth(): Promise<AuthOk | { error: string }> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Não autorizado' };
+  const t = await getActionTranslations();
+  if (!user) return { error: t('notAuthorized') };
 
   // Fast path: JWT metadata
   const metaOrgId = user.user_metadata?.organization_id as string | undefined;
@@ -52,7 +68,7 @@ async function getAuth(): Promise<AuthOk | { error: string }> {
   const profileRows = await db.select({ organizationId: profiles.organizationId })
     .from(profiles).where(eq(profiles.id, user.id)).limit(1);
   const orgId = profileRows[0]?.organizationId;
-  if (!orgId) return { error: 'Organização não encontrada na sessão' };
+  if (!orgId) return { error: t('orgNotFoundInSession') };
   return { orgId, userId: user.id };
 }
 
@@ -108,13 +124,14 @@ export async function createBlockedIntervalAction(
   const auth = await getAuth();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
+  const t = await getActionTranslations();
   const parsed = blockSchema.safeParse(raw);
   if (!parsed.success) {
-    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
+    return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
   const profileId = await getStaffProfileId(auth.orgId, auth.userId);
-  if (!profileId) return { status: 'error', message: 'Sem profissional na organização' };
+  if (!profileId) return { status: 'error', message: t('noStaffInOrg') };
 
   const result = await createBlockedInterval({
     organizationId: auth.orgId,
@@ -124,9 +141,14 @@ export async function createBlockedIntervalAction(
 
   if (result.error) return { status: 'error', message: result.error.message };
 
+  // Reuses BlockDateForm's own `calendar.block.success` — the client's
+  // `res.message ?? t('success')` fallback expects this exact key's value,
+  // so both paths now agree instead of the server silently overriding it
+  // with a hardcoded Portuguese string (see I18N-08's disclosed non-goal).
+  const tBlock = await getTranslations({ locale: await getActionLocale(), namespace: 'calendar.block' });
   revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard/calendar');
-  return { status: 'success', id: result.data.id, message: 'Período bloqueado' };
+  return { status: 'success', id: result.data.id, message: tBlock('success') };
 }
 
 // ── 2. Internal appointment ───────────────────────────────────
@@ -144,13 +166,14 @@ export async function createInternalAppointmentAction(
   const auth = await getAuth();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
+  const t = await getActionTranslations();
   const parsed = apptSchema.safeParse(raw);
   if (!parsed.success) {
-    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
+    return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
   const profileId = await getStaffProfileId(auth.orgId, auth.userId);
-  if (!profileId) return { status: 'error', message: 'Sem profissional na organização' };
+  if (!profileId) return { status: 'error', message: t('noStaffInOrg') };
 
   // Resolve service to compute endAt + price
   const svc = await db
@@ -166,7 +189,7 @@ export async function createInternalAppointmentAction(
     ))
     .limit(1);
 
-  if (!svc[0]) return { status: 'error', message: 'Serviço não encontrado' };
+  if (!svc[0]) return { status: 'error', message: t('serviceNotFound') };
 
   const endAt = new Date(parsed.data.startAt.getTime() + svc[0].durationMinutes * 60_000);
 
@@ -196,10 +219,12 @@ export async function createInternalAppointmentAction(
       eq(appointments.organizationId, auth.orgId),
     ));
 
+  // Reuses NewAppointmentForm's own `dashboard.calendar.newAppointment.toastCreated`.
+  const tNa = await getTranslations({ locale: await getActionLocale(), namespace: 'dashboard.calendar.newAppointment' });
   revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard');
-  return { status: 'success', id: result.data.id, message: 'Marcação criada' };
+  return { status: 'success', id: result.data.id, message: tNa('toastCreated') };
 }
 
 // ── 3. Cancel + restore (undo) ────────────────────────────────
@@ -210,14 +235,15 @@ export async function cancelAppointmentAction(raw: unknown): Promise<CancelActio
   const auth = await getAuth();
   if ('error' in auth) return { ok: false, message: auth.error };
 
+  const t = await getActionTranslations();
   const parsed = idSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false, message: 'ID inválido' };
+  if (!parsed.success) return { ok: false, message: t('invalidId') };
 
   // Fetch current status *before* mutation so the client can offer an exact undo
   const before = await getAppointmentFull(auth.orgId, parsed.data.appointmentId);
-  if (before.error || !before.data) return { ok: false, message: before.error?.message ?? 'Não encontrada' };
+  if (before.error || !before.data) return { ok: false, message: before.error?.message ?? t('notFoundGeneric') };
   if (before.data.status === 'cancelled') {
-    return { ok: false, message: 'Esta marcação já está cancelada' };
+    return { ok: false, message: t('alreadyCancelled') };
   }
 
   const previousStatus = before.data.status;
@@ -238,8 +264,9 @@ export async function restoreAppointmentAction(raw: unknown): Promise<ActionStat
   const auth = await getAuth();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
+  const t = await getActionTranslations();
   const parsed = restoreSchema.safeParse(raw);
-  if (!parsed.success) return { status: 'error', message: 'Dados inválidos' };
+  if (!parsed.success) return { status: 'error', message: t('invalidData') };
 
   const result = await restoreAppointmentStatus(auth.orgId, parsed.data.appointmentId, parsed.data.status);
   if (result.error) return { status: 'error', message: result.error.message };
@@ -255,11 +282,12 @@ export async function getAppointmentDetailAction(raw: unknown): Promise<DetailAc
   const auth = await getAuth();
   if ('error' in auth) return { ok: false, message: auth.error };
 
+  const t = await getActionTranslations();
   const parsed = idSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false, message: 'ID inválido' };
+  if (!parsed.success) return { ok: false, message: t('invalidId') };
 
   const result = await getAppointmentFull(auth.orgId, parsed.data.appointmentId);
-  if (result.error || !result.data) return { ok: false, message: result.error?.message ?? 'Não encontrada' };
+  if (result.error || !result.data) return { ok: false, message: result.error?.message ?? t('notFoundGeneric') };
 
   return { ok: true, data: result.data };
 }
@@ -276,8 +304,9 @@ export async function quickCreateCustomerAction(raw: unknown): Promise<CreateCus
   const auth = await getAuth();
   if ('error' in auth) return { ok: false, message: auth.error };
 
+  const t = await getActionTranslations();
   const parsed = newCustomerSchema.safeParse(raw);
-  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? t('invalidData') };
 
   try {
     const rows = await db
@@ -291,10 +320,10 @@ export async function quickCreateCustomerAction(raw: unknown): Promise<CreateCus
       })
       .returning({ id: customers.id, fullName: customers.fullName });
 
-    if (!rows[0]) return { ok: false, message: 'Não foi possível criar o cliente' };
+    if (!rows[0]) return { ok: false, message: t('couldNotCreateCustomer') };
     revalidatePath('/dashboard/customers');
     return { ok: true, id: rows[0].id, fullName: rows[0].fullName };
   } catch {
-    return { ok: false, message: 'Erro ao criar o cliente' };
+    return { ok: false, message: t('errorCreatingCustomer') };
   }
 }
