@@ -198,6 +198,32 @@
         "emptyTitle": "Sin reservas futuras",
         "emptySubtitle": "¿Repetimos la experiencia?",
         "bookCta": "Hacer una reserva"
+      },
+      "perfil": {
+        "title":       "Tus datos",
+        "description": "Esta información se utiliza para gestionar tus citas.",
+        "email": {
+          "label": "Email",
+          "hint":  "El email no puede modificarse desde aquí."
+        },
+        "fullName": {
+          "label":       "Nombre completo",
+          "placeholder": "Tu nombre"
+        },
+        "phone": {
+          "label":       "Teléfono",
+          "placeholder": "+34 600 000 000"
+        },
+        "save":         "Guardar cambios",
+        "saving":       "Guardando…",
+        "saved":        "Guardado",
+        "toastSuccess": "Perfil actualizado",
+        "errors": {
+          "notAuthorized":   "Debes iniciar sesión para actualizar tu perfil",
+          "invalidData":     "Datos inválidos",
+          "orgNotFound":     "Negocio no encontrado",
+          "profileNotFound": "Perfil no encontrado"
+        }
       }
     }
   },

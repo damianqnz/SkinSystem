@@ -3,6 +3,7 @@
 import { useActionState, useEffect } from 'react';
 import { Loader2, CheckCircle2 }     from 'lucide-react';
 import { toast }                     from 'sonner';
+import { useTranslations }           from 'next-intl';
 import { updateProfileAction }       from '../actions';
 import type { ProfileState }         from '../actions';
 
@@ -14,13 +15,14 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ initialName, initialPhone }: ProfileFormProps) {
+  const t = useTranslations('account.me.perfil');
   const [state, dispatch, isPending] =
     useActionState<ProfileState, unknown>(updateProfileAction, IDLE);
 
   useEffect(() => {
-    if (state.status === 'success') toast.success('Perfil actualizado');
+    if (state.status === 'success') toast.success(t('toastSuccess'));
     if (state.status === 'error')   toast.error(state.message);
-  }, [state]);
+  }, [state, t]);
 
   const inputClass =
     'mt-1.5 w-full border border-stone-200 rounded-xl px-4 py-3 text-sm text-stone-900 bg-white ' +
@@ -39,7 +41,7 @@ export function ProfileForm({ initialName, initialPhone }: ProfileFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-xs font-outfit text-stone-500 mb-0">Nombre completo</label>
+        <label className="block text-xs font-outfit text-stone-500 mb-0">{t('fullName.label')}</label>
         <input
           name="fullName"
           type="text"
@@ -47,19 +49,19 @@ export function ProfileForm({ initialName, initialPhone }: ProfileFormProps) {
           minLength={2}
           maxLength={100}
           defaultValue={initialName}
-          placeholder="Tu nombre"
+          placeholder={t('fullName.placeholder')}
           className={inputClass}
         />
       </div>
 
       <div>
-        <label className="block text-xs font-outfit text-stone-500 mb-0">Teléfono</label>
+        <label className="block text-xs font-outfit text-stone-500 mb-0">{t('phone.label')}</label>
         <input
           name="phone"
           type="tel"
           maxLength={30}
           defaultValue={initialPhone}
-          placeholder="+34 600 000 000"
+          placeholder={t('phone.placeholder')}
           className={inputClass}
         />
       </div>
@@ -71,11 +73,11 @@ export function ProfileForm({ initialName, initialPhone }: ProfileFormProps) {
         style={{ backgroundColor: 'var(--brand-color)' }}
       >
         {isPending ? (
-          <><Loader2 size={15} className="animate-spin" /> Guardando…</>
+          <><Loader2 size={15} className="animate-spin" /> {t('saving')}</>
         ) : state.status === 'success' ? (
-          <><CheckCircle2 size={15} /> Guardado</>
+          <><CheckCircle2 size={15} /> {t('saved')}</>
         ) : (
-          'Guardar cambios'
+          t('save')
         )}
       </button>
     </form>

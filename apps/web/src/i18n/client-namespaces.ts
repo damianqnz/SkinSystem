@@ -9,7 +9,7 @@
  */
 
 /** `(tenant)` + `(account)` — both share `ConsumerShell`. */
-export const CONSUMER_CLIENT_NAMESPACES = ['booking', 'calendar', 'tenant'] as const;
+export const CONSUMER_CLIENT_NAMESPACES = ['booking', 'calendar', 'tenant', 'account'] as const;
 
 /** `(marketing)` — no Client Component exists there today. */
 export const MARKETING_CLIENT_NAMESPACES: readonly string[] = [];

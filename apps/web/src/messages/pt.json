@@ -198,6 +198,32 @@
         "emptyTitle": "Sem marcações futuras",
         "emptySubtitle": "Repetimos a experiência?",
         "bookCta": "Fazer uma marcação"
+      },
+      "perfil": {
+        "title":       "Os seus dados",
+        "description": "Esta informação é usada para gerir as suas marcações.",
+        "email": {
+          "label": "Email",
+          "hint":  "O email não pode ser alterado por aqui."
+        },
+        "fullName": {
+          "label":       "Nome completo",
+          "placeholder": "O seu nome"
+        },
+        "phone": {
+          "label":       "Telefone",
+          "placeholder": "+351 900 000 000"
+        },
+        "save":         "Guardar alterações",
+        "saving":       "A guardar…",
+        "saved":        "Guardado",
+        "toastSuccess": "Perfil atualizado",
+        "errors": {
+          "notAuthorized":  "Deve iniciar sessão para atualizar o perfil",
+          "invalidData":    "Dados inválidos",
+          "orgNotFound":    "Negócio não encontrado",
+          "profileNotFound": "Perfil não encontrado"
+        }
       }
     }
   },

@@ -198,6 +198,32 @@
         "emptyTitle": "No upcoming bookings",
         "emptySubtitle": "Shall we do it again?",
         "bookCta": "Make a booking"
+      },
+      "perfil": {
+        "title":       "Your details",
+        "description": "This information is used to manage your appointments.",
+        "email": {
+          "label": "Email",
+          "hint":  "Email can't be changed from here."
+        },
+        "fullName": {
+          "label":       "Full name",
+          "placeholder": "Your name"
+        },
+        "phone": {
+          "label":       "Phone",
+          "placeholder": "+1 555 000 0000"
+        },
+        "save":         "Save changes",
+        "saving":       "Saving…",
+        "saved":        "Saved",
+        "toastSuccess": "Profile updated",
+        "errors": {
+          "notAuthorized":   "You must sign in to update your profile",
+          "invalidData":     "Invalid data",
+          "orgNotFound":     "Business not found",
+          "profileNotFound": "Profile not found"
+        }
       }
     }
   },
