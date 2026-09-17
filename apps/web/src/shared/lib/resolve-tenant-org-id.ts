@@ -2,6 +2,8 @@
 
 import { headers }                      from 'next/headers';
 import { eq, and }                      from 'drizzle-orm';
+import { getTranslations }              from 'next-intl/server';
+import { localeFromHeader }             from '@/i18n/detect-locale';
 import { createSupabaseServerClient }   from '@/infrastructure/supabase/server';
 import { db }                           from '@/infrastructure/db';
 import { profiles }                     from '@/infrastructure/db/schema/organizations';
@@ -20,16 +22,18 @@ export async function resolveTenantOrgId(
   requiredRoles: readonly UserRole[] = STAFF_ROLES,
 ): Promise<ResolveTenantResult> {
   const hdrs = await headers();
+  const t    = await getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.shared.tenantAuth' });
+
   const slug = hdrs.get('x-tenant-slug');
-  if (!slug) return { error: 'Tenant no identificado', code: 'NO_TENANT' };
+  if (!slug) return { error: t('noTenant'), code: 'NO_TENANT' };
 
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autorizado', code: 'NO_AUTH' };
+  if (!user) return { error: t('notAuthenticated'), code: 'NO_AUTH' };
 
   const orgResult = await getOrganizationBySlug(slug);
   if (orgResult.error || !orgResult.data) {
-    return { error: 'Organización no encontrada', code: 'ORG_NOT_FOUND' };
+    return { error: t('orgNotFound'), code: 'ORG_NOT_FOUND' };
   }
   const orgId = orgResult.data.id;
 
@@ -40,12 +44,12 @@ export async function resolveTenantOrgId(
     .limit(1);
 
   const profile = rows[0];
-  if (!profile)          return { error: 'Acceso no permitido a este tenant', code: 'NOT_MEMBER' };
-  if (!profile.isActive) return { error: 'Cuenta inactiva',                   code: 'INACTIVE' };
+  if (!profile)          return { error: t('notMember'), code: 'NOT_MEMBER' };
+  if (!profile.isActive) return { error: t('inactive'),  code: 'INACTIVE' };
 
   const role = profile.role as UserRole;
   if (!requiredRoles.includes(role)) {
-    return { error: 'Permisos insuficientes', code: 'FORBIDDEN' };
+    return { error: t('forbidden'), code: 'FORBIDDEN' };
   }
 
   return {

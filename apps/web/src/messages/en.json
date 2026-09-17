@@ -194,6 +194,12 @@
   "account": {
     "me": {
       "bookCta": "Book appointment →",
+      "errors": {
+        "loadCustomerFailed":     "Error loading the customer profile",
+        "loadAppointmentsFailed": "Error loading appointments",
+        "customerNotFound":       "Customer not found",
+        "updateProfileFailed":    "Error updating the profile"
+      },
       "defaultName": "User",
       "nav": {
         "citas":           "My appointments",
@@ -344,6 +350,16 @@
     }
   },
   "dashboard": {
+    "shared": {
+      "tenantAuth": {
+        "noTenant":         "Tenant not identified",
+        "notAuthenticated": "Not authorized",
+        "orgNotFound":      "Organization not found",
+        "notMember":        "Access not allowed to this tenant",
+        "inactive":         "Inactive account",
+        "forbidden":        "Insufficient permissions"
+      }
+    },
     "nav": {
       "panel": "Panel",
       "calendar": "Calendar",
@@ -390,6 +406,13 @@
         "helpCta":      "Get in touch"
       },
       "brand": {
+        "actions": {
+          "invalidData":     "Invalid data",
+          "fileNotFound":    "File not found",
+          "fileTooLarge":    "File exceeds 5 MB",
+          "invalidFileType": "Invalid file type",
+          "invalidType":     "Invalid type"
+        },
         "page": {
           "title":       "Your brand",
           "description": "Configure your business visual identity."

@@ -194,6 +194,12 @@
   "account": {
     "me": {
       "bookCta": "Reservar cita →",
+      "errors": {
+        "loadCustomerFailed":     "Error al cargar el perfil del cliente",
+        "loadAppointmentsFailed": "Error al cargar las citas",
+        "customerNotFound":       "Cliente no encontrado",
+        "updateProfileFailed":    "Error al actualizar el perfil"
+      },
       "defaultName": "Usuario",
       "nav": {
         "citas":           "Mis citas",
@@ -344,6 +350,16 @@
     }
   },
   "dashboard": {
+    "shared": {
+      "tenantAuth": {
+        "noTenant":         "Tenant no identificado",
+        "notAuthenticated": "No autorizado",
+        "orgNotFound":      "Organización no encontrada",
+        "notMember":        "Acceso no permitido a este tenant",
+        "inactive":         "Cuenta inactiva",
+        "forbidden":        "Permisos insuficientes"
+      }
+    },
     "nav": {
       "panel": "Panel",
       "calendar": "Calendario",
@@ -390,6 +406,13 @@
         "helpCta":      "Contáctanos"
       },
       "brand": {
+        "actions": {
+          "invalidData":     "Datos inválidos",
+          "fileNotFound":    "Archivo no encontrado",
+          "fileTooLarge":    "El archivo supera los 5 MB",
+          "invalidFileType": "Tipo de archivo inválido",
+          "invalidType":     "Tipo inválido"
+        },
         "page": {
           "title":       "Tu marca",
           "description": "Configura la identidad visual de tu negocio."

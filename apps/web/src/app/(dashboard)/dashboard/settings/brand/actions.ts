@@ -1,9 +1,12 @@
 'use server';
 
 import { revalidatePath }              from 'next/cache';
+import { headers }                     from 'next/headers';
+import { getTranslations }             from 'next-intl/server';
 import { z }                           from 'zod';
 import { eq, and, isNull }             from 'drizzle-orm';
 import { createClient }                from '@supabase/supabase-js';
+import { localeFromHeader }            from '@/i18n/detect-locale';
 import { db }                          from '@/infrastructure/db';
 import { organizations }               from '@/infrastructure/db/schema/organizations';
 import { resolveTenantOrgId }          from '@/shared/lib/resolve-tenant-org-id';
@@ -14,6 +17,10 @@ import { UPLOAD_MAX_BYTES, ALLOWED_IMAGE_TYPES } from '@/shared/config/uploads';
 
 const ORG_MEDIA_BUCKET = 'org-media';
 
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.settings.brand.actions' });
+}
 
 function revalidate() {
   revalidatePath('/dashboard/settings/brand');
@@ -35,7 +42,7 @@ export async function updateBrandDetailsAction(raw: unknown): Promise<Result<nul
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = brandDetailsSchema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Dados inválidos', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) { const t = await getActionTranslations(); return { data: null, error: { message: t('invalidData'), code: 'VALIDATION_ERROR' } }; }
 
   await db.update(organizations)
     .set({ name: parsed.data.name, industry: parsed.data.industry ?? null, about: parsed.data.about ?? null, updatedAt: new Date() })
@@ -58,7 +65,7 @@ export async function updateAppearanceAction(raw: unknown): Promise<Result<null>
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = appearanceSchema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Dados inválidos', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) { const t = await getActionTranslations(); return { data: null, error: { message: t('invalidData'), code: 'VALIDATION_ERROR' } }; }
 
   // Merge into existing themeConfig
   const existing = await db.select({ themeConfig: organizations.themeConfig }).from(organizations).where(eq(organizations.id, auth.orgId)).limit(1);
@@ -90,7 +97,7 @@ export async function updateContactAction(raw: unknown): Promise<Result<null>> {
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = contactSchema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Dados inválidos', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) { const t = await getActionTranslations(); return { data: null, error: { message: t('invalidData'), code: 'VALIDATION_ERROR' } }; }
 
   // 1. Update primary email
   await db.update(organizations)
@@ -153,7 +160,7 @@ export async function updateLocationAction(raw: unknown): Promise<Result<null>> 
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = locationSchema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Dados inválidos', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) { const t = await getActionTranslations(); return { data: null, error: { message: t('invalidData'), code: 'VALIDATION_ERROR' } }; }
 
   await db.update(organizations).set({
     address:         parsed.data.address ?? null,
@@ -232,7 +239,7 @@ export async function updateLinksAction(raw: unknown): Promise<Result<null>> {
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
   const parsed = linksSchema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Dados inválidos', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) { const t = await getActionTranslations(); return { data: null, error: { message: t('invalidData'), code: 'VALIDATION_ERROR' } }; }
 
   await db.update(organizations).set({ socialLinks: parsed.data as Record<string, unknown>, updatedAt: new Date() }).where(eq(organizations.id, auth.orgId));
   revalidate();
@@ -250,11 +257,12 @@ export async function uploadOrgMediaAction(
 
   const file = formData.get('file');
   const type = formData.get('type') as 'logo' | 'banner';
+  const t    = await getActionTranslations();
 
-  if (!(file instanceof File))       return { data: null, error: { message: 'Ficheiro não encontrado', code: 'VALIDATION_ERROR' } };
-  if (file.size > UPLOAD_MAX_BYTES)  return { data: null, error: { message: 'Ficheiro superior a 5 MB', code: 'VALIDATION_ERROR' } };
-  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) return { data: null, error: { message: 'Tipo de ficheiro inválido', code: 'VALIDATION_ERROR' } };
-  if (type !== 'logo' && type !== 'banner') return { data: null, error: { message: 'Tipo inválido', code: 'VALIDATION_ERROR' } };
+  if (!(file instanceof File))       return { data: null, error: { message: t('fileNotFound'), code: 'VALIDATION_ERROR' } };
+  if (file.size > UPLOAD_MAX_BYTES)  return { data: null, error: { message: t('fileTooLarge'), code: 'VALIDATION_ERROR' } };
+  if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.type)) return { data: null, error: { message: t('invalidFileType'), code: 'VALIDATION_ERROR' } };
+  if (type !== 'logo' && type !== 'banner') return { data: null, error: { message: t('invalidType'), code: 'VALIDATION_ERROR' } };
 
   const ext  = (file.name.split('.').pop() ?? 'jpg').toLowerCase();
   const path = `${orgId}/${type}.${ext}`;

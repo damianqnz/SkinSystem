@@ -194,6 +194,12 @@
   "account": {
     "me": {
       "bookCta": "Reservar consulta →",
+      "errors": {
+        "loadCustomerFailed":     "Erro ao carregar o perfil do cliente",
+        "loadAppointmentsFailed": "Erro ao carregar as marcações",
+        "customerNotFound":       "Cliente não encontrado",
+        "updateProfileFailed":    "Erro ao atualizar o perfil"
+      },
       "defaultName": "Utilizador",
       "nav": {
         "citas":           "Marcações",
@@ -344,6 +350,16 @@
     }
   },
   "dashboard": {
+    "shared": {
+      "tenantAuth": {
+        "noTenant":         "Tenant não identificado",
+        "notAuthenticated": "Não autorizado",
+        "orgNotFound":      "Organização não encontrada",
+        "notMember":        "Acesso não permitido a este tenant",
+        "inactive":         "Conta inativa",
+        "forbidden":        "Permissões insuficientes"
+      }
+    },
     "nav": {
       "panel": "Panel",
       "calendar": "Calendário",
@@ -390,6 +406,13 @@
         "helpCta":      "Conecte-se connosco"
       },
       "brand": {
+        "actions": {
+          "invalidData":     "Dados inválidos",
+          "fileNotFound":    "Ficheiro não encontrado",
+          "fileTooLarge":    "Ficheiro superior a 5 MB",
+          "invalidFileType": "Tipo de ficheiro inválido",
+          "invalidType":     "Tipo inválido"
+        },
         "page": {
           "title":       "Sua marca",
           "description": "Configure a identidade visual do seu negócio."

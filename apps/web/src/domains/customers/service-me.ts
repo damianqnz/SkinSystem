@@ -1,11 +1,19 @@
 import 'server-only';
 
-import { eq, and, desc } from 'drizzle-orm';
+import { headers }         from 'next/headers';
+import { getTranslations } from 'next-intl/server';
+import { eq, and, desc }   from 'drizzle-orm';
+import { localeFromHeader } from '@/i18n/detect-locale';
 import { db }            from '@/infrastructure/db';
 import { customers }     from '@/infrastructure/db/schema/customers';
 import { appointments }  from '@/infrastructure/db/schema/booking';
 import { catalogServices } from '@/infrastructure/db/schema/catalog';
 import type { Result }   from '@/shared/types/result';
+
+async function getErrorTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'account.me.errors' });
+}
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -64,7 +72,8 @@ export async function getMyCustomer(
 
     return { data: rows[0] ?? null, error: null };
   } catch {
-    return dbErr('Error loading customer profile');
+    const t = await getErrorTranslations();
+    return dbErr(t('loadCustomerFailed'));
   }
 }
 
@@ -99,7 +108,8 @@ export async function getMyAppointments(
 
     return { data: rows, error: null };
   } catch {
-    return dbErr('Error loading appointments');
+    const t = await getErrorTranslations();
+    return dbErr(t('loadAppointmentsFailed'));
   }
 }
 
@@ -124,9 +134,13 @@ export async function updateMyProfile(
       ))
       .returning({ id: customers.id });
 
-    if (!rows[0]) return dbErr('Customer not found');
+    if (!rows[0]) {
+      const t = await getErrorTranslations();
+      return dbErr(t('customerNotFound'));
+    }
     return { data: { id: rows[0].id }, error: null };
   } catch {
-    return dbErr('Error updating profile');
+    const t = await getErrorTranslations();
+    return dbErr(t('updateProfileFailed'));
   }
 }
