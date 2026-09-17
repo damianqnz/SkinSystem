@@ -17,9 +17,9 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   const t      = await getTranslations('account.me');
 
   // ── Auth guard ──────────────────────────────────────────────
-  // Sin sesión → `/login` (gateway unificado de Fase 30). El `next=/me`
-  // asegura que tras el sign-in el cliente vuelva aquí — el loginAction
-  // ya valida el `next` contra el subdominio del tenant activo.
+  // El proxy ya guarda `/me` (AUTH_REQUIRED_PREFIXES) y responde con un 307
+  // real antes de llegar aquí; este chequeo es defensa en profundidad
+  // redundante, mismo patrón que `DashboardShell` en (dashboard)/layout.tsx.
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login?next=/me');

@@ -27,14 +27,30 @@ import { detectLocale, detectDashboardLocale } from '@/i18n/detect-locale';
  */
 const CONTROLLED_HEADERS = ['x-tenant-slug', 'x-locale'] as const;
 
-/** Prefixes that always require an authenticated session. */
+/**
+ * Prefixes whose locale resolution uses the staff-scoped `DASHBOARD_LOCALE`
+ * chain instead of the public `NEXT_LOCALE`/Accept-Language chain, and which
+ * never seed the public `NEXT_LOCALE` cookie. `/me` is deliberately NOT here
+ * — it is the customer account, and must keep resolving locale the same way
+ * the rest of the public site does (see `AUTH_REQUIRED_PREFIXES` below for
+ * its auth guard, a separate concern).
+ */
 const PRIVATE_PREFIXES = ['/dashboard', '/admin'] as const;
+
+/**
+ * Prefixes that always require an authenticated session AND a resolvable
+ * tenant. Superset of `PRIVATE_PREFIXES` — `/me` needs the same auth+tenant
+ * guard as the dashboard, but must NOT inherit its locale-chain treatment.
+ */
+const AUTH_REQUIRED_PREFIXES = ['/dashboard', '/admin', '/me'] as const;
 
 /**
  * Paths that own a top-level route group and therefore keep their real URL.
  * `/me` is the customer account — deliberately outside the tenant site, with
- * its own layout and its own guard. `/api` is already outside the matcher; it
- * is listed anyway so the rule survives a matcher edit.
+ * its own layout; the proxy now also guards its auth+tenant requirement
+ * (see `AUTH_REQUIRED_PREFIXES`), same as `/dashboard`/`/admin`. `/api` is
+ * already outside the matcher; it is listed anyway so the rule survives a
+ * matcher edit.
  */
 const UNREWRITTEN_PREFIXES = ['/me', '/login', '/auth', '/api', ...PRIVATE_PREFIXES] as const;
 
@@ -63,6 +79,7 @@ function redirectWithSession(from: NextResponse, to: URL): NextResponse {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const tenantSlug = extractTenantSlug(normalizeHost(request.headers.get('host')));
+  const requiresAuth = matchesPrefix(pathname, AUTH_REQUIRED_PREFIXES);
   const isPrivate = matchesPrefix(pathname, PRIVATE_PREFIXES);
   const locale = isPrivate ? detectDashboardLocale(request) : detectLocale(request);
 
@@ -89,10 +106,10 @@ export async function proxy(request: NextRequest) {
 
   // Auth guard — runs on EVERY host, apex included. Answers with a real 307
   // instead of streaming a 200 that redirects from inside the layout.
-  if (isPrivate && !user) {
+  if (requiresAuth && !user) {
     return redirectWithSession(response, buildLoginUrl(request, pathname));
   }
-  if (isPrivate && !tenantSlug) {
+  if (requiresAuth && !tenantSlug) {
     return redirectWithSession(response, new URL('/', request.url));
   }
 

@@ -27,13 +27,20 @@ beforeEach(() => {
 
 function buildRequest(
   host: string,
-  init: { xTenantSlug?: string; xLocale?: string; acceptLanguage?: string } = {},
+  init: {
+    pathname?: string;
+    xTenantSlug?: string;
+    xLocale?: string;
+    acceptLanguage?: string;
+    cookie?: string;
+  } = {},
 ): NextRequest {
   const headers = new Headers({ host });
   if (init.xTenantSlug) headers.set('x-tenant-slug', init.xTenantSlug);
   if (init.xLocale) headers.set('x-locale', init.xLocale);
   if (init.acceptLanguage) headers.set('accept-language', init.acceptLanguage);
-  return new NextRequest(`https://${host}/`, { headers });
+  if (init.cookie) headers.set('cookie', init.cookie);
+  return new NextRequest(`https://${host}${init.pathname ?? '/'}`, { headers });
 }
 
 /** Reads back a forwarded REQUEST header Next.js encodes onto the response. */
@@ -72,5 +79,44 @@ describe('proxy() header-forgery regression', () => {
     expect(overridden).not.toBeNull();
     expect(overridden).toContain('x-tenant-slug');
     expect(overridden).toContain('x-locale');
+  });
+});
+
+describe('proxy() /me auth guard (MW-03)', () => {
+  it('redirects an unauthenticated visit to /me on a tenant host', async () => {
+    const res = await proxy(buildRequest('lourdes.skinsystem.test', { pathname: '/me' }));
+    expect(res.headers.get('location')).toContain('/login');
+  });
+
+  it('passes through an authenticated visit to /me on a tenant host', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'u1' } } });
+    const res = await proxy(buildRequest('lourdes.skinsystem.test', { pathname: '/me' }));
+    expect(res.headers.get('location')).toBeNull();
+    expect(forwarded(res, 'x-tenant-slug')).toBe('lourdes');
+  });
+
+  it('redirects an authenticated visit to /me on the apex (no tenant) to /', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'u1' } } });
+    const res = await proxy(buildRequest('skinsystem.test', { pathname: '/me' }));
+    expect(res.headers.get('location')).toBe('https://skinsystem.test/');
+  });
+
+  it('never lets the staff-scoped DASHBOARD_LOCALE cookie leak into /me\'s locale resolution', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'u1' } } });
+    const res = await proxy(
+      buildRequest('lourdes.skinsystem.test', {
+        pathname: '/me',
+        cookie: 'DASHBOARD_LOCALE=en',
+        acceptLanguage: 'es',
+      }),
+    );
+    // Public chain (no NEXT_LOCALE cookie) → Accept-Language, not the dashboard cookie.
+    expect(forwarded(res, 'x-locale')).toBe('es');
+  });
+
+  it('still seeds the public NEXT_LOCALE cookie on a first visit to /me', async () => {
+    getUser.mockResolvedValue({ data: { user: { id: 'u1' } } });
+    const res = await proxy(buildRequest('lourdes.skinsystem.test', { pathname: '/me' }));
+    expect(res.cookies.get('NEXT_LOCALE')).toBeDefined();
   });
 });
