@@ -9,6 +9,7 @@ import {
   getStripe,
   calcDepositAmount,
   calcApplicationFee,
+  allowsDirectPlatformCharge,
 } from '@/shared/lib/stripe';
 import { DEFAULT_LOCALE } from '@/i18n/config';
 import type { Result } from '@/shared/types/result';
@@ -81,12 +82,12 @@ export async function createBookingSession(
     const org = orgRows[0];
     if (!org) return { data: null, error: { message: 'Organization not found', code: 'NOT_FOUND' } };
 
-    const isTestMode = process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ?? false;
-
-    // In production, a connected Stripe account is mandatory for fiscal isolation.
-    // In test mode, allow a direct platform charge so the full flow can be tested
-    // without completing Stripe Connect onboarding.
-    if (!org.stripeAccountId && !isTestMode) {
+    // In production, a connected Stripe account is mandatory for fiscal isolation —
+    // enforced regardless of key prefix, so a misconfigured sk_test_ key can't
+    // silently downgrade to a co-mingled platform charge. Outside production with
+    // a test key, allow a direct charge so the flow is testable without completing
+    // Stripe Connect onboarding.
+    if (!org.stripeAccountId && !allowsDirectPlatformCharge(process.env.NODE_ENV, process.env.STRIPE_SECRET_KEY)) {
       return { data: null, error: { message: 'Specialist has not connected Stripe', code: 'STRIPE_NOT_CONNECTED' } };
     }
 

@@ -59,3 +59,5 @@ export function calcDepositAmount(priceCents: number, depositPercent: number): n
   if (depositPercent >= 100) return priceCents;
   return Math.round(priceCents * depositPercent / 100);
 }
+
+export { allowsDirectPlatformCharge } from './stripe-policy';
