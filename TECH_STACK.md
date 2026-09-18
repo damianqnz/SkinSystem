@@ -5,9 +5,9 @@ This file defines the technologies, libraries, and design resources approved for
 ---
 
 ## 1. Core Stack (The Engine)
-- **Framework**: Next.js 16.x (App Router, PPR, Server Actions).
-- **Runtime**: Node.js 25.x LTS.
-- **Language**: TypeScript 5.x (Strict Mode).
+- **Framework**: Next.js 16.x (App Router, PPR, Server Actions). Currently 16.3.5.
+- **Runtime**: Node.js 24.x LTS ("Krypton"). Node 25 was never an LTS release (odd-numbered majors don't graduate to LTS) and has been EOL since March 2026 — do not target it. CI (`ci.yml`) runs Node 22, also LTS but older; local dev machines may run ahead on Node 26 ("Current", not yet LTS) — that's fine for local dev, not for pinning CI/production.
+- **Language**: TypeScript 5.x (Strict Mode). Currently 5.9.2. TypeScript 7 (the native Go-ported compiler) exists and is stable for `tsc` itself, but `typescript-eslint` only supports `<6.1.0` as of this writing — do not upgrade past 5.9.x/6.0.x until typescript-eslint publishes TS7 support, or `pnpm lint` breaks.
 - **Package Manager**: pnpm.
 
 ## 2. Persistence & Backend
@@ -19,7 +19,7 @@ This file defines the technologies, libraries, and design resources approved for
 
 ## 3. UI & Styling (The 90/10 Boundary Rule)
 - **Tailwind CSS v4**: Primary tool for Layout, Spacing, Typography, and Responsive design (**90% of the app**).
-- **Stitches**: Exclusive for **Complex Atomic Components** with state-driven variants (e.g., Slot Selectors, Clinical Charts) (**10% of the app**).
+- **Stitches**: Exclusive for **Complex Atomic Components** with state-driven variants (e.g., Slot Selectors, Clinical Charts) (**10% of the app**). ⚠️ Unmaintained upstream — last stable release was April 2022, no updates since. Fine to keep using for existing components; do not add new dependencies on it for new work without a deliberate decision to replace it (candidate migration target: CVA/Tailwind variants).
 - **Base Components**: **Shadcn/ui** (Customized for luxury aesthetics).
 - **Animations**: **MagicUI** + **Framer Motion** + **GSAP 3** (For high-end timelines).
 - **I18n**: `next-intl` for static UI translations via JSON.
