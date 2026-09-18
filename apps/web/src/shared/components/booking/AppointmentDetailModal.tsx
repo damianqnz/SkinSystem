@@ -55,6 +55,7 @@ export function AppointmentDetailModal({ appointmentId, onClose, locale = DEFAUL
   const [pending, start]      = useTransition();
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- clear stale detail data when the modal closes (appointmentId goes null) or before fetching the newly selected appointment
     if (!appointmentId) { setData(null); return; }
     setLoading(true);
     getAppointmentDetailAction({ appointmentId })

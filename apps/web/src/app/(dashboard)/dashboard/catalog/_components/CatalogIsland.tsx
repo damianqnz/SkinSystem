@@ -140,6 +140,7 @@ export function CatalogIsland({ category, categories, locale, organizationId, on
       </motion.div>
 
       <ServiceDrawer
+        key={editingService?.id ?? 'new'}
         open={drawerOpen}
         onClose={() => { setDrawerOpen(false); setEditingService(null); }}
         onSuccess={() => { setDrawerOpen(false); setEditingService(null); }}

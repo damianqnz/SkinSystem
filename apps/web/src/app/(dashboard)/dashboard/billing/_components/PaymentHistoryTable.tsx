@@ -155,6 +155,13 @@ export function PaymentHistoryTable() {
   const term = search.trim().toLowerCase();
 
   // Pipeline: rows → filtered (search) → sorted → paged
+  // React Compiler cannot preserve this memoization boundary (verified: the
+  // bailout reproduces even with a trivial `[...rows]` body, so it is not a
+  // referential-stability issue with `rows`/`term`/`locale`/`resolveI18n` —
+  // all of which are stable across renders here). The manual useMemo below
+  // still memoizes correctly at runtime; only the compiler's extra
+  // optimization pass is skipped.
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization -- compiler limitation, not a real dependency-stability bug (see comment above)
   const filtered = useMemo(() => {
     if (!term) return rows;
     return rows.filter((r) => {

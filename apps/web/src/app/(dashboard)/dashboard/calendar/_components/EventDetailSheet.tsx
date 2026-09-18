@@ -67,6 +67,7 @@ export function EventDetailSheet({
 
   useEffect(() => {
     if (!open || !appointmentId) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset stale detail data before fetching the newly selected appointment
     setData(null);
     setLoading(true);
     getAppointmentDetailAction({ appointmentId })

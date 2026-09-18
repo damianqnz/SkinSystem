@@ -40,43 +40,26 @@ export function ServiceDrawer({
   const isEdit     = !!service;
   const id         = useId();
 
-  const [nameI18n,  setNameI18n]  = useState<I18n>({ es: '', en: '', pt: '' });
-  const [descI18n,  setDescI18n]  = useState<I18n>({ es: '', en: '', pt: '' });
-  const [price,     setPrice]     = useState('');
-  const [duration,  setDuration]  = useState('60');
-  const [deposit,   setDeposit]   = useState(100);
-  const [bufBefore, setBufBefore] = useState('0');
-  const [bufAfter,  setBufAfter]  = useState('0');
-  const [catId,     setCatId]     = useState<string>('');
-  const [isActive,  setIsActive]  = useState(true);
-  const [color,     setColor]     = useState<string>('');
+  // Form state is seeded directly from `service` at mount. The parent remounts
+  // this component (via `key={service?.id ?? 'new'}`) whenever the item being
+  // edited changes, so there's no need to sync it back in via an effect.
+  const [nameI18n,  setNameI18n]  = useState<I18n>(() => {
+    const n = (service?.nameI18n as Record<string, string> | undefined) ?? {};
+    return { es: n['es'] ?? '', en: n['en'] ?? '', pt: n['pt'] ?? '' };
+  });
+  const [descI18n,  setDescI18n]  = useState<I18n>(() => {
+    const d = (service?.descriptionI18n as Record<string, string> | undefined) ?? {};
+    return { es: d['es'] ?? '', en: d['en'] ?? '', pt: d['pt'] ?? '' };
+  });
+  const [price,     setPrice]     = useState(service ? String(service.priceCents / 100) : '');
+  const [duration,  setDuration]  = useState(service ? String(service.durationMinutes) : '60');
+  const [deposit,   setDeposit]   = useState(service?.depositPercent ?? 100);
+  const [bufBefore, setBufBefore] = useState(service ? String(service.bufferBeforeMinutes) : '0');
+  const [bufAfter,  setBufAfter]  = useState(service ? String(service.bufferAfterMinutes) : '0');
+  const [catId,     setCatId]     = useState<string>(service ? (service.categoryId ?? '') : (defaultCategoryId ?? ''));
+  const [isActive,  setIsActive]  = useState(service?.isActive ?? true);
+  const [color,     setColor]     = useState<string>(service?.color ?? '');
   const [tab,       setTab]       = useState<'es' | 'en' | 'pt'>('es');
-
-  useEffect(() => {
-    if (open) {
-      if (service) {
-        const n = service.nameI18n as Record<string, string>;
-        const d = service.descriptionI18n as Record<string, string>;
-        setNameI18n({ es: n['es'] ?? '', en: n['en'] ?? '', pt: n['pt'] ?? '' });
-        setDescI18n({ es: d['es'] ?? '', en: d['en'] ?? '', pt: d['pt'] ?? '' });
-        setPrice(String(service.priceCents / 100));
-        setDuration(String(service.durationMinutes));
-        setDeposit(service.depositPercent);
-        setBufBefore(String(service.bufferBeforeMinutes));
-        setBufAfter(String(service.bufferAfterMinutes));
-        setCatId(service.categoryId ?? '');
-        setIsActive(service.isActive);
-        setColor(service.color ?? '');
-      } else {
-        setNameI18n({ es: '', en: '', pt: '' });
-        setDescI18n({ es: '', en: '', pt: '' });
-        setPrice(''); setDuration('60'); setDeposit(100);
-        setBufBefore('0'); setBufAfter('0');
-        setCatId(defaultCategoryId ?? '');
-        setIsActive(true); setColor(''); setTab('es');
-      }
-    }
-  }, [open, service, defaultCategoryId]);
 
   const action = isEdit ? updateServiceAction : createServiceAction;
   const [state, dispatch, isPending] = useActionState<CatalogActionState, unknown>(action, IDLE);

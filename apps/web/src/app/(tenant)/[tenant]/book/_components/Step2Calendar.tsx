@@ -167,6 +167,7 @@ export function Step2Calendar({
 
   // Load slots on date change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset stale selection/error before fetching slots for the newly selected date
     setSelectedSlotISO(null);
     setError(null);
     startTransition(async () => {

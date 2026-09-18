@@ -30,9 +30,14 @@ export function ContactSection({ initial }: Props) {
   const counter = useRef(0);
   function uid() { return `c${counter.current++}`; }
 
+  // Seeded once from props at mount, so ids are derived from the array index
+  // instead of calling the ref-based uid() (a ref mutation during render is
+  // not safe under React's concurrent rendering). Prefixed to never collide
+  // with uid()'s later 'c<n>' ids, which are only generated from event
+  // handlers (e.g. addExtra) — a legitimate, non-render use of the ref.
   const [extras, setExtras] = useState<ExtraContact[]>(() => [
-    ...initial.additionalPhones.map(v => ({ type: 'phone' as const, value: v, uid: uid() })),
-    ...initial.additionalEmails.map(v => ({ type: 'email' as const, value: v, uid: uid() })),
+    ...initial.additionalPhones.map((v, i) => ({ type: 'phone' as const, value: v, uid: `p${i}` })),
+    ...initial.additionalEmails.map((v, i) => ({ type: 'email' as const, value: v, uid: `e${i}` })),
   ]);
 
   const [dropOpen, setDropOpen]     = useState(false);

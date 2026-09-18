@@ -236,6 +236,7 @@ export function CouponsSection({ initial }: Props) {
       </div>
 
       <CouponModal
+        key={editing?.id ?? 'new'}
         open={modal}
         editing={editing}
         onClose={closeModal}

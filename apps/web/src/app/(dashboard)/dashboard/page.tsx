@@ -61,7 +61,7 @@ export default async function DashboardPage() {
   const todayCount    = (todaySlotsRes.data    ?? []).filter(a => isActive(a.status)).length;
   const tomorrowCount = (tomorrowSlotsRes.data ?? []).filter(a => isActive(a.status)).length;
 
-  const weekAgo         = new Date(Date.now() - WEEK_MS);
+  const weekAgo         = new Date(today.getTime() - WEEK_MS);
   const newClientsCount = (customersRes.data ?? []).filter(
     (c) => new Date(c.createdAt) >= weekAgo,
   ).length;

@@ -168,6 +168,7 @@ export function SurchargesSection({ initial }: Props) {
       </div>
 
       <SurchargeModal
+        key={editing?.id ?? 'new'}
         open={modal}
         editing={editing}
         onClose={closeModal}

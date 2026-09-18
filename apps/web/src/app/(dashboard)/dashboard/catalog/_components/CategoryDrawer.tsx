@@ -24,26 +24,19 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
   const t      = useTranslations('dashboard.catalog');
   const isEdit = !!category;
 
-  const [nameI18n, setNameI18n] = useState<I18n>({ es: '', en: '', pt: '' });
-  const [descI18n, setDescI18n] = useState<I18n>({ es: '', en: '', pt: '' });
-  const [isActive, setIsActive] = useState(true);
+  // Form state is seeded directly from `category` at mount. The parent remounts
+  // this component (via `key={category?.id ?? 'new'}`) whenever the item being
+  // edited changes, so there's no need to sync it back in via an effect.
+  const [nameI18n, setNameI18n] = useState<I18n>(() => {
+    const n = (category?.nameI18n as Record<string, string> | undefined) ?? {};
+    return { es: n['es'] ?? '', en: n['en'] ?? '', pt: n['pt'] ?? '' };
+  });
+  const [descI18n, setDescI18n] = useState<I18n>(() => {
+    const d = (category?.descriptionI18n as Record<string, string> | undefined) ?? {};
+    return { es: d['es'] ?? '', en: d['en'] ?? '', pt: d['pt'] ?? '' };
+  });
+  const [isActive, setIsActive] = useState(category?.isActive ?? true);
   const [tab, setTab]           = useState<'es' | 'en' | 'pt'>('es');
-
-  useEffect(() => {
-    if (open) {
-      if (category) {
-        const n = category.nameI18n as Record<string, string>;
-        const d = category.descriptionI18n as Record<string, string>;
-        setNameI18n({ es: n['es'] ?? '', en: n['en'] ?? '', pt: n['pt'] ?? '' });
-        setDescI18n({ es: d['es'] ?? '', en: d['en'] ?? '', pt: d['pt'] ?? '' });
-        setIsActive(category.isActive);
-      } else {
-        setNameI18n({ es: '', en: '', pt: '' });
-        setDescI18n({ es: '', en: '', pt: '' });
-        setIsActive(true); setTab('es');
-      }
-    }
-  }, [open, category]);
 
   const action = isEdit ? updateCategoryAction : createCategoryAction;
   const [state, dispatch, isPending] = useActionState<CatalogActionState, unknown>(action, IDLE);

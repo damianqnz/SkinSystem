@@ -47,7 +47,7 @@ export async function AppointmentsList({ organizationId, locale, limit = 20 }: P
   function formatDate(date: Date): string {
     const now  = new Date();
     const isToday    = date.toDateString() === now.toDateString();
-    const isTomorrow = date.toDateString() === new Date(Date.now() + 86_400_000).toDateString();
+    const isTomorrow = date.toDateString() === new Date(now.getTime() + 86_400_000).toDateString();
     if (isToday)    return t('today');
     if (isTomorrow) return t('tomorrow');
     return date.toLocaleDateString(intlLocale, { day: 'numeric', month: 'short' });

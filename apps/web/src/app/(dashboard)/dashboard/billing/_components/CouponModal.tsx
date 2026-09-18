@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect }                              from 'react';
+import { useState }                                          from 'react';
 import * as Dialog                                          from '@radix-ui/react-dialog';
 import { X, Loader2 }                                       from 'lucide-react';
 import { toast }                                            from 'sonner';
@@ -25,32 +25,16 @@ interface Props {
 
 export function CouponModal({ open, editing, onClose, onSaved }: Props) {
   const t = useTranslations('dashboard.billing.couponModal');
-  const [code,         setCode]         = useState('');
-  const [discountType, setDiscountType] = useState<'percent' | 'fixed'>('percent');
-  const [value,        setValue]        = useState('');
-  const [maxUses,      setMaxUses]      = useState('');
-  const [validFrom,    setValidFrom]    = useState(todayISO());
-  const [validUntil,   setValidUntil]   = useState('');
+  // Form state is seeded directly from `editing` at mount. The parent remounts
+  // this component (via `key={editing?.id ?? 'new'}`) whenever the item being
+  // edited changes, so there's no need to sync it back in via an effect.
+  const [code,         setCode]         = useState(editing?.code ?? '');
+  const [discountType, setDiscountType] = useState<'percent' | 'fixed'>(editing?.discountType ?? 'percent');
+  const [value,        setValue]        = useState(editing?.discountValue ?? '');
+  const [maxUses,      setMaxUses]      = useState(editing?.maxUses != null ? String(editing.maxUses) : '');
+  const [validFrom,    setValidFrom]    = useState(editing ? editing.validFrom.slice(0, 10) : todayISO());
+  const [validUntil,   setValidUntil]   = useState(editing?.validUntil ? editing.validUntil.slice(0, 10) : '');
   const [busy,         setBusy]         = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    if (editing) {
-      setCode(editing.code);
-      setDiscountType(editing.discountType);
-      setValue(editing.discountValue);
-      setMaxUses(editing.maxUses != null ? String(editing.maxUses) : '');
-      setValidFrom(editing.validFrom.slice(0, 10));
-      setValidUntil(editing.validUntil ? editing.validUntil.slice(0, 10) : '');
-    } else {
-      setCode('');
-      setDiscountType('percent');
-      setValue('');
-      setMaxUses('');
-      setValidFrom(todayISO());
-      setValidUntil('');
-    }
-  }, [open, editing]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -22,8 +22,16 @@ export interface StripeNewTabBannerProps {
 export function StripeNewTabBanner({ visible, title, description }: StripeNewTabBannerProps) {
   const [show, setShow] = useState(visible);
 
-  // Sync external prop changes.
-  useEffect(() => { setShow(visible); }, [visible]);
+  // Mirrors `visible` into local state so the postMessage listener below can
+  // independently dismiss the banner (the parent's `visible` prop stays true
+  // for the rest of the popup's lifetime — see StripeConnectControls). Adjusted
+  // during render, per React's guidance for syncing state from a changed prop,
+  // instead of in an effect.
+  const [prevVisible, setPrevVisible] = useState(visible);
+  if (visible !== prevVisible) {
+    setPrevVisible(visible);
+    setShow(visible);
+  }
 
   useEffect(() => {
     function handle(event: MessageEvent) {

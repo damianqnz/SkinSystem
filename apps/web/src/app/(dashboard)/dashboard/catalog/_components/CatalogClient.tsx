@@ -121,6 +121,7 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
       </div>
 
       <CategoryDrawer
+        key={editingCat?.id ?? 'new'}
         open={catDrawerOpen}
         onClose={() => { setCatDrawerOpen(false); setEditingCat(null); }}
         onSuccess={() => { setCatDrawerOpen(false); setEditingCat(null); }}

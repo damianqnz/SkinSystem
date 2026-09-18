@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect }                                    from 'react';
+import { useState }                                                from 'react';
 import * as Dialog                                                from '@radix-ui/react-dialog';
 import { X, Loader2 }                                             from 'lucide-react';
 import { toast }                                                  from 'sonner';
@@ -21,27 +21,14 @@ interface Props {
 
 export function SurchargeModal({ open, editing, onClose, onSaved }: Props) {
   const t = useTranslations('dashboard.billing.surchargeModal');
-  const [kind,      setKind]      = useState<'taxa' | 'reducao'>('taxa');
-  const [name,      setName]      = useState('');
-  const [valueType, setValueType] = useState<'percent' | 'fixed'>('percent');
-  const [amount,    setAmount]    = useState('');
+  // Form state is seeded directly from `editing` at mount. The parent remounts
+  // this component (via `key={editing?.id ?? 'new'}`) whenever the item being
+  // edited changes, so there's no need to sync it back in via an effect.
+  const [kind,      setKind]      = useState<'taxa' | 'reducao'>(editing ? (editing.isReduction ? 'reducao' : 'taxa') : 'taxa');
+  const [name,      setName]      = useState(editing?.name ?? '');
+  const [valueType, setValueType] = useState<'percent' | 'fixed'>(editing?.valueType ?? 'percent');
+  const [amount,    setAmount]    = useState(editing?.value ?? '');
   const [busy,      setBusy]      = useState(false);
-
-  // Populate form when editing
-  useEffect(() => {
-    if (!open) return;
-    if (editing) {
-      setKind(editing.isReduction ? 'reducao' : 'taxa');
-      setName(editing.name);
-      setValueType(editing.valueType);
-      setAmount(editing.value);
-    } else {
-      setKind('taxa');
-      setName('');
-      setValueType('percent');
-      setAmount('');
-    }
-  }, [open, editing]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

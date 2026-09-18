@@ -61,6 +61,7 @@ export function IntegrationsClient({ stripeConnected, stripeParam }: Integration
 
   useEffect(() => {
     if (!confirming || !stripeConnected) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- dismisses the banner in lockstep with the one-time toast/navigation side effects below when polling confirms the connection
     setConfirming(false);
     toast.success(t('toastConnected'));
     router.replace('/dashboard/integrations');

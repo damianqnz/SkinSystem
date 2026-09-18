@@ -26,16 +26,14 @@ interface CalendarsSidebarProps {
 const LS_KEY = 'agenda.sidebar.open';
 
 export function CalendarsSidebar({ tenantName, linkedGoogleEmail }: CalendarsSidebarProps) {
-  const [open, setOpen] = useState<boolean>(true);
+  // Hydrated lazily from localStorage — safe because reading it is synchronous
+  // and this only runs once, during the initial client render (guarded for SSR
+  // the same way the previous effect-based hydration was).
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem(LS_KEY) !== '0';
+  });
   const [checked, setChecked] = useState<Record<string, boolean>>({});
-
-  // Hydrate persisted state once
-  useEffect(() => {
-    const stored = typeof window !== 'undefined'
-      ? window.localStorage.getItem(LS_KEY)
-      : null;
-    if (stored === '0') setOpen(false);
-  }, []);
 
   const toggle = () => {
     setOpen((prev) => {
@@ -54,8 +52,12 @@ export function CalendarsSidebar({ tenantName, linkedGoogleEmail }: CalendarsSid
       : []),
   ];
 
-  // Initialise checks (default true) once sources resolve
+  // Initialise checks (default true) once sources resolve. `sources` is
+  // rebuilt from `linkedGoogleEmail`/`tenantName`, which can arrive after
+  // mount (e.g. once a Google account gets linked elsewhere), so this can't
+  // be a lazy initializer — it must react to those props changing post-mount.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- adds default-checked entries for newly-appeared sources (e.g. Google linked after mount) while preserving existing selections
     setChecked((prev) => {
       const next = { ...prev };
       for (const s of sources) if (next[s.id] === undefined) next[s.id] = true;
