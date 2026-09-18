@@ -24,17 +24,19 @@ function esc(v: string | null | undefined): string {
 export async function exportCustomersAction(): Promise<Result<ExportResult>> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { data: null, error: { message: 'Unauthorized', code: 'AUTH_ERROR' } };
-
-  const orgId = user.user_metadata.organization_id as string | undefined;
-  if (!orgId) return { data: null, error: { message: 'No organization', code: 'AUTH_ERROR' } };
 
   const h      = await headers();
   const locale = localeFromHeader(h.get('x-locale'));
-  const [tStatus, tCols] = await Promise.all([
+  const [tActions, tStatus, tCols] = await Promise.all([
+    getTranslations({ locale, namespace: 'dashboard.customers.actions' }),
     getTranslations({ locale, namespace: 'customers.status' }),
     getTranslations({ locale, namespace: 'dashboard.customers.export.columns' }),
   ]);
+
+  if (!user) return { data: null, error: { message: tActions('unauthorized'), code: 'AUTH_ERROR' } };
+
+  const orgId = user.user_metadata.organization_id as string | undefined;
+  if (!orgId) return { data: null, error: { message: tActions('noOrganization'), code: 'AUTH_ERROR' } };
 
   const result = await getCustomersWithStats(orgId);
   if (result.error) return { data: null, error: result.error };

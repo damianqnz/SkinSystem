@@ -2,11 +2,19 @@
 
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { revalidatePath }             from 'next/cache';
+import { headers }                    from 'next/headers';
+import { getTranslations }            from 'next-intl/server';
 import { z }                          from 'zod';
 import { eq, and }                    from 'drizzle-orm';
 import { db }                         from '@/infrastructure/db';
 import { coupons }                    from '@/domains/booking/schema';
+import { localeFromHeader }           from '@/i18n/detect-locale';
 import type { Result }                from '@/shared/types/result';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.billing.actions' });
+}
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -61,8 +69,9 @@ export async function createCouponAction(raw: unknown): Promise<Result<CouponRow
   const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
+  const t = await getActionTranslations();
   const parsed = couponSchema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Datos inválidos', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? t('invalidData'), code: 'VALIDATION_ERROR' } };
 
   try {
     const rows = await db.insert(coupons)
@@ -78,11 +87,11 @@ export async function createCouponAction(raw: unknown): Promise<Result<CouponRow
       })
       .returning();
 
-    if (!rows[0]) return { data: null, error: { message: 'Erro ao criar cupão', code: 'DB_ERROR' } };
+    if (!rows[0]) return { data: null, error: { message: t('couponCreateError'), code: 'DB_ERROR' } };
     revalidate();
     return { data: rows[0] as CouponRow, error: null };
   } catch {
-    return { data: null, error: { message: 'Código já existe para esta organização', code: 'DUPLICATE' } };
+    return { data: null, error: { message: t('duplicateCode'), code: 'DUPLICATE' } };
   }
 }
 
@@ -92,8 +101,9 @@ export async function updateCouponAction(id: string, raw: unknown): Promise<Resu
   const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
+  const t = await getActionTranslations();
   const parsed = couponSchema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Datos inválidos', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? t('invalidData'), code: 'VALIDATION_ERROR' } };
 
   const rows = await db.update(coupons)
     .set({
@@ -106,7 +116,7 @@ export async function updateCouponAction(id: string, raw: unknown): Promise<Resu
     .where(and(eq(coupons.id, id), eq(coupons.organizationId, auth.orgId)))
     .returning();
 
-  if (!rows[0]) return { data: null, error: { message: 'Não encontrado', code: 'NOT_FOUND' } };
+  if (!rows[0]) return { data: null, error: { message: t('notFound'), code: 'NOT_FOUND' } };
   revalidate();
   return { data: rows[0] as CouponRow, error: null };
 }

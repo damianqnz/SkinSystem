@@ -2,11 +2,19 @@
 
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { revalidatePath }             from 'next/cache';
+import { headers }                    from 'next/headers';
+import { getTranslations }            from 'next-intl/server';
 import { z }                          from 'zod';
 import { eq, and }                    from 'drizzle-orm';
 import { db }                         from '@/infrastructure/db';
 import { paymentSurcharges }          from '@/domains/billing/schema';
+import { localeFromHeader }           from '@/i18n/detect-locale';
 import type { Result }                from '@/shared/types/result';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.billing.actions' });
+}
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -55,8 +63,9 @@ export async function createSurchargeAction(raw: unknown): Promise<Result<Surcha
   const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
+  const t = await getActionTranslations();
   const parsed = surchargeSchema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Datos inválidos', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? t('invalidData'), code: 'VALIDATION_ERROR' } };
 
   // Enforce limits: max 2 taxes, max 1 reduction
   const existing = await db
@@ -67,8 +76,8 @@ export async function createSurchargeAction(raw: unknown): Promise<Result<Surcha
   const taxes      = existing.filter((r) => !r.isReduction).length;
   const reductions = existing.filter((r) =>  r.isReduction).length;
 
-  if (!parsed.data.isReduction && taxes >= 2)      return { data: null, error: { message: 'Limite de 2 taxas atingido', code: 'LIMIT_EXCEEDED' } };
-  if ( parsed.data.isReduction && reductions >= 1) return { data: null, error: { message: 'Limite de 1 redução atingido', code: 'LIMIT_EXCEEDED' } };
+  if (!parsed.data.isReduction && taxes >= 2)      return { data: null, error: { message: t('limitTaxes'), code: 'LIMIT_EXCEEDED' } };
+  if ( parsed.data.isReduction && reductions >= 1) return { data: null, error: { message: t('limitReductions'), code: 'LIMIT_EXCEEDED' } };
 
   const rows = await db.insert(paymentSurcharges)
     .values({ organizationId: auth.orgId, name: parsed.data.name,
@@ -76,7 +85,7 @@ export async function createSurchargeAction(raw: unknown): Promise<Result<Surcha
               isReduction: parsed.data.isReduction })
     .returning();
 
-  if (!rows[0]) return { data: null, error: { message: 'Erro ao criar', code: 'DB_ERROR' } };
+  if (!rows[0]) return { data: null, error: { message: t('createError'), code: 'DB_ERROR' } };
   revalidate();
   return { data: rows[0] as SurchargeRow, error: null };
 }
@@ -87,8 +96,9 @@ export async function updateSurchargeAction(id: string, raw: unknown): Promise<R
   const auth = await resolveTenantOrgId();
   if ('error' in auth) return { data: null, error: { message: auth.error, code: 'AUTH_ERROR' } };
 
+  const t = await getActionTranslations();
   const parsed = surchargeSchema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Datos inválidos', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? t('invalidData'), code: 'VALIDATION_ERROR' } };
 
   const rows = await db.update(paymentSurcharges)
     .set({ name: parsed.data.name, valueType: parsed.data.valueType,
@@ -96,7 +106,7 @@ export async function updateSurchargeAction(id: string, raw: unknown): Promise<R
     .where(and(eq(paymentSurcharges.id, id), eq(paymentSurcharges.organizationId, auth.orgId)))
     .returning();
 
-  if (!rows[0]) return { data: null, error: { message: 'Não encontrado', code: 'NOT_FOUND' } };
+  if (!rows[0]) return { data: null, error: { message: t('notFound'), code: 'NOT_FOUND' } };
   revalidate();
   return { data: rows[0] as SurchargeRow, error: null };
 }

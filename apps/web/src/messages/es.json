@@ -555,7 +555,10 @@
         "optionEs":       "Español",
         "optionEn":       "English",
         "toastSuccess":   "Idioma actualizado",
-        "toastError":     "No se pudo actualizar el idioma"
+        "toastError":     "No se pudo actualizar el idioma",
+        "actions": {
+          "invalidLocale": "Idioma no válido"
+        }
       },
       "profile": {
         "title":       "Tu perfil",
@@ -842,7 +845,17 @@
         "toastBlocked":  "Cliente bloqueado",
         "toastUnblocked":"Cliente desbloqueado",
         "toastDeleted":  "Cliente eliminado",
-        "optionsAriaLabel":"Opciones"
+        "optionsAriaLabel":"Opciones",
+        "unauthorized":    "No autorizado",
+        "noOrganization":  "Sin organización",
+        "invalidInput":    "Datos inválidos",
+        "noFileProvided":  "No se proporcionó ningún archivo",
+        "fileTooLarge":    "El archivo supera los 2 MB",
+        "invalidFileType": "Tipo de archivo inválido",
+        "hasAppointments": "Este cliente tiene citas registradas. Sus datos se conservarán por integridad financiera.",
+        "customerNotFound":"Cliente no encontrado",
+        "failedToCreate":  "No se pudo crear el cliente",
+        "importFailed":    "Error al importar"
       },
       "appointments": {
         "yearLabel":      "Este año",
@@ -889,7 +902,11 @@
       },
       "routine": {
         "backLink": "Volver al expediente",
-        "title":    "Rutina Home Care"
+        "title":    "Rutina Home Care",
+        "actions": {
+          "invalidData": "Datos inválidos.",
+          "unauthorized":"No autorizado."
+        }
       }
     },
     "calendar": {
@@ -1092,7 +1109,18 @@
       "categoryActiveLabel":   "Categoría activa",
       "categoryActiveHint":    "Aparece en la página de reservas",
       "saveCategoryChanges":   "Guardar",
-      "createCategory":        "Crear categoría"
+      "createCategory":        "Crear categoría",
+      "actions": {
+        "notAuthorized":      "No autorizado",
+        "orgNotFound":        "Organización no encontrada",
+        "invalidData":        "Datos inválidos",
+        "categoryCreated":    "Categoría creada",
+        "categoryUpdated":    "Categoría actualizada",
+        "serviceCreated":     "Servicio creado",
+        "serviceUpdated":     "Servicio actualizado",
+        "serviceActivated":   "Servicio activado",
+        "serviceDeactivated": "Servicio desactivado"
+      }
     },
     "billing": {
       "title":                    "Pagos",
@@ -1235,7 +1263,25 @@
         "csvColAppointmentId": "ID Agendamiento",
         "viewInStripe":       "Ver en Stripe",
         "sortByLabel":        "Ordenar por {column}"
+      },
+
+      "actions": {
+        "invalidData":         "Datos inválidos",
+        "limitTaxes":          "Límite de 2 tasas alcanzado",
+        "limitReductions":     "Límite de 1 reducción alcanzado",
+        "createError":         "Error al crear",
+        "notFound":            "No encontrado",
+        "updateSettingsError": "No se pudo actualizar la configuración",
+        "invalidDates":        "Fechas inválidas",
+        "couponCreateError":   "Error al crear el cupón",
+        "duplicateCode":       "El código ya existe para esta organización"
       }
+    },
+    "actions": {
+      "devOnlyError":      "Disponible solo en desarrollo",
+      "tenantNotFound":    "Tenant no encontrado en las cabeceras",
+      "orgNotFound":       "La organización \"{slug}\" no existe",
+      "noStaffRegistered": "No hay profesional registrado en esta organización"
     }
   },
   "marketing": {

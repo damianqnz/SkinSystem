@@ -5,11 +5,18 @@ import { z }                  from 'zod';
 import { eq, and }            from 'drizzle-orm';
 import { revalidatePath }     from 'next/cache';
 import { createServerClient } from '@supabase/ssr';
-import { cookies }            from 'next/headers';
+import { cookies, headers }   from 'next/headers';
+import { getTranslations }    from 'next-intl/server';
 import { db }                 from '@/infrastructure/db';
 import { profiles } from '@/infrastructure/db/schema/organizations';
 import { customers }          from '@/infrastructure/db/schema/customers';
+import { localeFromHeader }   from '@/i18n/detect-locale';
 import type { Result }        from '@/shared/types/result';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.customers.actions' });
+}
 
 const schema = z.object({
   id:          z.string().uuid(),
@@ -38,7 +45,8 @@ export async function updateCustomerAction(
   );
 
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return { data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } };
+  const t = await getActionTranslations();
+  if (authErr || !user) return { data: null, error: { message: t('unauthorized'), code: 'UNAUTHORIZED' } };
 
   let orgId = user.user_metadata?.organization_id as string | undefined;
   // Fallback: profiles table (profiles.id === auth.users.id)
@@ -47,10 +55,10 @@ export async function updateCustomerAction(
       .from(profiles).where(eq(profiles.id, user.id)).limit(1);
     orgId = profileRows[0]?.organizationId;
   }
-    if (!orgId) return { data: null, error: { message: 'No organization', code: 'UNAUTHORIZED' } };
+    if (!orgId) return { data: null, error: { message: t('noOrganization'), code: 'UNAUTHORIZED' } };
 
   const parsed = schema.safeParse(raw);
-  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? 'Invalid input', code: 'VALIDATION_ERROR' } };
+  if (!parsed.success) return { data: null, error: { message: parsed.error.issues[0]?.message ?? t('invalidInput'), code: 'VALIDATION_ERROR' } };
 
   const { id, fullName, email, phone, notes, company, country, countryIso, address, city, state, postalCode, socialLinks } = parsed.data;
 

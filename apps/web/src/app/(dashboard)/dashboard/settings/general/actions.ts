@@ -9,13 +9,20 @@
  */
 
 import { revalidatePath }              from 'next/cache';
-import { cookies }                     from 'next/headers';
+import { cookies, headers }            from 'next/headers';
+import { getTranslations }             from 'next-intl/server';
 import { z }                           from 'zod';
 import { and, eq }                     from 'drizzle-orm';
 import { db }                          from '@/infrastructure/db';
 import { profiles }                    from '@/infrastructure/db/schema/organizations';
 import { resolveTenantOrgId }          from '@/shared/lib/resolve-tenant-org-id';
+import { localeFromHeader }            from '@/i18n/detect-locale';
 import type { Result }                 from '@/shared/types/result';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.settings.general.actions' });
+}
 
 const localeSchema = z.enum(['es', 'pt', 'en']);
 export type DashboardLocale = z.infer<typeof localeSchema>;
@@ -26,7 +33,8 @@ export async function setDashboardLocaleAction(
   // 1. Validate (Zod Law)
   const parsed = localeSchema.safeParse(raw);
   if (!parsed.success) {
-    return { data: null, error: { message: 'Idioma no válido', code: 'VALIDATION_ERROR' } };
+    const t = await getActionTranslations();
+    return { data: null, error: { message: t('invalidLocale'), code: 'VALIDATION_ERROR' } };
   }
   const locale = parsed.data;
 

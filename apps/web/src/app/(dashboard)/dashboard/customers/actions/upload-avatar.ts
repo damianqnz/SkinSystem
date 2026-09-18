@@ -5,11 +5,18 @@ import { createClient } from '@supabase/supabase-js';
 import { eq, and }      from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { createServerClient } from '@supabase/ssr';
-import { cookies }            from 'next/headers';
+import { cookies, headers }   from 'next/headers';
+import { getTranslations }    from 'next-intl/server';
 import { db }                 from '@/infrastructure/db';
 import { profiles } from '@/infrastructure/db/schema/organizations';
 import { customers }          from '@/infrastructure/db/schema/customers';
+import { localeFromHeader }   from '@/i18n/detect-locale';
 import type { Result }        from '@/shared/types/result';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.customers.actions' });
+}
 
 const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
 const BUCKET    = 'customer-avatars';
@@ -26,7 +33,8 @@ export async function uploadAvatarAction(
   );
 
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return { data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } };
+  const t = await getActionTranslations();
+  if (authErr || !user) return { data: null, error: { message: t('unauthorized'), code: 'UNAUTHORIZED' } };
 
   let orgId = user.user_metadata?.organization_id as string | undefined;
   // Fallback: profiles table (profiles.id === auth.users.id)
@@ -35,12 +43,12 @@ export async function uploadAvatarAction(
       .from(profiles).where(eq(profiles.id, user.id)).limit(1);
     orgId = profileRows[0]?.organizationId;
   }
-    if (!orgId) return { data: null, error: { message: 'No organization', code: 'UNAUTHORIZED' } };
+    if (!orgId) return { data: null, error: { message: t('noOrganization'), code: 'UNAUTHORIZED' } };
 
   const file = formData.get('avatar');
-  if (!(file instanceof File)) return { data: null, error: { message: 'No file provided', code: 'VALIDATION_ERROR' } };
-  if (file.size > MAX_BYTES)   return { data: null, error: { message: 'File exceeds 2 MB', code: 'VALIDATION_ERROR' } };
-  if (!file.type.startsWith('image/')) return { data: null, error: { message: 'Invalid file type', code: 'VALIDATION_ERROR' } };
+  if (!(file instanceof File)) return { data: null, error: { message: t('noFileProvided'), code: 'VALIDATION_ERROR' } };
+  if (file.size > MAX_BYTES)   return { data: null, error: { message: t('fileTooLarge'), code: 'VALIDATION_ERROR' } };
+  if (!file.type.startsWith('image/')) return { data: null, error: { message: t('invalidFileType'), code: 'VALIDATION_ERROR' } };
 
   const ext  = file.name.split('.').pop() ?? 'jpg';
   const path = `${orgId}/${customerId}.${ext}`;

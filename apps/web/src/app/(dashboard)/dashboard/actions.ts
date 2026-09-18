@@ -12,6 +12,7 @@
 
 import { headers } from 'next/headers';
 import { revalidatePath } from 'next/cache';
+import { getTranslations } from 'next-intl/server';
 import { eq, and } from 'drizzle-orm';
 
 import { db } from '@/infrastructure/db';
@@ -19,6 +20,12 @@ import { profiles } from '@/infrastructure/db/schema/organizations';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { getOrganizationBySlug } from '@/domains/organizations/service';
 import { clearSeedData, seedTenantData } from '@/domains/booking/seed';
+import { localeFromHeader } from '@/i18n/detect-locale';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.actions' });
+}
 
 export type SeedActionState =
   | { status: 'idle' }
@@ -26,18 +33,20 @@ export type SeedActionState =
   | { status: 'error';   message: string };
 
 export async function seedTenantDataAction(): Promise<SeedActionState> {
+  const t = await getActionTranslations();
+
   // 1. Hard environment gate — never run in prod
   if (process.env.NODE_ENV !== 'development') {
-    return { status: 'error', message: 'Disponible solo en desarrollo' };
+    return { status: 'error', message: t('devOnlyError') };
   }
 
   // 2. Resolve current tenant from middleware-injected header
   const headersList = await headers();
   const slug = headersList.get('x-tenant-slug') ?? '';
-  if (!slug) return { status: 'error', message: 'Tenant no encontrado en cabeceras' };
+  if (!slug) return { status: 'error', message: t('tenantNotFound') };
 
   const orgRes = await getOrganizationBySlug(slug);
-  if (!orgRes.data) return { status: 'error', message: `Organización "${slug}" no existe` };
+  if (!orgRes.data) return { status: 'error', message: t('orgNotFound', { slug }) };
   const orgId = orgRes.data.id;
 
   // 3. Pick a staff profile (FK requirement on appointments.staff_profile_id).
@@ -63,7 +72,7 @@ export async function seedTenantDataAction(): Promise<SeedActionState> {
     staffProfileId = any[0]?.id ?? null;
   }
   if (!staffProfileId) {
-    return { status: 'error', message: 'No hay profesional registrado en esta organización' };
+    return { status: 'error', message: t('noStaffRegistered') };
   }
 
   // 4. Wipe previous seed data, then insert fresh

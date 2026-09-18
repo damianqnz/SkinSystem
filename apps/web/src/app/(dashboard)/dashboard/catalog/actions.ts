@@ -1,11 +1,14 @@
 'use server';
 
 import { revalidatePath }              from 'next/cache';
+import { headers }                     from 'next/headers';
+import { getTranslations }             from 'next-intl/server';
 import { z }                           from 'zod';
 import { eq }                          from 'drizzle-orm';
 import { db }                          from '@/infrastructure/db';
 import { profiles }                    from '@/infrastructure/db/schema/organizations';
 import { createSupabaseServerClient }  from '@/infrastructure/supabase/server';
+import { localeFromHeader }            from '@/i18n/detect-locale';
 import {
   createCategory, updateCategory,
   createService,  updateService, toggleServiceStatus,
@@ -13,6 +16,11 @@ import {
 import {
   createCategorySchema, createServiceSchema, updateServiceSchema,
 } from '@/domains/catalog/schema';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.catalog.actions' });
+}
 
 // ── State types ───────────────────────────────────────────────
 
@@ -26,7 +34,8 @@ export type CatalogActionState =
 async function getOrgId(): Promise<{ orgId: string } | { error: string }> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'No autorizado' };
+  const t = await getActionTranslations();
+  if (!user) return { error: t('notAuthorized') };
 
   // organization_id is stored in user.user_metadata or we derive it from the session
   // For multi-tenant: each user belongs to exactly one org via profiles table
@@ -37,7 +46,7 @@ async function getOrgId(): Promise<{ orgId: string } | { error: string }> {
   const profileRows = await db.select({ organizationId: profiles.organizationId })
     .from(profiles).where(eq(profiles.id, user.id)).limit(1);
   const orgId = profileRows[0]?.organizationId;
-  if (!orgId) return { error: 'Organización no encontrada' };
+  if (!orgId) return { error: t('orgNotFound') };
   return { orgId };
 }
 
@@ -50,16 +59,17 @@ export async function createCategoryAction(
   const auth = await getOrgId();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
+  const t = await getActionTranslations();
   const parsed = createCategorySchema.safeParse({ ...raw as object, organizationId: auth.orgId });
   if (!parsed.success) {
-    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+    return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
   const result = await createCategory(parsed.data);
   if (result.error) return { status: 'error', message: result.error.message };
 
   revalidatePath('/dashboard/catalog');
-  return { status: 'success', id: result.data.id, message: 'Categoría creada' };
+  return { status: 'success', id: result.data.id, message: t('categoryCreated') };
 }
 
 export async function updateCategoryAction(
@@ -69,6 +79,7 @@ export async function updateCategoryAction(
   const auth = await getOrgId();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
+  const t = await getActionTranslations();
   const schema = z.object({
     id:      z.string().uuid(),
     nameI18n: z.object({ es: z.string().optional(), en: z.string().optional(), pt: z.string().optional() }),
@@ -77,7 +88,7 @@ export async function updateCategoryAction(
   });
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+    return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
   const { id, ...patch } = parsed.data;
@@ -85,7 +96,7 @@ export async function updateCategoryAction(
   if (result.error) return { status: 'error', message: result.error.message };
 
   revalidatePath('/dashboard/catalog');
-  return { status: 'success', id: result.data.id, message: 'Categoría actualizada' };
+  return { status: 'success', id: result.data.id, message: t('categoryUpdated') };
 }
 
 // ── Service actions ───────────────────────────────────────────
@@ -97,16 +108,17 @@ export async function createServiceAction(
   const auth = await getOrgId();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
+  const t = await getActionTranslations();
   const parsed = createServiceSchema.safeParse({ ...raw as object, organizationId: auth.orgId });
   if (!parsed.success) {
-    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+    return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
   const result = await createService(parsed.data);
   if (result.error) return { status: 'error', message: result.error.message };
 
   revalidatePath('/dashboard/catalog');
-  return { status: 'success', id: result.data.id, message: 'Servicio creado' };
+  return { status: 'success', id: result.data.id, message: t('serviceCreated') };
 }
 
 export async function updateServiceAction(
@@ -116,10 +128,11 @@ export async function updateServiceAction(
   const auth = await getOrgId();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
+  const t = await getActionTranslations();
   const schema = updateServiceSchema.extend({ id: z.string().uuid() });
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+    return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
   const { id, ...patch } = parsed.data;
@@ -127,7 +140,7 @@ export async function updateServiceAction(
   if (result.error) return { status: 'error', message: result.error.message };
 
   revalidatePath('/dashboard/catalog');
-  return { status: 'success', id: result.data.id, message: 'Servicio actualizado' };
+  return { status: 'success', id: result.data.id, message: t('serviceUpdated') };
 }
 
 export async function toggleServiceStatusAction(
@@ -137,15 +150,16 @@ export async function toggleServiceStatusAction(
   const auth = await getOrgId();
   if ('error' in auth) return { status: 'error', message: auth.error };
 
+  const t = await getActionTranslations();
   const parsed = z.object({ id: z.string().uuid(), isActive: z.boolean() }).safeParse(raw);
   if (!parsed.success) {
-    return { status: 'error', message: 'Datos inválidos' };
+    return { status: 'error', message: t('invalidData') };
   }
 
   const result = await toggleServiceStatus(parsed.data.id, auth.orgId, parsed.data.isActive);
   if (result.error) return { status: 'error', message: result.error.message };
 
   revalidatePath('/dashboard/catalog');
-  const label = parsed.data.isActive ? 'activado' : 'desactivado';
-  return { status: 'success', id: result.data.id, message: `Servicio ${label}` };
+  const message = parsed.data.isActive ? t('serviceActivated') : t('serviceDeactivated');
+  return { status: 'success', id: result.data.id, message };
 }

@@ -4,10 +4,18 @@ import 'server-only';
 import { z } from 'zod';
 import { eq, and, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { db } from '@/infrastructure/db';
 import { customers } from '@/infrastructure/db/schema/customers';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
 import type { Result } from '@/shared/types/result';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.customers.actions' });
+}
 
 const rowSchema = z.object({
   fullName: z.string().min(2).max(120),
@@ -26,14 +34,15 @@ export async function importCustomersAction(
 ): Promise<Result<ImportResult>> {
   const supabase = await createSupabaseServerClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { data: null, error: { message: 'Unauthorized', code: 'AUTH_ERROR' } };
+  const t = await getActionTranslations();
+  if (!user) return { data: null, error: { message: t('unauthorized'), code: 'AUTH_ERROR' } };
 
   const orgId = user.user_metadata.organization_id as string | undefined;
-  if (!orgId) return { data: null, error: { message: 'No organization', code: 'AUTH_ERROR' } };
+  if (!orgId) return { data: null, error: { message: t('noOrganization'), code: 'AUTH_ERROR' } };
 
   const parsed = inputSchema.safeParse(raw);
   if (!parsed.success) {
-    const msg = parsed.error.issues[0]?.message ?? 'Datos inválidos';
+    const msg = parsed.error.issues[0]?.message ?? t('invalidInput');
     return { data: null, error: { message: msg, code: 'VALIDATION_ERROR' } };
   }
 
@@ -75,6 +84,6 @@ export async function importCustomersAction(
     revalidatePath('/dashboard/customers');
     return { data: { imported: toInsert.length, skipped }, error: null };
   } catch {
-    return { data: null, error: { message: 'Error al importar', code: 'DB_ERROR' } };
+    return { data: null, error: { message: t('importFailed'), code: 'DB_ERROR' } };
   }
 }

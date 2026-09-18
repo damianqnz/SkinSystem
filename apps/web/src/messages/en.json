@@ -555,7 +555,10 @@
         "optionEs":       "Español",
         "optionEn":       "English",
         "toastSuccess":   "Language updated",
-        "toastError":     "Could not update the language"
+        "toastError":     "Could not update the language",
+        "actions": {
+          "invalidLocale": "Invalid language"
+        }
       },
       "profile": {
         "title":       "Your profile",
@@ -842,7 +845,17 @@
         "toastBlocked":  "Client blocked",
         "toastUnblocked":"Client unblocked",
         "toastDeleted":  "Client deleted",
-        "optionsAriaLabel":"Options"
+        "optionsAriaLabel":"Options",
+        "unauthorized":    "Unauthorized",
+        "noOrganization":  "No organization",
+        "invalidInput":    "Invalid input",
+        "noFileProvided":  "No file provided",
+        "fileTooLarge":    "File exceeds 2 MB",
+        "invalidFileType": "Invalid file type",
+        "hasAppointments": "This customer has registered appointments. Their data will be kept for financial record-keeping.",
+        "customerNotFound":"Customer not found",
+        "failedToCreate":  "Failed to create customer",
+        "importFailed":    "Import failed"
       },
       "appointments": {
         "yearLabel":      "This year",
@@ -889,7 +902,11 @@
       },
       "routine": {
         "backLink": "Back to record",
-        "title":    "Home Care Routine"
+        "title":    "Home Care Routine",
+        "actions": {
+          "invalidData": "Invalid data.",
+          "unauthorized":"Not authorized."
+        }
       }
     },
     "calendar": {
@@ -1092,7 +1109,18 @@
       "categoryActiveLabel":   "Category active",
       "categoryActiveHint":    "Appears on the booking page",
       "saveCategoryChanges":   "Save",
-      "createCategory":        "Create category"
+      "createCategory":        "Create category",
+      "actions": {
+        "notAuthorized":      "Not authorized",
+        "orgNotFound":        "Organization not found",
+        "invalidData":        "Invalid data",
+        "categoryCreated":    "Category created",
+        "categoryUpdated":    "Category updated",
+        "serviceCreated":     "Service created",
+        "serviceUpdated":     "Service updated",
+        "serviceActivated":   "Service activated",
+        "serviceDeactivated": "Service deactivated"
+      }
     },
     "billing": {
       "title":                    "Payments",
@@ -1235,7 +1263,25 @@
         "csvColAppointmentId": "Appointment ID",
         "viewInStripe":       "View in Stripe",
         "sortByLabel":        "Sort by {column}"
+      },
+
+      "actions": {
+        "invalidData":         "Invalid data",
+        "limitTaxes":          "Limit of 2 taxes reached",
+        "limitReductions":     "Limit of 1 reduction reached",
+        "createError":         "Error creating",
+        "notFound":            "Not found",
+        "updateSettingsError": "Could not update the settings",
+        "invalidDates":        "Invalid dates",
+        "couponCreateError":   "Error creating the coupon",
+        "duplicateCode":       "The code already exists for this organization"
       }
+    },
+    "actions": {
+      "devOnlyError":      "Available only in development",
+      "tenantNotFound":    "Tenant not found in headers",
+      "orgNotFound":       "Organization \"{slug}\" does not exist",
+      "noStaffRegistered": "No staff member registered in this organization"
     }
   },
   "marketing": {

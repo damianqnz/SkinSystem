@@ -4,11 +4,18 @@ import 'server-only';
 import { eq, and, not }       from 'drizzle-orm';
 import { revalidatePath }     from 'next/cache';
 import { createServerClient } from '@supabase/ssr';
-import { cookies }            from 'next/headers';
+import { cookies, headers }   from 'next/headers';
+import { getTranslations }    from 'next-intl/server';
 import { db }                 from '@/infrastructure/db';
 import { profiles } from '@/infrastructure/db/schema/organizations';
 import { customers }          from '@/infrastructure/db/schema/customers';
+import { localeFromHeader }   from '@/i18n/detect-locale';
 import type { Result }        from '@/shared/types/result';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.customers.actions' });
+}
 
 export async function toggleBlockCustomerAction(
   customerId: string,
@@ -21,7 +28,8 @@ export async function toggleBlockCustomerAction(
   );
 
   const { data: { user }, error: authErr } = await supabase.auth.getUser();
-  if (authErr || !user) return { data: null, error: { message: 'Unauthorized', code: 'UNAUTHORIZED' } };
+  const t = await getActionTranslations();
+  if (authErr || !user) return { data: null, error: { message: t('unauthorized'), code: 'UNAUTHORIZED' } };
 
   let orgId = user.user_metadata?.organization_id as string | undefined;
   // Fallback: profiles table (profiles.id === auth.users.id)
@@ -30,7 +38,7 @@ export async function toggleBlockCustomerAction(
       .from(profiles).where(eq(profiles.id, user.id)).limit(1);
     orgId = profileRows[0]?.organizationId;
   }
-    if (!orgId) return { data: null, error: { message: 'No organization', code: 'UNAUTHORIZED' } };
+    if (!orgId) return { data: null, error: { message: t('noOrganization'), code: 'UNAUTHORIZED' } };
 
   const rows = await db
     .update(customers)
@@ -38,7 +46,7 @@ export async function toggleBlockCustomerAction(
     .where(and(eq(customers.id, customerId), eq(customers.organizationId, orgId)))
     .returning({ isBlocked: customers.isBlocked });
 
-  if (!rows[0]) return { data: null, error: { message: 'Customer not found', code: 'NOT_FOUND' } };
+  if (!rows[0]) return { data: null, error: { message: t('customerNotFound'), code: 'NOT_FOUND' } };
 
   revalidatePath(`/dashboard/customers/${customerId}`);
   revalidatePath('/dashboard/customers');
