@@ -165,7 +165,7 @@ export async function StripeConnectModal() {
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <a
-                href="https://dashboard.stripe.com"
+                href={`https://dashboard.stripe.com/${settings!.stripeAccountId!}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-stone-500 transition-colors hover:text-stone-800"

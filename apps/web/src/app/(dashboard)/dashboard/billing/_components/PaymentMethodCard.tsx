@@ -39,7 +39,7 @@ export function PaymentMethodCard({ stripeConnected, stripeAccountId }: PaymentM
               {t('connected')}
             </span>
             <a
-              href="https://dashboard.stripe.com"
+              href={stripeAccountId ? `https://dashboard.stripe.com/${stripeAccountId}` : 'https://dashboard.stripe.com'}
               target="_blank"
               rel="noopener noreferrer"
               className="p-1.5 text-stone-400 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition-colors"
