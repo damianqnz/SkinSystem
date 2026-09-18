@@ -311,7 +311,7 @@
         "body": "Tu cuenta de Stripe está activa y aceptando pagos.",
         "accountIdLabel": "ID de cuenta",
         "typeLabel": "Tipo",
-        "typeValue": "Express",
+        "typeValue": "Standard",
         "transfersLabel": "Transferencias",
         "transfersValue": "Habilitadas",
         "openDashboard": "Abrir panel de Stripe"

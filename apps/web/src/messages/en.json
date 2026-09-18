@@ -311,7 +311,7 @@
         "body": "Your Stripe account is active and accepting payments.",
         "accountIdLabel": "Account ID",
         "typeLabel": "Type",
-        "typeValue": "Express",
+        "typeValue": "Standard",
         "transfersLabel": "Transfers",
         "transfersValue": "Enabled",
         "openDashboard": "Open Stripe dashboard"
