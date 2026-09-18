@@ -2,17 +2,10 @@ import { headers } from 'next/headers';
 import { ExternalLink, Check, AlertCircle, ShieldCheck } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { getOrganizationBySlug, getOrganizationSettings } from '@/domains/organizations/service';
+import { resolveStripeConnectState, type StripeConnectState } from '@/shared/lib/stripe-policy';
 import { StripeConnectControls } from './StripeConnectControls';
 import { StripeDisconnectDialog } from './StripeDisconnectDialog';
 import { localeFromHeader } from '@/i18n/detect-locale';
-
-type CardState = 'connected' | 'pending' | 'disconnected';
-
-function pickState(args: { hasAccount: boolean; onboarded: boolean; charges: boolean }): CardState {
-  if (!args.hasAccount) return 'disconnected';
-  if (args.onboarded && args.charges) return 'connected';
-  return 'pending';
-}
 
 /**
  * Server component. Single source of truth for the Stripe Connect card
@@ -40,7 +33,8 @@ export async function StripeConnectModal() {
   const hasAccount = !!settings?.stripeAccountId;
   const onboarded  = !!settings?.stripeOnboarded;
   const charges    = !!settings?.stripeChargesEnabled;
-  const state      = pickState({ hasAccount, onboarded, charges });
+  const payouts    = !!settings?.stripePayoutsEnabled;
+  const state      = resolveStripeConnectState({ hasAccount, onboarded, chargesEnabled: charges, payoutsEnabled: payouts });
 
   return (
     <article className="overflow-hidden rounded-2xl border border-stone-100 bg-white shadow-sm">
@@ -100,10 +94,27 @@ export async function StripeConnectModal() {
               <h3 className="font-cormorant text-base font-semibold text-stone-800">{t('pending.heading')}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-stone-500">{t('pending.body')}</p>
             </div>
-            <div role="status" className="flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3">
-              <AlertCircle size={14} className="shrink-0 text-amber-500" aria-hidden />
-              <p className="text-xs text-amber-700">{t('pending.warning')}</p>
-            </div>
+            {!onboarded ? (
+              <div role="status" className="flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3">
+                <AlertCircle size={14} className="shrink-0 text-amber-500" aria-hidden />
+                <p className="text-xs text-amber-700">{t('pending.warning')}</p>
+              </div>
+            ) : (
+              <ul role="status" className="space-y-2">
+                {!charges && (
+                  <li className="flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3">
+                    <AlertCircle size={14} className="shrink-0 text-amber-500" aria-hidden />
+                    <p className="text-xs text-amber-700">{t('pending.capabilityCharges')}</p>
+                  </li>
+                )}
+                {!payouts && (
+                  <li className="flex items-center gap-2 rounded-xl border border-amber-100 bg-amber-50 p-3">
+                    <AlertCircle size={14} className="shrink-0 text-amber-500" aria-hidden />
+                    <p className="text-xs text-amber-700">{t('pending.capabilityPayouts')}</p>
+                  </li>
+                )}
+              </ul>
+            )}
             <StripeConnectControls
               variant="continue"
               labels={{
@@ -174,7 +185,7 @@ export async function StripeConnectModal() {
 
 // ── Atoms ─────────────────────────────────────────────────────
 
-function StatusBadge({ state, labels }: { state: CardState; labels: { connected: string; pending: string; disconnected: string } }) {
+function StatusBadge({ state, labels }: { state: StripeConnectState; labels: { connected: string; pending: string; disconnected: string } }) {
   if (state === 'connected') return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
       <Check size={12} aria-hidden />

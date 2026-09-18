@@ -193,8 +193,10 @@ async function handlePaymentFailed(pi: Stripe.PaymentIntent) {
 /**
  * account.updated
  *
- * Fires after Stripe onboarding. When `details_submitted = true`,
- * the specialist can receive payments — mark them as onboarded.
+ * Fires after Stripe onboarding and again whenever the account's capability
+ * status changes (e.g. Stripe restricts payouts pending a requirement).
+ * `charges_enabled`/`payouts_enabled` are persisted independently — an
+ * account can have one without the other.
  */
 async function handleAccountUpdated(account: Stripe.Account) {
   if (!account.details_submitted) return;
@@ -211,6 +213,6 @@ async function handleAccountUpdated(account: Stripe.Account) {
     return;
   }
 
-  await markStripeOnboarded(rows[0].id, true, account.charges_enabled === true);
-  console.info(`[stripe webhook] org ${rows[0].id} marked as Stripe-onboarded (charges=${account.charges_enabled})`);
+  await markStripeOnboarded(rows[0].id, true, account.charges_enabled === true, account.payouts_enabled === true);
+  console.info(`[stripe webhook] org ${rows[0].id} marked as Stripe-onboarded (charges=${account.charges_enabled}, payouts=${account.payouts_enabled})`);
 }

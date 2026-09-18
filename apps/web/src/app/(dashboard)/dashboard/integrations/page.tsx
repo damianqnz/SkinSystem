@@ -3,6 +3,7 @@ import { headers }                 from 'next/headers';
 import { notFound }                from 'next/navigation';
 import { getOrganizationBySlug }   from '@/domains/organizations/service';
 import { getOrganizationSettings } from '@/domains/organizations/service';
+import { resolveStripeConnectState } from '@/shared/lib/stripe-policy';
 import { IntegrationsClient }      from './_components/IntegrationsClient';
 
 /**
@@ -36,7 +37,12 @@ async function IntegrationsContent({
 
   const settingsResult  = await getOrganizationSettings(orgResult.data.id);
   const settings        = settingsResult.data;
-  const stripeConnected = !!(settings?.stripeAccountId && settings.stripeOnboarded);
+  const stripeConnected = resolveStripeConnectState({
+    hasAccount:     !!settings?.stripeAccountId,
+    onboarded:      !!settings?.stripeOnboarded,
+    chargesEnabled: !!settings?.stripeChargesEnabled,
+    payoutsEnabled: !!settings?.stripePayoutsEnabled,
+  }) === 'connected';
 
   return (
     <IntegrationsClient

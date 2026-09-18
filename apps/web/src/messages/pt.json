@@ -302,7 +302,9 @@
       "pending": {
         "heading": "Configuração em progresso",
         "body": "Conclua a verificação no Stripe para ativar os pagamentos.",
-        "warning": "A sua conta está pendente de verificação. Continue no Stripe para a ativar."
+        "warning": "A sua conta está pendente de verificação. Continue no Stripe para a ativar.",
+        "capabilityCharges": "O Stripe ainda não habilitou a cobrança de pagamentos nesta conta.",
+        "capabilityPayouts": "O Stripe ainda não habilitou as transferências para a sua conta bancária."
       },
       "connected": {
         "heading": "Stripe conectado",

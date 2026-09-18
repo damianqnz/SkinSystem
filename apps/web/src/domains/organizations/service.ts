@@ -11,6 +11,7 @@ export type OrgSettings = OrgSummary & {
   stripeAccountId:       string | null;
   stripeOnboarded:       boolean;
   stripeChargesEnabled:  boolean;
+  stripePayoutsEnabled:  boolean;
   defaultCurrency:       string;
   primaryEmail:          string | null;
   logoUrl:               string | null;
@@ -31,6 +32,7 @@ const SETTINGS_COLS = {
   stripeAccountId:       organizations.stripeAccountId,
   stripeOnboarded:       organizations.stripeOnboarded,
   stripeChargesEnabled:  organizations.stripeChargesEnabled,
+  stripePayoutsEnabled:  organizations.stripePayoutsEnabled,
   defaultCurrency:       organizations.defaultCurrency,
   primaryEmail:          organizations.primaryEmail,
   logoUrl:               organizations.logoUrl,
@@ -98,21 +100,30 @@ export async function setStripeAccountId(
 
 /**
  * Mark org as Stripe-onboarded.
- * Called from the `account.updated` webhook. `chargesEnabled` mirrors
- * Stripe's own `account.charges_enabled` field so the UI can show
- * "verification in progress" vs "ready to charge".
+ * Called from the `account.updated` webhook. `chargesEnabled`/`payoutsEnabled`
+ * mirror Stripe's own `account.charges_enabled`/`account.payouts_enabled`
+ * fields so the UI can show which capability is still pending — an account
+ * can have one enabled and not the other (e.g. bank details still required
+ * for payouts even once charges are approved).
  */
 export async function markStripeOnboarded(
   orgId:           string,
   onboarded:       boolean = true,
   chargesEnabled?: boolean,
+  payoutsEnabled?: boolean,
 ): Promise<Result<{ id: string }>> {
   try {
-    const patch: { stripeOnboarded: boolean; updatedAt: Date; stripeChargesEnabled?: boolean } = {
+    const patch: {
+      stripeOnboarded:       boolean;
+      updatedAt:             Date;
+      stripeChargesEnabled?: boolean;
+      stripePayoutsEnabled?: boolean;
+    } = {
       stripeOnboarded: onboarded,
       updatedAt:       new Date(),
     };
     if (chargesEnabled !== undefined) patch.stripeChargesEnabled = chargesEnabled;
+    if (payoutsEnabled !== undefined) patch.stripePayoutsEnabled = payoutsEnabled;
 
     const rows = await db
       .update(organizations)
@@ -141,6 +152,7 @@ export async function clearStripeAccount(
         stripeAccountId:      null,
         stripeOnboarded:      false,
         stripeChargesEnabled: false,
+        stripePayoutsEnabled: false,
         updatedAt:            new Date(),
       })
       .where(eq(organizations.id, orgId))

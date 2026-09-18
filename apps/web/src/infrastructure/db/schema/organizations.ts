@@ -22,6 +22,7 @@ export const organizations = pgTable('organizations', {
   stripeAccountId:      text('stripe_account_id'),
   stripeOnboarded:      boolean('stripe_onboarded').notNull().default(false),
   stripeChargesEnabled: boolean('stripe_charges_enabled').notNull().default(false),
+  stripePayoutsEnabled: boolean('stripe_payouts_enabled').notNull().default(false),
   customRedirectUrl:  text('custom_redirect_url'),
   autoRedirect:       boolean('auto_redirect').notNull().default(false),
   isActive:           boolean('is_active').notNull().default(true),

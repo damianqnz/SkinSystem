@@ -18,3 +18,23 @@ export function allowsDirectPlatformCharge(
   const isTestKey    = stripeSecretKey?.startsWith('sk_test_') ?? false;
   return isTestKey && !isProduction;
 }
+
+export type StripeConnectState = 'connected' | 'pending' | 'disconnected';
+
+/**
+ * The Stripe Connect card's state, derived from the org's persisted
+ * capability flags. "connected" requires BOTH `chargesEnabled` and
+ * `payoutsEnabled` — an account can finish onboarding and accept charges
+ * while payouts are still restricted (e.g. a bank-details requirement),
+ * and that's not a fully working account yet.
+ */
+export function resolveStripeConnectState(args: {
+  hasAccount:     boolean;
+  onboarded:      boolean;
+  chargesEnabled: boolean;
+  payoutsEnabled: boolean;
+}): StripeConnectState {
+  if (!args.hasAccount) return 'disconnected';
+  if (args.onboarded && args.chargesEnabled && args.payoutsEnabled) return 'connected';
+  return 'pending';
+}

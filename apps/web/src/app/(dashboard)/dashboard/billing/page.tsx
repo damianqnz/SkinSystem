@@ -5,6 +5,7 @@ import { eq }                      from 'drizzle-orm';
 import { getTranslations }         from 'next-intl/server';
 import { getOrganizationBySlug }   from '@/domains/organizations/service';
 import { getOrganizationSettings } from '@/domains/organizations/service';
+import { resolveStripeConnectState } from '@/shared/lib/stripe-policy';
 import { db }                      from '@/infrastructure/db';
 import { bookingSettings }         from '@/domains/booking/schema';
 import { PaymentMethodCard }       from './_components/PaymentMethodCard';
@@ -59,7 +60,12 @@ async function BillingContent() {
   ]);
 
   const settings        = settingsResult.data;
-  const stripeConnected = !!(settings?.stripeAccountId && settings.stripeOnboarded);
+  const stripeConnected = resolveStripeConnectState({
+    hasAccount:     !!settings?.stripeAccountId,
+    onboarded:      !!settings?.stripeOnboarded,
+    chargesEnabled: !!settings?.stripeChargesEnabled,
+    payoutsEnabled: !!settings?.stripePayoutsEnabled,
+  }) === 'connected';
   const bs              = bsRows[0];
 
   const sectionError = t('sectionError');

@@ -302,7 +302,9 @@
       "pending": {
         "heading": "Setup in progress",
         "body": "Complete verification on Stripe to activate payments.",
-        "warning": "Your account is pending verification. Continue on Stripe to activate it."
+        "warning": "Your account is pending verification. Continue on Stripe to activate it.",
+        "capabilityCharges": "Stripe hasn't enabled charges on this account yet.",
+        "capabilityPayouts": "Stripe hasn't enabled payouts to your bank account yet."
       },
       "connected": {
         "heading": "Stripe connected",
