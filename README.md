@@ -110,7 +110,7 @@ UI Component → Server Action (Zod validation) → Domain Service → Drizzle O
 
 ### Prerequisites
 
-- Node.js `>=18`
+- Node.js `>=24` (Active LTS — "Krypton")
 - pnpm `9.x` — `npm install -g pnpm`
 - A [Supabase](https://supabase.com) project
 - A [Stripe](https://stripe.com) account with Connect enabled

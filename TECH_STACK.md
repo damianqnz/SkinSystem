@@ -6,7 +6,7 @@ This file defines the technologies, libraries, and design resources approved for
 
 ## 1. Core Stack (The Engine)
 - **Framework**: Next.js 16.x (App Router, PPR, Server Actions). Currently 16.3.5.
-- **Runtime**: Node.js 24.x LTS ("Krypton"). Node 25 was never an LTS release (odd-numbered majors don't graduate to LTS) and has been EOL since March 2026 — do not target it. CI (`ci.yml`) runs Node 22, also LTS but older; local dev machines may run ahead on Node 26 ("Current", not yet LTS) — that's fine for local dev, not for pinning CI/production.
+- **Runtime**: Node.js 24.x LTS ("Krypton") — pinned in `.nvmrc`, `engines` (root + verified via CI), and CI (`ci.yml`). Node 25 was never an LTS release (odd-numbered majors don't graduate to LTS) and has been EOL since March 2026 — do not target it. Node 22 ("Jod") is still a supported LTS (Maintenance phase) but is no longer Active LTS — do not re-pin CI/production to it. Local dev machines may run ahead on Node 26 ("Current", not yet LTS) — that's fine for local dev, not for pinning CI/production.
 - **Language**: TypeScript 5.x (Strict Mode). Currently 5.9.2. TypeScript 7 (the native Go-ported compiler) exists and is stable for `tsc` itself, but `typescript-eslint` only supports `<6.1.0` as of this writing — do not upgrade past 5.9.x/6.0.x until typescript-eslint publishes TS7 support, or `pnpm lint` breaks.
 - **Package Manager**: pnpm.
 
