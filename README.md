@@ -39,7 +39,7 @@ SkinSystem is a production-grade, multi-tenant appointment and business manageme
 | Auth | Supabase Auth (PKCE flow) |
 | Cache / Locks | Upstash Redis (5-min slot locking) |
 | Payments | Stripe Connect (Standard) |
-| Styling | Tailwind CSS v4 (90%) + Stitches (10%) |
+| Styling | Tailwind CSS v4 (90%) + tailwind-variants (10%) |
 | Components | Shadcn/ui + MagicUI |
 | Animations | Framer Motion + GSAP 3 |
 | I18n | next-intl |

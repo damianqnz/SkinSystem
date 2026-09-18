@@ -19,7 +19,7 @@ This file defines the technologies, libraries, and design resources approved for
 
 ## 3. UI & Styling (The 90/10 Boundary Rule)
 - **Tailwind CSS v4**: Primary tool for Layout, Spacing, Typography, and Responsive design (**90% of the app**).
-- **Stitches**: Exclusive for **Complex Atomic Components** with state-driven variants (e.g., Slot Selectors, Clinical Charts) (**10% of the app**). ⚠️ Unmaintained upstream — last stable release was April 2022, no updates since. Fine to keep using for existing components; do not add new dependencies on it for new work without a deliberate decision to replace it (candidate migration target: CVA/Tailwind variants).
+- **tailwind-variants**: Exclusive for **Complex Atomic Components** with state-driven variants (e.g., Slot Selectors, Clinical Charts) (**10% of the app**). Replaces `@stitches/react` (removed 2026-09-18 — was unmaintained since April 2022, and its only usage in the codebase was dead code with zero live imports).
 - **Base Components**: **Shadcn/ui** (Customized for luxury aesthetics).
 - **Animations**: **MagicUI** + **Framer Motion** + **GSAP 3** (For high-end timelines).
 - **I18n**: `next-intl` for static UI translations via JSON.

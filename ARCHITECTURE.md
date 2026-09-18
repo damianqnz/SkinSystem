@@ -30,7 +30,7 @@ src/
 │   ├── customers/        # CRM, clinical records, and asset tracking
 │   └── billing/          # Fiscal logic (VAT/NIF) & Stripe Connect
 ├── shared/               # REUSABLE RESOURCES
-│   ├── components/       # Atomic UI (Tailwind v4 / Stitches)
+│   ├── components/       # Atomic UI (Tailwind v4 / tailwind-variants)
 │   ├── providers/        # TenantProvider, AuthProvider, I18nProvider
 │   ├── hooks/            # useTenantContext, useAppTheme
 │   ├── lib/              # Drizzle, Supabase, Redis clients
@@ -65,7 +65,7 @@ To scale without duplicating code, the interface uses a 90/10 CSS Boundary:
 
 1.  **CSS Variables**: The root Layout injects tokens (e.g., `--accent-spa`, `--brand-gold`, `--font-heading`) into the `:root` DOM element based on the Tenant data.
 2.  **Tailwind CSS v4 (90%)**: Components use utility classes that reference these CSS variables, instantly changing the "look & feel" from Lourdes to Gloria.
-3.  **Stitches (10%)**: Used EXCLUSIVELY for **Complex Atomic Components** with multiple logic-driven variants (e.g., "Slot Selector" states: `available`, `locked`, `occupied`, `selected`).
+3.  **tailwind-variants (10%)**: Used EXCLUSIVELY for **Complex Atomic Components** with multiple logic-driven variants (e.g., "Slot Selector" states: `available`, `locked`, `occupied`, `selected`).
 
 ---
 

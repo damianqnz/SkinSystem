@@ -7,8 +7,6 @@
       }
     ],
     "strictNullChecks": true,
-    "declaration": false,
-    "declarationMap": false,
     "paths": {
       "@/*": ["./src/*"]
     }

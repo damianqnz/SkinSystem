@@ -18,7 +18,7 @@ This document is the SkinSystem Technical Charter. It coordinates the tools in `
 
 ## 3. UI & Styling (The 90/10 Boundary Rule)
 - **Tailwind CSS v4 (90%)**: Used for Layout, Spacing, Typography, and Responsive utilities.
-- **Stitches (10%)**: Reserved EXCLUSIVELY for **Complex Atomic Components** with state-driven variants (e.g., Slot Selectors, Clinical Charts).
+- **tailwind-variants (10%)**: Reserved EXCLUSIVELY for **Complex Atomic Components** with state-driven variants (e.g., Slot Selectors, Clinical Charts). Replaces the now-removed `@stitches/react`.
 - **Thumb-Zone**: Critical interactive elements must be in the lower 30% of the mobile screen.
 - **Feedback**: Every server action must trigger a `Sonner` toast notification.
 
