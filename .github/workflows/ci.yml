@@ -10,13 +10,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# `lint` is deliberately not part of this gate yet: `pnpm lint` fails today on
-# 74 pre-existing warnings across the repo (unrelated to any change this
-# workflow was introduced with). See HEARTBEAT.md's lint-debt ticket — add a
-# `Lint` step here once that's cleaned up, so the gate doesn't ship red on day one.
 jobs:
   checks:
-    name: Typecheck and test
+    name: Typecheck, lint and test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -33,6 +29,9 @@ jobs:
 
       - name: Type check
         run: pnpm check-types
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Test
         run: pnpm test
