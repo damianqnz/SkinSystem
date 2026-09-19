@@ -3,8 +3,9 @@
 import { z }            from 'zod';
 import { headers }      from 'next/headers';
 import { randomUUID }   from 'crypto';
-import { eq, and, lte, or, isNull, gt } from 'drizzle-orm';
+import { eq, and, lte, or, isNull, gt, sql } from 'drizzle-orm';
 import { db }           from '@/infrastructure/db';
+import { isUniqueViolation, CUSTOMERS_ORG_EMAIL_UNIQUE_INDEX } from '@/infrastructure/db/unique-violation';
 import { customers }    from '@/infrastructure/db/schema/customers';
 import { profiles }     from '@/infrastructure/db/schema/organizations';
 import { coupons, bookingSettings, paymentSurcharges, appointments } from '@/infrastructure/db/schema/booking';
@@ -262,36 +263,46 @@ export async function createBookingAction(
   }
 
   // ── 5. Upsert guest customer ──────────────────────────────
-  const existing = await db
+  // Email is stored lower-case so it matches `uq_customers_org_email`
+  // (organization_id, lower(email)) — and so login can find the row.
+  const guestEmail = input.guestEmail.toLowerCase();
+  const findByEmail = () => db
     .select({ id: customers.id, isBlocked: customers.isBlocked })
     .from(customers)
     .where(and(
       eq(customers.organizationId, org.id),
-      eq(customers.email, input.guestEmail),
+      sql`lower(${customers.email}) = ${guestEmail}`,
     ))
     .limit(1);
 
-  if (existing[0]?.isBlocked) {
-    return { status: 'error', message: 'No es posible realizar esta reserva.' };
+  let customer = (await findByEmail())[0];
+  if (!customer) {
+    try {
+      const rows = await db
+        .insert(customers)
+        .values({
+          organizationId: org.id,
+          fullName:       input.guestName,
+          email:          guestEmail,
+          phone:          input.guestPhone,
+          isGuest:        true,
+        })
+        .returning({ id: customers.id, isBlocked: customers.isBlocked });
+      customer = rows[0];
+    } catch (error) {
+      // A concurrent double-submit inserted the same (org, email) between our
+      // SELECT and INSERT: converge on that row instead of failing the booking.
+      if (!isUniqueViolation(error, CUSTOMERS_ORG_EMAIL_UNIQUE_INDEX)) throw error;
+      customer = (await findByEmail())[0];
+    }
+    if (!customer) return { status: 'error', message: 'Error al registrar cliente' };
   }
 
-  let customerId: string;
-  if (existing[0]) {
-    customerId = existing[0].id;
-  } else {
-    const rows = await db
-      .insert(customers)
-      .values({
-        organizationId: org.id,
-        fullName:       input.guestName,
-        email:          input.guestEmail,
-        phone:          input.guestPhone,
-        isGuest:        true,
-      })
-      .returning({ id: customers.id });
-    if (!rows[0]) return { status: 'error', message: 'Error al registrar cliente' };
-    customerId = rows[0].id;
+  // Applies to a pre-existing row and to the row a concurrent request created.
+  if (customer.isBlocked) {
+    return { status: 'error', message: 'No es posible realizar esta reserva.' };
   }
+  const customerId = customer.id;
 
   // ── Compute online amount (server-side) ───────────────────
   // Reductions: % or fixed amounts subtracted from online charge
@@ -387,7 +398,7 @@ export async function createBookingAction(
     organizationId:     org.id,
     appointmentId,
     serviceId:          input.serviceId,
-    customerEmail:      input.guestEmail,
+    customerEmail:      guestEmail,
     customerName:       input.guestName,
     locale,
     slotStartISO:       input.slotStartISO,
