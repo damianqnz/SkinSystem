@@ -855,7 +855,8 @@
         "hasAppointments": "Este cliente tiene citas registradas. Sus datos se conservarán por integridad financiera.",
         "customerNotFound":"Cliente no encontrado",
         "failedToCreate":  "No se pudo crear el cliente",
-        "importFailed":    "Error al importar"
+        "importFailed":    "Error al importar",
+        "duplicateEmail":  "Ya existe un cliente con este correo electrónico"
       },
       "appointments": {
         "yearLabel":      "Este año",

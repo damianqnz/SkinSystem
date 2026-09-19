@@ -855,7 +855,8 @@
         "hasAppointments": "This customer has registered appointments. Their data will be kept for financial record-keeping.",
         "customerNotFound":"Customer not found",
         "failedToCreate":  "Failed to create customer",
-        "importFailed":    "Import failed"
+        "importFailed":    "Import failed",
+        "duplicateEmail":  "A customer with this email already exists"
       },
       "appointments": {
         "yearLabel":      "This year",

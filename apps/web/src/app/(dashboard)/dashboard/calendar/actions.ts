@@ -314,7 +314,7 @@ export async function quickCreateCustomerAction(raw: unknown): Promise<CreateCus
         organizationId: auth.orgId,
         fullName:       parsed.data.fullName,
         phone:          parsed.data.phone ?? null,
-        email:          parsed.data.email ?? null,
+        email:          parsed.data.email?.toLowerCase() ?? null,
         isGuest:        false,
       })
       .returning({ id: customers.id, fullName: customers.fullName });
