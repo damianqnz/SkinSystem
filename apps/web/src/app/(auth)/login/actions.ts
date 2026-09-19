@@ -8,6 +8,7 @@ import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { db } from '@/infrastructure/db';
 import { profiles, organizations } from '@/infrastructure/db/schema/organizations';
 import { customers } from '@/infrastructure/db/schema/customers';
+import { resolveRedirectUrl } from '@/infrastructure/auth/resolve-redirect-url';
 
 const DASHBOARD_LOCALES = ['es', 'pt', 'en'] as const;
 type DashboardLocale = (typeof DASHBOARD_LOCALES)[number];
@@ -142,40 +143,4 @@ export async function loginAction(
   //    CTA to /book (copy lives in auth translations).
   await supabase.auth.signOut();
   return { error: 'no_account' };
-}
-
-// ── Helpers ───────────────────────────────────────────────────────
-
-/**
- * Resolves the post-login redirect URL for the given target path
- * (`/dashboard` for staff, `/me` for customers).
- * Validates an optional `next` override against the user's org subdomain to
- * prevent open-redirect abuse.
- */
-function resolveRedirectUrl(
-  next: string | undefined,
-  orgSlug: string,
-  defaultPath: '/dashboard' | '/me',
-): string {
-  const baseDomain = process.env.NEXT_PUBLIC_BASE_DOMAIN ?? 'skinsystem.pt';
-  const isLocal    = process.env.NODE_ENV !== 'production';
-  const protocol   = isLocal ? 'http' : 'https';
-  const host       = isLocal ? `${orgSlug}.lvh.me:3000` : `${orgSlug}.${baseDomain}`;
-  const defaultUrl = `${protocol}://${host}${defaultPath}`;
-
-  if (!next) return defaultUrl;
-
-  // Validate: the `next` URL must belong to this org's subdomain
-  try {
-    const url     = new URL(next);
-    const allowed = [
-      `${orgSlug}.${baseDomain}`,
-      `${orgSlug}.lvh.me`,
-    ];
-    if (allowed.includes(url.hostname)) return next;
-  } catch {
-    // Invalid URL — fall through to default
-  }
-
-  return defaultUrl;
 }
