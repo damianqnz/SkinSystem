@@ -10,6 +10,7 @@ import { getTranslations }    from 'next-intl/server';
 import { db }                 from '@/infrastructure/db';
 import { profiles } from '@/infrastructure/db/schema/organizations';
 import { customers }          from '@/infrastructure/db/schema/customers';
+import { isUniqueViolation, CUSTOMERS_ORG_EMAIL_UNIQUE_INDEX } from '@/infrastructure/db/unique-violation';
 import { localeFromHeader }   from '@/i18n/detect-locale';
 import type { Result }        from '@/shared/types/result';
 
@@ -62,22 +63,30 @@ export async function updateCustomerAction(
 
   const { id, fullName, email, phone, notes, company, country, countryIso, address, city, state, postalCode, socialLinks } = parsed.data;
 
-  await db.update(customers)
-    .set({
-      fullName,
-      email:       email ?? null,
-      phone:       phone ?? null,
-      notes:       notes ?? null,
-      company:     company ?? null,
-      country:     country ?? null,
-      countryIso:  countryIso ?? null,
-      address:     address ?? null,
-      city:        city ?? null,
-      state:       state ?? null,
-      postalCode:  postalCode ?? null,
-      socialLinks: socialLinks ?? {},
-    })
-    .where(and(eq(customers.id, id), eq(customers.organizationId, orgId)));
+  try {
+    await db.update(customers)
+      .set({
+        fullName,
+        // Stored lower-case so it matches uq_customers_org_email (organization_id, lower(email)).
+        email:       email ? email.toLowerCase() : null,
+        phone:       phone ?? null,
+        notes:       notes ?? null,
+        company:     company ?? null,
+        country:     country ?? null,
+        countryIso:  countryIso ?? null,
+        address:     address ?? null,
+        city:        city ?? null,
+        state:       state ?? null,
+        postalCode:  postalCode ?? null,
+        socialLinks: socialLinks ?? {},
+      })
+      .where(and(eq(customers.id, id), eq(customers.organizationId, orgId)));
+  } catch (error) {
+    if (isUniqueViolation(error, CUSTOMERS_ORG_EMAIL_UNIQUE_INDEX)) {
+      return { data: null, error: { message: t('duplicateEmail'), code: 'DUPLICATE_EMAIL' } };
+    }
+    throw error;
+  }
 
   revalidatePath(`/dashboard/customers/${id}`);
   revalidatePath('/dashboard/customers');

@@ -2,12 +2,13 @@
 
 import 'server-only';
 import { z } from 'zod';
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, sql } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { db } from '@/infrastructure/db';
 import { customers } from '@/infrastructure/db/schema/customers';
+import { isUniqueViolation, CUSTOMERS_ORG_EMAIL_UNIQUE_INDEX } from '@/infrastructure/db/unique-violation';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { localeFromHeader } from '@/i18n/detect-locale';
 import type { Result } from '@/shared/types/result';
@@ -46,10 +47,15 @@ export async function importCustomersAction(
     return { data: null, error: { message: msg, code: 'VALIDATION_ERROR' } };
   }
 
-  const { rows } = parsed.data;
+  // Emails are stored lower-case so they match uq_customers_org_email
+  // (organization_id, lower(email)). Normalize once, up front.
+  const rows = parsed.data.rows.map(r => ({
+    ...r,
+    email: r.email ? r.email.toLowerCase() : null,
+  }));
 
   // Deduplicate by email within this org — fetch only emails present in the batch
-  const batchEmails = rows.flatMap(r => (r.email ? [r.email.toLowerCase()] : []));
+  const batchEmails = rows.flatMap(r => (r.email ? [r.email] : []));
   let existingEmails = new Set<string>();
   if (batchEmails.length > 0) {
     const existing = await db
@@ -57,12 +63,21 @@ export async function importCustomersAction(
       .from(customers)
       .where(and(
         eq(customers.organizationId, orgId),
-        inArray(customers.email, batchEmails),
+        // Case-insensitive: legacy rows may hold a mixed-case stored email.
+        inArray(sql`lower(${customers.email})`, batchEmails),
       ));
     existingEmails = new Set(existing.flatMap(r => (r.email ? [r.email.toLowerCase()] : [])));
   }
 
-  const toInsert = rows.filter(r => !r.email || !existingEmails.has(r.email.toLowerCase()));
+  // Skip rows already in the org AND repeats inside the file itself (first wins),
+  // otherwise an in-file case-variant duplicate would fail the whole batch.
+  const seenInBatch = new Set<string>();
+  const toInsert = rows.filter(r => {
+    if (!r.email) return true;
+    if (existingEmails.has(r.email) || seenInBatch.has(r.email)) return false;
+    seenInBatch.add(r.email);
+    return true;
+  });
   const skipped  = rows.length - toInsert.length;
 
   if (toInsert.length === 0) {
@@ -75,7 +90,7 @@ export async function importCustomersAction(
       toInsert.map(r => ({
         organizationId: orgId,
         fullName:       r.fullName,
-        email:          r.email ?? null,
+        email:          r.email,
         phone:          r.phone ?? null,
         isGuest:        false,
         clientStatus:   'nuevo' as const,
@@ -83,7 +98,11 @@ export async function importCustomersAction(
     );
     revalidatePath('/dashboard/customers');
     return { data: { imported: toInsert.length, skipped }, error: null };
-  } catch {
+  } catch (error) {
+    // A concurrent write can still win the race between the check above and the insert.
+    if (isUniqueViolation(error, CUSTOMERS_ORG_EMAIL_UNIQUE_INDEX)) {
+      return { data: null, error: { message: t('duplicateEmail'), code: 'DUPLICATE_EMAIL' } };
+    }
     return { data: null, error: { message: t('importFailed'), code: 'DB_ERROR' } };
   }
 }

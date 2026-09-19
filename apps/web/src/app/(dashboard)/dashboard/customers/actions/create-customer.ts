@@ -11,6 +11,7 @@ import { getTranslations }    from 'next-intl/server';
 import { db }                 from '@/infrastructure/db';
 import { profiles } from '@/infrastructure/db/schema/organizations';
 import { customers }          from '@/infrastructure/db/schema/customers';
+import { isUniqueViolation, CUSTOMERS_ORG_EMAIL_UNIQUE_INDEX } from '@/infrastructure/db/unique-violation';
 import { uploadAvatarAction } from './upload-avatar';
 import { localeFromHeader }   from '@/i18n/detect-locale';
 import type { Result }        from '@/shared/types/result';
@@ -76,20 +77,31 @@ export async function createCustomerAction(
 
   const { fullName, email, phone, company, country, countryIso, address, city, state, postalCode, socialLinks } = parsed.data;
 
-  const [inserted] = await db.insert(customers).values({
-    organizationId: orgId,
-    fullName,
-    email:       email ?? null,
-    phone:       phone ?? null,
-    company:     company ?? null,
-    country:     country ?? null,
-    countryIso:  countryIso ?? null,
-    address:     address ?? null,
-    city:        city ?? null,
-    state:       state ?? null,
-    postalCode:  postalCode ?? null,
-    socialLinks: socialLinks ?? {},
-  }).returning({ id: customers.id });
+  // Stored lower-case so it matches uq_customers_org_email (organization_id, lower(email)).
+  const normalizedEmail = email ? email.toLowerCase() : null;
+
+  let inserted: { id: string } | undefined;
+  try {
+    [inserted] = await db.insert(customers).values({
+      organizationId: orgId,
+      fullName,
+      email:       normalizedEmail,
+      phone:       phone ?? null,
+      company:     company ?? null,
+      country:     country ?? null,
+      countryIso:  countryIso ?? null,
+      address:     address ?? null,
+      city:        city ?? null,
+      state:       state ?? null,
+      postalCode:  postalCode ?? null,
+      socialLinks: socialLinks ?? {},
+    }).returning({ id: customers.id });
+  } catch (error) {
+    if (isUniqueViolation(error, CUSTOMERS_ORG_EMAIL_UNIQUE_INDEX)) {
+      return { data: null, error: { message: t('duplicateEmail'), code: 'DUPLICATE_EMAIL' } };
+    }
+    throw error;
+  }
 
   if (!inserted) return { data: null, error: { message: t('failedToCreate'), code: 'DB_ERROR' } };
 
