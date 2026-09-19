@@ -44,9 +44,28 @@ export const customers = pgTable('customers', {
   postalCode:     text('postal_code'),
   /** { instagram: "@handle", tiktok: "...", custom_1: { label: "...", value: "..." } } */
   socialLinks:    jsonb('social_links').$type<Record<string, unknown>>().default({}),
+  /**
+   * Supabase `auth.users.id` of the activated customer. NULL = guest (never
+   * activated). Declared WITHOUT `.references()` — `auth.users` lives in
+   * Supabase's own `auth` schema, which drizzle-kit does not manage; the FK
+   * (`customers_auth_user_id_fkey`, ON DELETE SET NULL) is created by raw SQL
+   * in `apps/web/supabase/migrations/20260919_customers_auth_identity.sql`.
+   *
+   * WARNING: this column grants NO RLS access. `customers`' only policy is
+   * `customers_org_all`, keyed on `profiles.id = auth.uid()` (staff only) —
+   * a signed-in customer's `auth.uid()` still resolves to ZERO rows. Every
+   * customer-path read/write must stay server-side over `db`.
+   */
+  authUserId:     uuid('auth_user_id'),
   createdAt:      timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
   index('idx_customers_org_id').on(t.organizationId),
+  index('idx_customers_auth_user_id').on(t.authUserId),
+  // NOTE: uniqueness of (organization_id, lower(email)) is enforced by the
+  // expression index `uq_customers_org_email`, which exists only in SQL — see
+  // the migration above. Drizzle's `unique()` cannot express `lower(email)`,
+  // so it is intentionally not declared here. Write paths must lower-case
+  // `email` before inserting and handle a 23505 on that index.
 ]);
 
 // ── customer_onboarding ───────────────────────────────────────
