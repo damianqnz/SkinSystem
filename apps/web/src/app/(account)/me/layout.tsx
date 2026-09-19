@@ -22,7 +22,7 @@ export default async function MeLayout({ children }: { children: ReactNode }) {
   // real antes de llegar aquí; este chequeo es defensa en profundidad
   // redundante, mismo patrón que `DashboardShell` en (dashboard)/layout.tsx.
   // `buildLoginUrl` arma una URL ABSOLUTA (no un `next` relativo) porque
-  // `resolveRedirectUrl()` en (auth)/login/actions.ts descarta en silencio
+  // `resolveRedirectUrl()` en infrastructure/auth/resolve-redirect-url.ts descarta en silencio
   // cualquier `next` que no sea una URL válida — un path relativo fallaba
   // esa validación y siempre caía al default. Este layout no tiene acceso
   // al subpath exacto solicitado (p. ej. `/me/perfil`), así que el `next`
