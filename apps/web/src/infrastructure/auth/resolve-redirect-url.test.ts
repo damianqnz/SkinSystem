@@ -4,7 +4,12 @@
  *              Env is stubbed per test: the module reads it at call time.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { buildTenantOrigin, resolveRedirectUrl } from './resolve-redirect-url';
+import {
+  buildTenantOrigin,
+  isBookingFunnelPath,
+  parseRelativeNext,
+  resolveRedirectUrl,
+} from './resolve-redirect-url';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -77,6 +82,19 @@ describe('resolveRedirectUrl (production)', () => {
       expect(resolveRedirectUrl(next, 'lourdes', '/dashboard')).toBe(fallback);
     }
   });
+
+  it('rejects non-web protocols even when the hostname is the tenant host', () => {
+    stubProduction();
+    const fallback = 'https://lourdes.skinsystem.test/me';
+    for (const next of [
+      'javascript://lourdes.skinsystem.test/%0Aalert(1)',
+      'JAVASCRIPT://lourdes.skinsystem.test/x',
+      'data://lourdes.skinsystem.test/x',
+      'ftp://lourdes.skinsystem.test/x',
+    ]) {
+      expect(resolveRedirectUrl(next, 'lourdes', '/me')).toBe(fallback);
+    }
+  });
 });
 
 describe('resolveRedirectUrl (outside production)', () => {
@@ -98,5 +116,66 @@ describe('resolveRedirectUrl (outside production)', () => {
     expect(resolveRedirectUrl('http://other.lvh.me:3000/me', 'lourdes', '/me')).toBe(
       'http://lourdes.lvh.me:3000/me',
     );
+  });
+});
+
+describe('parseRelativeNext', () => {
+  it.each([
+    ['/me', '/me'],
+    ['/', '/'],
+    ['/book', '/book'],
+    ['/book/x?y=1', '/book/x?y=1'],
+    ['/book?step=2#pay', '/book?step=2#pay'],
+    ['/me/citas?tab=upcoming', '/me/citas?tab=upcoming'],
+  ])('accepts %j as %j', (raw, expected) => {
+    expect(parseRelativeNext(raw)).toBe(expected);
+  });
+
+  it.each([
+    ['null', null],
+    ['undefined', undefined],
+    ['empty', ''],
+    ['no leading slash', 'book'],
+    ['absolute https', 'https://x'],
+    ['absolute same host', 'https://lourdes.skinsystem.test/me'],
+    ['protocol-relative', '//evil.com'],
+    ['protocol-relative with path', '//evil.com/book'],
+    ['backslash after the slash', '/\\evil.com'],
+    ['double slash then backslash', '/\\/evil.com'],
+    ['javascript scheme', 'javascript:alert(1)'],
+    ['javascript scheme with slashes', 'javascript://lourdes.skinsystem.test/x'],
+    ['tab hidden slash', '/\t/evil.com'],
+    ['newline hidden slash', '/\n/evil.com'],
+    ['dot segment collapsing to //', '/.//evil.com'],
+  ])('rejects %s', (_label, raw) => {
+    expect(parseRelativeNext(raw)).toBeNull();
+  });
+
+  it('collapses dot segments so the result is what the browser will request', () => {
+    expect(parseRelativeNext('/book/../dashboard')).toBe('/dashboard');
+    expect(parseRelativeNext('/book/%2e%2e/dashboard')).toBe('/dashboard');
+    expect(parseRelativeNext('/me/./citas')).toBe('/me/citas');
+  });
+});
+
+describe('isBookingFunnelPath', () => {
+  it.each(['/book', '/book/', '/book/x', '/book/x?y=1', '/book?step=2', '/book#pay'])(
+    'matches %j',
+    (path) => {
+      expect(isBookingFunnelPath(path)).toBe(true);
+    },
+  );
+
+  it.each(['/', '/me', '/booking-x', '/bookmark', '/books', '/Book', '/me/book', '/dashboard?next=/book'])(
+    'does not match %j',
+    (path) => {
+      expect(isBookingFunnelPath(path)).toBe(false);
+    },
+  );
+
+  it('does not treat a dot-segment escape as the funnel once normalized', () => {
+    const normalized = parseRelativeNext('/book/../dashboard');
+    expect(normalized).not.toBeNull();
+    expect(isBookingFunnelPath(normalized ?? '')).toBe(false);
   });
 });
