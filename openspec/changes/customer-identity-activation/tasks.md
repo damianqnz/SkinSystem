@@ -1,0 +1,242 @@
+# Tasks: customer-identity-activation
+
+Implements `spec.md` (Req 1-10) exactly as `design.md` specifies (D1-D7, delivery chain §11). No design question is re-decided here; where the live code exposed a hole the design did not cover it is marked **[GAP]** and surfaced in the forecast, not silently resolved.
+
+**Legend** — `[S]` sequencing-sensitive · `[GATE]` blocking check, STOP on failure · `[H]` human-only, not automatable · `[M]` manual QA (no test harness exists for it, per design §9) · `[GAP]` not in design text, found by this phase.
+
+**Reusable checklists (referenced by id, not repeated)**
+- **I18N-CHK** (every task that touches user-visible strings): no literal strings in `.tsx`/`.jsx`; keys added to `pt.json`, `es.json`, `en.json` in the same PR (parity enforced by `messages.test.ts`); ICU named args (`{email}`, `{name}`), never concatenation; named keys, never indexed arrays; locale fallback only via `DEFAULT_LOCALE` from `@/i18n/config`; no `_i18n.ts` files; `proxy.ts` and `i18n/request.ts` show zero diff (`git diff --stat`).
+- **HB** (last task of every PR): update `HEARTBEAT.md` with what shipped, what is verified, and the next step (CLAUDE.md §1.4). Never record customer emails; use counts and truncated ids.
+- **REQ8-CHK** (every PR that adds server code): `rg -n "from\('customers'\)|from\('appointments'\)" apps/web/src` returns zero matches; every new customer-table access is Drizzle over server-only `db`, explicit columns, `organization_id` predicate.
+- **Gate commands**: `pnpm check-types`, `pnpm lint`, `pnpm test`, `npm run build` (or `pnpm build`). Tests are Vitest in Node env (no jsdom/RTL); test files match `src/**/*.test.ts`.
+- **Work-unit commits**: one Conventional Commit per work unit, tests and messages in the same commit as the behaviour they verify; each PR states its rollback boundary (last task of each PR).
+
+**Delivery strategy**: `ask-on-risk` (session preflight "Ask me"). Candidate cut points inside oversized PRs are named (B-1/B-2/B-3, C-1/C-2a/C-2b) so the orchestrator can chain without re-reading the design; the task list itself follows the design's A-G grouping.
+
+## Decisions confirmed by the human (2026-09-19) — authoritative for `sdd-apply`
+
+1. **Delivery: split into chained PRs, `chain_strategy = stacked-to-main`.** Each PR targets `main` in sequence (fits the D7 evidence gate, which needs A+B+C deployed to production before PR E). Oversized PRs B and C are cut at the candidate points above (about 10-11 PRs total); each slice must stay at or under 400 changed lines. The apply phase may adjust a cut point to stay under budget, but must not merge slices back together or take `size:exception` without asking the human again.
+2. **B.0 rule confirmed as recommended.** /auth/callback and /auth/confirm accept only a relative same-origin `next` (begins with a single leading slash, never a double slash, no scheme). Activation is best-effort. For a booking-funnel `next` (/book...), a not-yet-a-customer / `no_account` outcome must NOT sign the user out and redirects to `next`; activation is deferred to the next sign-in via Req 3's email fallback. For any other `next`, design's `no_account` -> /login?error=no_account stands. B.4's tests include these cases. B-3 and PR E are unblocked.
+3. **A.6 and A.7 are IN scope** for PR A (staff create/update/import normalise email and map `23505`; booking INSERT catches the unique violation and re-selects).
+4. **Req 10 (Leaked Password Protection) is DEFERRED, not dropped.** Verified 2026-09-19: the Supabase project is on the Free plan and Supabase documents the feature as Pro-plan-and-above (`supabase.com/docs/guides/auth/password-security`). PR G (G.1-G.3) and H.6 are non-blocking and stay open until the human upgrades the plan. Risk accepted by the human: password is only a secondary method, settable via `updateUser` after OTP/OAuth verification, with no bare `signUp()` path once PR E lands. Record this deferral, and the still-open advisor finding, in `HEARTBEAT.md` in PR A's HB task.
+5. **H.5 (production migration authorization) is NOT granted yet.** The orchestrator must ask the human immediately before applying the PR A migration to production.
+
+---
+
+## Human-only and external tasks (assigned to the human)
+
+- [ ] **H.1 [H]** Confirm Supabase Auth → URL Configuration → Redirect URLs allow tenant-subdomain /auth/confirm and /auth/callback (production subdomain wildcard and `http://*.lvh.me:3000/**` for local). Google already works through /auth/callback, so that pattern probably exists; /auth/confirm may be covered by a catch-all wildcard entry or may not. *Needed by: PR C manual QA and the D7 gate.* Satisfies: Req 4.
+- [ ] **H.2 [H] [GAP]** Edit **both** the "Magic Link" and "Confirm signup" email templates so the link targets the tenant's /auth/confirm carrying `token_hash` and `type` (Supabase SSR pattern: the `{{ .RedirectTo }}` / `{{ .SiteURL }}` variable plus `token_hash={{ .TokenHash }}&type=email`; confirm current variable names with `mcp__supabase__search_docs` at edit time). Design §4.1 assumes links arrive as `?token_hash=…&type=…`; neither `design.md` nor `research.md` records that this needs a template change. With default templates the link arrives as a PKCE `?code=` and /auth/confirm would reject it. `signInWithOtp` with `shouldCreateUser: true` sends "Confirm signup" to first-time addresses and "Magic Link" to existing ones, so both must change. **Do this only after PR B is deployed** (the route must exist) and note that "Confirm signup" is also used by the live `Step2Auth` `signUp()` path until PR E ships, so B.8's `type` allow-list must include `signup`. *Needed by: D7 gate.* Satisfies: Req 3, 4.
+- [ ] **H.3 [H]** Confirm production email delivery reaches arbitrary addresses (custom SMTP, not Supabase's restricted default) and that the OTP / emails-per-hour limits suit expected volume, including staff invites (design §5.2 relies entirely on Supabase's built-in limits). *Needed by: PR C manual QA.* Satisfies: Req 4.
+- [ ] **H.4 [H]** Provide test identities: two real inboxes (one usable for a Google sign-in, one for OTP) and access to the second tenant (Gloria) for isolation checks. Each needs an existing guest `customers` row in the tested tenant (create via /book as guest). *Needed by: PR B manual QA and the D7 gate.* Satisfies: Req 2, 7.
+- [x] **H.5 [H]** Authorize the production migration (destination: production Supabase project; operation: `apply_migration` of `customers_auth_identity`; credential: the configured Supabase MCP). Remote work stays local until this is given. *Needed by: A.9.*
+- [ ] **H.6 [H]** Enable Leaked Password Protection in the Supabase Auth dashboard — see **G.1**. Note Supabase documents this feature as Pro-plan-and-above; if the project is on Free the toggle will be unavailable and Req 10 needs a human decision (upgrade or record as blocked). Satisfies: Req 10.
+- [ ] **H.7 [H] — out of scope until the human does it** Apple Developer setup: Program membership → Services ID, key, redirect URIs → Supabase Apple provider settings → set `NEXT_PUBLIC_SUPABASE_APPLE_ENABLED=true` in the deployment environment and **redeploy** (`NEXT_PUBLIC_*` is inlined at build time). Not part of this change's done criteria; the code ships inert (Req 9, D-§7).
+
+---
+
+## PR A — Data + schema (Req 1, D4)
+
+Prerequisite: none. Blocks: everything else (column must exist in production before B's code deploys).
+Gate commands: `pnpm check-types`, `pnpm lint`, `pnpm test`, `npm run build`.
+
+- [x] **A.1 [GATE] [S]** Re-run the D4 case-insensitive audit against live production as the FIRST step (the orchestrator ran it 2026-09-19 with zero results; data can change). Via `mcp__supabase__execute_sql`:
+  1. `SELECT organization_id, lower(email) AS email_ci, count(*) FROM customers WHERE email IS NOT NULL GROUP BY 1, 2 HAVING count(*) > 1;` — expect **zero rows**.
+  2. `SELECT count(*) FROM customers WHERE email IS NOT NULL AND email <> lower(email);` — expect **0**.
+  Non-zero on either: **STOP and escalate to the human** — this becomes the dedup/merge migration `spec.md` assumed away (Req 1 scenario 2 no longer holds). Record date and both results in the PR description. Satisfies: Req 1, D4.
+- [x] **A.2** Inventory every write and implicit-column touchpoint of `customers`: `rg -n "insert\(customers\)|update\(customers\)|from\(customers\)" apps/web/src` (known: `book/actions.ts`, `create-customer.ts`, `update-customer.ts`, `import-customers.ts`, `service-me.ts`, `domains/booking/seed.ts`). Record the list in the PR. Purpose: confirms A.5-A.7 cover every path that writes an `email`. Satisfies: D4.
+- [x] **A.3** Add `authUserId: uuid('auth_user_id')` (no `.references()`) plus `index('idx_customers_auth_user_id')` to the `customers` table, with the design §1.1 doc comment: NULL means guest; FK lives in raw SQL because `auth.users` is outside drizzle-kit; **WARNING that the column grants no RLS access** (`customers_org_all` is staff-only; customer `auth.uid()` resolves to zero rows; all customer-path reads/writes stay server-side over `db`). Add a second comment pointing at the migration for `uq_customers_org_email` (expression index, not expressible via `unique()`). Files: `apps/web/src/infrastructure/db/schema/customers.ts`. Satisfies: Req 1, Req 8 (design §10 assumption boundary), D4.
+- [x] **A.4** Author the migration `apps/web/supabase/migrations/<YYYYMMDD>_customers_auth_identity.sql` (convention: `20260918_stripe_payouts_enabled.sql`), statements in this exact order: (1) `ALTER TABLE customers ADD COLUMN IF NOT EXISTS auth_user_id uuid;` (2) `ADD CONSTRAINT customers_auth_user_id_fkey FOREIGN KEY (auth_user_id) REFERENCES auth.users(id) ON DELETE SET NULL;` (3) `CREATE UNIQUE INDEX IF NOT EXISTS uq_customers_org_email ON customers (organization_id, lower(email));` (4) `CREATE INDEX IF NOT EXISTS idx_customers_auth_user_id ON customers (auth_user_id);`. Header comment: why `SET NULL` not `CASCADE`/`RESTRICT`, why default `NULLS DISTINCT` is deliberate (any number of null-email rows per org), the A.1 audit queries, and the manual rollback. No `NULLS NOT DISTINCT`. Satisfies: Req 1 (all three scenarios), D4.
+- [x] **A.5 [S]** Lower-case `guestEmail` once (`const guestEmail = input.guestEmail.toLowerCase()`) and use it for the upsert `SELECT` (line ~270), the `INSERT` (line ~287) and the Stripe `customerEmail` (line ~390). **This ships in the same PR as the unique index — never separately.** Files: `apps/web/src/app/(tenant)/[tenant]/book/actions.ts`. Satisfies: Req 1, D4.
+- [x] **A.6 [GAP]** The design normalizes only `book/actions.ts`, but D4 states the index must hold "regardless of which write path inserts the row". `create-customer.ts` and `update-customer.ts` write `email` un-normalized and un-deduped, and `import-customers.ts` dedupes with `inArray(customers.email, lowercased)` against raw-case stored values and inserts `r.email` raw (an in-file duplicate would now violate the index and fail the whole batch). Lower-case `email` on write in all three, dedupe the CSV batch case-insensitively, and map a Postgres `23505` on `uq_customers_org_email` to the existing `{ data, error }` shape with a translated message (new key e.g. `dashboard.customers.errors.duplicateEmail`, **I18N-CHK**). Files: `apps/web/src/app/(dashboard)/dashboard/customers/actions/{create-customer,update-customer,import-customers}.ts`, `apps/web/src/messages/{pt,es,en}.json`. Satisfies: Req 1, D4. *Orchestrator may drop this task if it prefers to defer; without it, staff duplicate-email writes change from silently duplicating to throwing.*
+- [x] **A.7 [GAP]** `book/actions.ts` does SELECT-then-INSERT with no conflict handling. Before the index a concurrent double-submit silently created two rows; after it the second INSERT throws `23505`. Catch the unique violation on the guest INSERT and re-select the row by `(organization_id, lower(email))`, so the race converges on one row instead of failing a paying customer's booking. Files: same as A.5. Satisfies: Req 1 (closes the race `explore.md` §4 found).
+- [x] **A.8** Gate commands. No new unit tests are possible here (DB-bound, design §9); the change is verified by A.9/A.10.
+- [x] **A.9 [S] [H] Migration apply order and verification.** Requires H.5. **DONE 2026-09-19: H.5 granted by the human; both A.1 audits re-run immediately before (0 duplicate groups, 0 non-lowercase); migration applied via apply_migration; verified live: column auth_user_id uuid nullable, FK customers_auth_user_id_fkey ON DELETE SET NULL, unique index uq_customers_org_email on (organization_id, lower(email)), index idx_customers_auth_user_id; 26 customers, 0 linked; security advisors show no new finding from this change.**
+  1. Re-run the two A.1 queries immediately before applying; both must still be zero.
+  2. **Apply the migration BEFORE merging/deploying PR A's code.** Reason: Drizzle's INSERT statement lists every column of the declared table (`default` for unspecified ones), so code that declares `authUserId` and reaches production before the column exists will fail `INSERT INTO customers` — i.e. the guest-booking path. The column add is additive and cannot break running code.
+  3. Merge and deploy PR A immediately after (the A.5 lower-casing must be live back-to-back with the index). Residual window (index live, old booking code still deploying): a mixed-case repeat guest hits `23505` loudly rather than corrupting data. See Risks for the optional zero-window split.
+  4. `mcp__supabase__apply_migration` (name `customers_auth_identity`).
+  5. Verify via `execute_sql`: `information_schema.columns` shows `auth_user_id`, `uuid`, nullable; `pg_constraint` shows `customers_auth_user_id_fkey` with `ON DELETE SET NULL`; `pg_indexes.indexdef` for `uq_customers_org_email` contains `lower(email)` and does **not** contain `NULLS NOT DISTINCT`; `SELECT count(*) FROM customers WHERE auth_user_id IS NOT NULL;` = 0 (no backfill).
+  6. `mcp__supabase__get_advisors` (security and performance): no new advisory (the FK is covered by `idx_customers_auth_user_id`).
+  Satisfies: Req 1, D4.
+- [x] **A.10 [M]** Post-deploy manual QA: (a) /book as a guest twice with the same email in different case → one `customers` row, no error (`SELECT id, email FROM customers WHERE organization_id = … AND lower(email) = …` returns one row); (b) as staff, create a customer with an email that already exists in mixed case → translated duplicate-email error, not a 500; (c) CSV import with an in-file case-variant duplicate → imports one, no batch failure. **DONE 2026-09-19 (scoped by the human): database-level QA PASSED on production inside a transaction forced to roll back (0 leftover rows verified): case-variant duplicate rejected by uq_customers_org_email, same email allowed in another organization, several NULL-email rows allowed in one organization, auth_user_id defaults to NULL. Plus 7 new unit tests and the pre-commit code review. The UI-level checks (create a customer from the dashboard or calendar with a mixed-case email, translated duplicate-email error, and the /book double guest booking) were NOT run: the human chose to close A.10 without them; they remain optional and are partly covered by the D7 gate.**
+- [x] **A.11 HB** Record: migration applied (date), A.1 audit results, index name, and that the D7 evidence gate is still pending. **DONE 2026-09-19: recorded in HEARTBEAT (migration applied date, A.1 audit results, index name, D7 gate still pending, PR #12 merged).**
+- [x] **A.12** Rollback boundary: `DROP INDEX uq_customers_org_email; ALTER TABLE customers DROP CONSTRAINT customers_auth_user_id_fkey; ALTER TABLE customers DROP COLUMN auth_user_id;` plus revert the PR. The column drop is safe only while no row has been activated (before PR B is live); after that it discards identity links.
+
+---
+
+## PR B — Activation primitive + `loginAction` + callback funnel (Req 2, 3, 4, 7, 8, D1-D3, D5)
+
+Prerequisite: PR A migration applied in production. Blocks: C, D, E, F.
+Gate commands: all four; plus **REQ8-CHK**.
+Candidate cut points: **B-1** = B.1-B.3 (pure primitive + DB wrapper, unwired, additive) · **B-2** = B.4-B.5 (pure infra extractions + tests) · **B-3** = B.6-B.9 (resolver, `loginAction`, both routes — the only slice that changes production behaviour).
+
+- [ ] **B.0 [GAP] [GATE] — design clarification required before B.6/B.9.** /auth/callback is live and serves `Step2Auth`'s Google booking flow (`redirectTo=/auth/callback?next=/book`). Routing it through `resolvePostAuthDestination` (D5) as written would (a) send a first-time Google booker — who has **no `customers` row yet**, the row is created later by the booking upsert — down the `no_account` branch, which signs them out and redirects to /login?error=no_account, breaking the funnel; and (b) drop `next=/book` because `resolveRedirectUrl()` only accepts absolute same-subdomain URLs and otherwise falls back to /me. Recommended resolution (consistent with D5's intent, needs orchestrator/human confirmation): the callback and confirm routes accept a relative, same-origin `next` (must begin with a single leading slash, never a double slash, no scheme); activation is attempted best-effort; **for a booking-funnel `next` (/book…) a `no_account`/not-yet-a-customer outcome must not sign the user out and must redirect to `next`**, deferring activation to the next sign-in via Req 3's self-healing email fallback (the row exists by then). For any other `next`, design's `no_account` → /login?error=no_account stands. Record the confirmed rule in the PR and add its cases to B.4's tests. Satisfies: Req 3, 4, 6, D5.
+- [x] **B.1** `apps/web/src/domains/customers/activation-policy.ts`: `ActivationCandidateRow`, `ActivationDecision`, `resolveActivationDecision(row, authUserId)`. **No `server-only`, no `@/infrastructure/db` import** (precedent: `shared/lib/stripe-policy.ts`; header comment states why). Branch order is load-bearing: null → `no_account`; `isBlocked` → `blocked`; `authUserId === null` → `activate`; equal → `already_linked`; else → `identity_conflict`. Satisfies: Req 2, D1, D2, D3.
+- [x] **B.2** `apps/web/src/domains/customers/activation-policy.test.ts`: null row; blocked + unlinked (decision `blocked`, never `activate`); blocked + already linked to same id (still `blocked`); blocked + linked to other; unlinked → `activate`; same id → `already_linked`; different id → `identity_conflict` (never overwrite); every non-`no_account` decision echoes `customerId`. **Prove the order is asserted:** temporarily swap branches 2 and 3, confirm a test fails, revert (record in PR). Satisfies: Req 2 (all scenarios), Req 7 (decision layer), D1-D3. Verify: `pnpm test`.
+- [x] **B.3** `apps/web/src/domains/customers/activation.ts` (`server-only`), `activateCustomerIdentity({ organizationId, authUserId, verifiedEmail }): Promise<Result<ActivationDecision>>`. Zod-validate inputs (uuid, uuid, email). Steps exactly as design §2.2: (1) SELECT `id, auth_user_id, is_blocked` WHERE `organization_id = $org AND lower(email) = $verifiedEmail` LIMIT 1 — explicit columns, `organization_id` predicate unconditional, no code path queries by email alone; (2) `resolveActivationDecision`; (3) on `activate` only, the single guarded `UPDATE customers SET auth_user_id, is_guest = false WHERE id AND organization_id AND auth_user_id IS NULL RETURNING id`; zero rows → re-read once and return `already_linked` or `identity_conflict` from the fresh row; (4) no other decision writes. `error` only for infrastructure failure. On `identity_conflict` emit a structured server warning: organization id, customer id, both auth user ids — never the email (D1). Header comment carries the caller contract: callers must gate on `email_confirmed_at != null`. Satisfies: Req 2, Req 7, Req 8, D1-D3.
+- [x] **B.4** (DONE 2026-09-19, PR B-2; behaviour unchanged, protocol of `next` deliberately NOT validated yet — see B-3 note in HEARTBEAT) `apps/web/src/infrastructure/auth/resolve-redirect-url.ts`: move `resolveRedirectUrl()` out of `actions.ts` with unchanged behaviour; also export `buildTenantOrigin(orgSlug)` (the host-building lines already inside it) so C.7 and F.1 do not re-implement host construction. Test `resolve-redirect-url.test.ts` (stub env with `vi.stubEnv` for `NEXT_PUBLIC_BASE_DOMAIN` / `NODE_ENV`): same-subdomain `next` accepted; other-org, other-domain, malformed and relative `next` fall back to default; `lvh.me` in non-production; plus the B.0 relative-`next` rules if the helper is extended. Currently a private, untested open-redirect guard. Satisfies: design §3.1, §9.
+- [x] **B.5** (DONE 2026-09-19, PR B-2; the `.env.example` line was added by the human because the agent cannot access that file) `apps/web/src/infrastructure/auth/oauth-providers.ts`: pure `resolveEnabledOAuthProviders({ appleEnabled })` returning a readonly list, Google always first, Apple appended only when the value is exactly `'true'`. Test `oauth-providers.test.ts`: `undefined`, `''`, `'false'`, `'TRUE'`, `'true'`. Add `NEXT_PUBLIC_SUPABASE_APPLE_ENABLED` to `apps/web/.env.example` with a comment naming the external prerequisite (H.7). Files: `apps/web/src/infrastructure/auth/oauth-providers{,.test}.ts`, `apps/web/.env.example`. Satisfies: Req 9, design §7, §9. *Movable to PR C, its first consumer, if B-2 needs to shrink.*
+- [x] **B.6** `apps/web/src/infrastructure/auth/resolve-post-auth-destination.ts`: extract steps 1-6 from `loginAction` (tenant slug → org, staff `profiles` branch incl. inactive → sign-out, `DASHBOARD_LOCALE` cookie hydration) unchanged in behaviour, then the customer branch per design §3.2: 7a `SELECT id, is_blocked FROM customers WHERE organization_id = $org AND auth_user_id = $user.id` (identity first, no email comparison; blocked → sign out + `no_account`); 7b require `user.email && user.email_confirmed_at` (the single enforcement point of the verified-identity contract) then `activateCustomerIdentity` with the lower-cased email; `activate`/`already_linked` → /me; `no_account`/`blocked`/`identity_conflict` → sign out + `no_account`. Never calls `redirect()`. Return `{kind:'redirect'; url} | {kind:'no_account'}` **plus a third `{kind:'error'}` arm** (design §3.2 pseudo-code returns `generic` on an infrastructure error but §3.1's union lists only two arms; loginAction maps it to `generic`). Apply the B.0 rule for booking-funnel `next`. Satisfies: Req 3, Req 5 (staff routing unchanged), Req 7, D1-D3, D5.
+- [x] **B.7** Rewrite `loginAction` in `apps/web/src/app/(auth)/login/actions.ts`: keep the password-only signature, `LoginState` and `loginSchema`; after `signInWithPassword` + `getUser`, call the resolver and `redirect()` on `redirect`; map `no_account` → `{error:'no_account'}`, `error` → `{error:'generic'}`. No new error codes (D1-D3). Remove dead imports; file drops from ~181 to well under 100 lines. Satisfies: Req 3.
+- [x] **B.8 [S]** `apps/web/src/app/auth/confirm/route.ts`: `GET` reads `token_hash`, `type`, `next`; validate `type` against an explicit allow-list (`email`, `magiclink`, `signup`; **`signup` is required** so H.2 does not break the live `Step2Auth` signUp confirmation) and `next` per B.4/B.0; `verifyOtp({ type, token_hash })`; on error redirect /login?error=link_invalid; on success call the resolver and redirect, `no_account` → /login?error=no_account. **Verify the tenant slug is available on /auth/*:** read `proxy.ts` (read-only) to confirm `x-tenant-slug` is set for /auth/confirm; if it is not, derive the slug from the request host with the existing helper. **`proxy.ts` is not edited** (design §4.1: /auth is already in `UNREWRITTEN_PREFIXES`, `AUTH_REQUIRED_PREFIXES` is `['/dashboard','/admin','/me']`). Satisfies: Req 4, Req 6 (sequencing), D5.
+- [x] **B.9** `apps/web/src/app/auth/callback/route.ts`: after `exchangeCodeForSession`, route through the resolver (per B.0) instead of `NextResponse.redirect(origin + next)`; keep the /book?auth_error=1 failure path. This is what closes the hole where a Google-authenticated booker never runs activation. Satisfies: Req 4, D5.
+- [ ] **B.10 [M]** Manual QA on a deployed preview/production with H.4 identities (no harness exists for the DB wrapper, resolver, routes or actions — design §9): (a) staff password login → /dashboard, `DASHBOARD_LOCALE` cookie set; (b) inactive staff → `no_account`; (c) customer with existing guest row + password → /me, DB row now has `auth_user_id`, `is_guest = false` (Req 3 scenario 2); (d) same customer again → unchanged row, no error (Req 2 idempotent); (e) blocked customer → `no_account`, **`auth_user_id` still NULL** (D2); (f) org isolation — same email with guest rows in both tenants, activate in A, row in B untouched (Req 7 scenario 1) and B's login → `no_account` (Req 7 scenario 3); (g) **`Step2Auth` Google booking, returning guest and brand-new booker: both land back on /book with a session and can complete a booking** (regression guard for B.0); (h) /auth/confirm?token_hash=bad&type=email → /login?error=link_invalid. Record results in the PR.
+- [x] **B.11** Gate commands + **REQ8-CHK**; `git diff --stat` shows no `proxy.ts` / `i18n/request.ts` change. **DONE 2026-09-23 (branch `b3b-wiring`, 3 commits over main, via gentle-ai-verify): check-types/lint/build exit 0, test 147/147 (cold `--force`), REQ8-CHK 0 matches, working tree clean.**
+- [x] **B.12 HB** DONE 2026-09-23: HEARTBEAT entry `2026-09-23 #1` records the real topology (b3a/b3b split), the commit SHAs, the re-verified gates, and the rollback boundary.
+- [x] **B.13** Rollback boundary: revert B.6-B.9 restores email-only `loginAction` and the original callback with no data loss; already-written `auth_user_id` values are harmless when unread. B.1-B.5 are additive and independently revertible. **DONE 2026-09-23: in git this is `b0d0e4c` (B.7-B.9) + `aa43078` (B.6) reverted together with no data loss; `49af407` (relative-`next` validation) is additive and reverts separately.**
+
+---
+
+## PR C — /login redesign + `auth` i18n namespace (Req 5, 9, D-§4.2, §8)
+
+Prerequisite: PR B deployed; H.1-H.3 done before QA. Blocks: D7 gate.
+Gate commands: all four; plus **I18N-CHK**, **REQ8-CHK**.
+Candidate cut points: **C-1** = C.1-C.6 (behaviour-preserving i18n plumbing: provider, namespace, migration off `auth.ts`) · **C-2a** = C.7 + OTP form and its keys · **C-2b** = C.8 (OAuth buttons, password disclosure, hierarchy flip, dead-link removal).
+
+- [ ] **C.1** Add `export const AUTH_CLIENT_NAMESPACES = ['auth'] as const;` to `apps/web/src/i18n/client-namespaces.ts`. Satisfies: design §8.3.
+- [ ] **C.2** `apps/web/src/app/(auth)/layout.tsx`: wrap children in `NextIntlClientProvider` with `pickMessages(await getMessages(), AUTH_CLIENT_NAMESPACES)` (PERF-01 helper), locale from the header via `localeFromHeader`. `LoginForm` is a Client Component and `useTranslations` cannot work until this exists. Verify `getMessages()` resolves in this independent root layout **without editing `i18n/request.ts`** (red line); if it does not, stop and raise a scoped middleware ticket rather than editing. Satisfies: design §8.3.
+- [ ] **C.3** Extend `apps/web/src/i18n/client-namespace-audit.test.ts` scan roots with `app/(auth)`. Prove it can fail (perf-01 3.3 pattern): temporarily read a namespace not in the allow-list, see the actionable failure, revert. Satisfies: design §8.3, §9.
+- [ ] **C.4** Migrate every string from `apps/web/src/shared/lib/i18n/auth.ts` into `auth.login.*` and add the redesign's keys, in `pt.json`, `es.json`, `en.json`: brand, tagline, heading, subtitle, `otp.{label,cta,sent}` (`sent` takes ICU `{email}`), `providers.google`, `providers.apple`, `passwordDisclosure`, password fields, `errors.*` (incl. `rateLimited`), `noAccountCta*`, and `auth.confirm.*` for the link-invalid / link-expired states. These states render on /login?error=… (the route handlers redirect; they cannot render), mapped in `LoginForm`. Satisfies: Req 5, design §8.1, §8.4. **I18N-CHK**.
+- [ ] **C.5** `apps/web/src/app/(auth)/login/page.tsx`: delete `detectAuthLocale` (ends in a literal `return 'es'`), use `localeFromHeader(hdrs.get('x-locale'))`; drop the `t: AuthT` prop; make the left decorative panel locale-aware (removes `const ES = authTranslations['es']`). Satisfies: design §8.2.
+- [ ] **C.6** Delete `apps/web/src/shared/lib/i18n/auth.ts`. Verify: `rg "shared/lib/i18n/auth|detectAuthLocale|authTranslations" apps/web/src` returns zero. Satisfies: design §8.2 (CLAUDE.md "No Local `_i18n.ts`" rule).
+- [ ] **C.7 [S] `requestOtpAction`** in `apps/web/src/app/(auth)/login/actions.ts`: Zod-validate email; tenant slug from `x-tenant-slug`; `signInWithOtp({ email, options: { emailRedirectTo: <buildTenantOrigin>/auth/confirm?next=/me, shouldCreateUser: true } })`. **Return the identical "check your inbox" state in every case** — with or without a `customers` row, and on any Supabase error other than rate limit (rate limit → distinct non-enumerating "try again shortly"). The row check does not happen here; it happens after verification. `emailRedirectTo` must be built from the request's own tenant host. Satisfies: Req 4 (scenario 1), Req 5, design §4.2 enumeration posture.
+- [ ] **C.8** Restructure `LoginForm` (split into small components under `_components/`, one responsibility per file, ~150-line soft limit): tier 1 passwordless (email + "send me a link" via `useActionState` on `requestOtpAction`; Google and, via `resolveEnabledOAuthProviders({ appleEnabled: process.env.NEXT_PUBLIC_SUPABASE_APPLE_ENABLED })`, Apple through `signInWithOAuth` with `redirectTo=${window.location.origin}/auth/callback?next=/me`); tier 2 password collapsed behind a de-emphasised disclosure posting to the unchanged `loginAction`, sign-in only; tier 3 the dead `href="#"` forgot-password link **removed** and replaced by explanatory copy that signing in with a link works without a password; keep `showBookCta` on `no_account`. Tailwind v4 only (no Stitches), 375px first. Satisfies: Req 5 (all three scenarios), Req 9 (Apple absent until configured, no code change to appear).
+- [ ] **C.9** Gate commands (`pnpm test` runs `messages.test.ts` parity and the extended audit); **I18N-CHK**; `rg 'href="#"' "apps/web/src/app/(auth)"` returns zero; **REQ8-CHK**.
+- [ ] **C.10 [M]** /login manual QA at 375px in `pt`, `es`, `en`: passwordless actions visually primary, password secondary and collapsed; no dead link; staff password login still routes to /dashboard (Req 5 scenario 3); Apple button absent by default and present when `NEXT_PUBLIC_SUPABASE_APPLE_ENABLED=true` is set locally, with no code change (Req 9 both scenarios); OTP end to end once H.1-H.3 are done; **enumeration check**: submit an email with a guest row and one without in the same tenant and confirm the UI state is identical (Req 5, design §4.2).
+- [ ] **C.11 HB**
+- [ ] **C.12** Rollback boundary: revert restores the old /login and `auth.ts`; `auth.*` keys and `AUTH_CLIENT_NAMESPACES` are additive. Nothing here writes data.
+
+---
+
+## D7 evidence gate — production, between PR C and PR E `[S]`
+
+Runs against production after **A + B + C are all deployed** and H.1-H.4 are done. (`design.md` D7 says "PR-B ships … /login", but §11 places /login in PR C; OTP cannot be exercised in production before `requestOtpAction` exists, so the gate cannot run on B alone.)
+
+- [ ] **GATE.1 [M] [H]** Real OTP sign-in and real Google sign-in on a tenant subdomain, each using an email that already has a guest `customers` row in that tenant (H.4). Two different activated rows, or the same row activated once and re-entered.
+- [ ] **GATE.2 [GATE]** `SELECT count(*) FROM customers WHERE auth_user_id IS NOT NULL;` returns **≥ 2**. Supporting query: `SELECT c.id, c.organization_id, c.is_guest, u.email_confirmed_at IS NOT NULL AS verified, (SELECT string_agg(i.provider, ',') FROM auth.identities i WHERE i.user_id = u.id) AS providers FROM customers c JOIN auth.users u ON u.id = c.auth_user_id;` — both methods present and both `auth_user_id` values resolve to real `auth.users` rows.
+- [ ] **GATE.3 [M]** Sign in a second time with the same method: row unchanged (`is_guest = false`, same `auth_user_id`), no error — the `already_linked` path observed alongside the `activate` path.
+- [ ] **GATE.4 [M]** /auth/confirm observed returning a redirect to /me in production runtime logs (Vercel; Supabase auth logs via `mcp__supabase__query_logs` corroborate the verify event).
+- [ ] **GATE.5 [M]** Isolation spot check (Req 7 scenario 3): with the OTP-activated email, attempt sign-in on the other tenant's subdomain → `no_account`; that tenant has no linked row.
+- [ ] **GATE.6 HB [GATE]** Record in `HEARTBEAT.md`: the query text, its result (counts and truncated ids only — no emails), the date, and the two methods exercised. **PR E may not merge until this entry exists.**
+
+---
+
+## PR D — In-product entry point + set-password (Req 4 scenario 2, D6)
+
+Prerequisite: PR C deployed. Independent of E and F.
+Gate commands: all four; plus **I18N-CHK**, **REQ8-CHK**.
+
+- [ ] **D.1** Booking-confirmation CTA in `apps/web/src/app/(tenant)/[tenant]/book/success/page.tsx`: a link to /login?next=/me with copy explaining that signing in with a link turns the booking into an account. It introduces **no identity logic** — activation happens through the B funnel. Render it only when the visitor has no session (design §4.3: the unactivated moment is a guest with no session; showing it to a signed-in customer is noise). Keys `booking.success.activate*` in three locales. Satisfies: Req 4 scenario 2, D6. **I18N-CHK**.
+- [ ] **D.2** `SetPasswordForm` (client component) under `apps/web/src/app/(account)/me/_components/`, mounted from `me/perfil/page.tsx`: `supabase.auth.updateUser({ password })` from the already-authenticated session via the browser client (auth surface only; never touches `customers`). Zod-validate (minimum length aligned with the Supabase Auth setting, confirmation match). Map errors to translated messages including `weak_password` (Leaked Password Protection, once G is on) and `reauthentication_needed`. Keys `account.me.perfil.password.*`. Confirm `account` is shipped to the client provider (the audit test guards this). Satisfies: design §4.3 residual affordance, Req 5 (password is secondary, only ever set from an authenticated session), Req 8. **I18N-CHK**.
+- [ ] **D.3 [M]** QA: guest booking → success page shows CTA (no session) → /login → OTP → /me; set a password on /me/perfil, sign out, sign in with that password → /me (exercises B's 7a identity-first path); CTA hidden when signed in. After G is enabled, a known-leaked password is rejected with the translated message.
+- [ ] **D.4** Gate commands; **REQ8-CHK**.
+- [ ] **D.5 HB**
+- [ ] **D.6** Rollback boundary: pure UI revert; no data or schema effect.
+
+---
+
+## PR E — `Step2Auth` migration (Req 6, D7) `[S]`
+
+**BLOCKED on the GATE.6 `HEARTBEAT.md` entry.** May be developed as a draft in parallel; must not merge or release before E.0 passes.
+Gate commands: all four; plus **I18N-CHK**.
+
+- [ ] **E.0 [S] [GATE]** Reviewer confirms the GATE.6 entry exists, is dated, and shows ≥ 2 activations across both methods, `already_linked` observed, and /auth/confirm → /me observed. If absent: do not merge. Satisfies: Req 6 scenario 3, D7.
+- [ ] **E.1** `apps/web/src/app/(tenant)/[tenant]/book/_components/Step2Auth.tsx`: remove `handleRegister` (bare `supabase.auth.signUp`), the `'register'` view branch, the "Criar Perfil" button, and `'register'` from `AuthView`. Keep `handleLogin` (password sign-in for an already-activated customer), Google, and "continue as guest". Satisfies: Req 6 scenarios 1-2.
+- [ ] **E.2** Add OTP (email field → `signInWithOtp`, `emailRedirectTo = ${window.location.origin}/auth/confirm?next=/book`, `shouldCreateUser: true`, identical "check your inbox" state regardless of outcome except a distinct rate-limit message) and generalize `signInWithOAuth` to `'google' | 'apple'`; render Apple from `resolveEnabledOAuthProviders` in place of the `{/* Apple — pendiente … */}` comment. Relies on the B.0 rule so `next=/book` is honoured. Satisfies: Req 6 scenario 1, Req 9.
+- [ ] **E.3** Messages: in `booking.auth.*` drop `headingRegister`, `subtitleRegister`, `createAccount`, `createProfile`, `noAccount`, `createNow`, `fullNameLabel`, `fullNamePlaceholder`, `passwordMinPlaceholder`; add `otp*` and `apple`. Before deleting, `rg` each removed key to confirm no remaining consumer. **I18N-CHK**.
+- [ ] **E.4 [GATE]** `rg 'signUp\(' apps/web/src` returns **no account-creating call site** (Req 6 verification; design validation gate).
+- [ ] **E.5 [M]** Booking funnel QA at 375px: OTP from step 2 returns to /book with a session; Google unchanged and activates a returning guest; password sign-in works for an activated customer; "continue as guest" works; Apple absent by default.
+- [ ] **E.6 [M]** Conversion watch (`proposal.md` Risk 2 — removing a familiar "register" option is a conversion-affecting edit): record completed guest bookings for the 7 days before deploy and, after 7 days, the 7 days after (`SELECT count(*) FROM appointments WHERE created_at >= … GROUP BY date_trunc('day', created_at)` per tenant), and note both in `HEARTBEAT.md`.
+- [ ] **E.7** Gate commands; **REQ8-CHK**.
+- [ ] **E.8 HB**
+- [ ] **E.9** Rollback boundary: reverting restores the `signUp` path; no data dependency. If the conversion watch shows a drop, this is the revert unit.
+
+---
+
+## PR F — Staff-triggered invite (Req 4 scenarios 3-4, Req 8)
+
+Prerequisite: PR B deployed (activation happens through B's funnel). Independent of D and E.
+Gate commands: all four; plus **I18N-CHK**, **REQ8-CHK**.
+
+- [ ] **F.1** `apps/web/src/app/(dashboard)/dashboard/customers/actions/invite-customer-activation.ts`, `inviteCustomerActivationAction(customerId): Promise<Result<{ sent: true }>>`, structurally mirroring `toggle-block-customer.ts` (read it first): Zod-validate `customerId` (uuid); staff session or `UNAUTHORIZED`; `orgId` from `user.user_metadata.organization_id` with `profiles` fallback; `SELECT id, email, is_blocked, auth_user_id FROM customers WHERE id = $id AND organization_id = $orgId` (explicit columns; a forged cross-tenant id → `NOT_FOUND`); typed staff-facing refusals for `NO_EMAIL`, `BLOCKED`, `ALREADY_ACTIVE` (staff may know why); Owner and Staff both (same "has a `profiles` row in this org" check, no new role gate). Satisfies: Req 4 scenario 4, Req 8.
+- [ ] **F.2 [S]** The mechanism that makes "does not authenticate anyone" true (design §5.2): send with a **fresh cookie-less client** — `createClient(NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false, autoRefreshToken: false } })` constructed inside the action and discarded, **never** the cookie-bound SSR client (its `signInWithOtp` could write auth cookies into the staff member's own browser). `emailRedirectTo` built from the org's own slug via `buildTenantOrigin` + /auth/confirm?next=/me. **No write to `customers`** (no `authUserId`, no `isGuest`). Satisfies: Req 4 scenario 3, Req 8.
+- [ ] **F.3** UI: new `DropdownMenu.Item` above block/unblock in `.../customers/[id]/_components/CustomerActionsMenu.tsx` using the existing `useTransition` + `sonner` pattern; disabled with a reason tooltip when the customer has no email, is blocked, or is already activated. Supply a derived boolean (not the raw `authUserId`) from the server loader in `apps/web/src/domains/customers/service.ts` / the page so nothing new is sent to the client. Keys under `dashboard.customers.actions.*`: `inviteLabel`, `toastInviteSent` (`{name}`), `inviteNoEmail`, `inviteBlocked`, `inviteAlreadyActive`, plus an error/rate-limit toast key. Satisfies: Req 4 scenario 3-4. **I18N-CHK**.
+- [ ] **F.4 [M]** QA (no harness): as Owner and separately as Staff, invite a test guest (own inbox); **the staff browser's auth cookies are unchanged** and the staff session is intact; the DB after sending shows `auth_user_id` still NULL and `is_guest` still true; clicking the emailed link lands on the inviting tenant's /auth/confirm → /me and only then is the row linked (Req 4 scenario 3); disabled states for no-email, blocked and already-activated customers; a `customerId` from another organization → `NOT_FOUND` (Req 4 scenario 4).
+- [ ] **F.5** Gate commands; **REQ8-CHK**.
+- [ ] **F.6 HB**
+- [ ] **F.7** Rollback boundary: remove the action file, the menu item and the keys; no schema or data effect.
+
+---
+
+## PR G — Leaked Password Protection (Req 10)
+
+Docs/config-only; no application code. May be folded into another PR's `HEARTBEAT.md` change (orchestrator's call). Best done before D.3's leaked-password check.
+
+- [ ] **G.1 [H]** Enable "Leaked Password Protection" (HaveIBeenPwned) in the Supabase Auth dashboard for this project (H.6 caveat: Supabase documents this as Pro-plan-and-above). Satisfies: Req 10.
+- [ ] **G.2 [GATE]** `mcp__supabase__get_advisors --type security` no longer reports the leaked-password-protection finding. Satisfies: Req 10 verification.
+- [ ] **G.3 HB [GATE]** Record in `HEARTBEAT.md` — the toggle is invisible to code review and git history: date, who enabled it, advisor result before/after. Satisfies: Req 10 ("recorded durably").
+
+---
+
+## Traceability
+
+| Requirement | Tasks |
+|---|---|
+| Req 1 (column, FK, unique) | A.1-A.7, A.9, A.10 |
+| Req 2 (primitive) | B.1-B.3, B.10, GATE.1-3 |
+| Req 3 (`loginAction`) | B.6, B.7, B.10 |
+| Req 4 (triggers) | B.8, B.9, C.7, D.1, F.1-F.4, H.1-H.2 |
+| Req 5 (/login) | C.4-C.10, D.2 |
+| Req 6 (Step2Auth, sequencing) | B.0, B.8 (`signup` type), GATE.6, E.0-E.4 |
+| Req 7 (org isolation) | B.1-B.3, B.10 (f), GATE.5 |
+| Req 8 (no client-side table access) | A.3, B.3, REQ8-CHK in B, C, D, E, F |
+| Req 9 (Apple gate) | B.5, C.8, C.10, E.2, H.7 |
+| Req 10 (Leaked Password Protection) | G.1-G.3, H.6 |
+
+| Decision | Tasks |
+|---|---|
+| D1 identity_conflict | B.1-B.3, B.6 |
+| D2 blocked | B.1-B.3, B.6, B.10 (e) |
+| D3 no_account, no row creation | B.1-B.3, B.6 |
+| D4 `lower(email)` uniqueness | A.1-A.7, A.9 |
+| D5 callback funnel | B.0, B.6, B.8, B.9 |
+| D6 CTA on booking-confirmation | D.1, D.2 |
+| D7 named production query gate | GATE.1-GATE.6, E.0 |
+
+---
+
+## Review Workload Forecast
+
+Estimated changed lines = authored additions + deletions (goldens excluded; JSON locale files counted three times because parity requires it). Estimates are deliberately not low-balled; design §11's "each stays inside 400" does not hold for B and C.
+
+| PR | Estimated changed lines | Basis | Budget risk |
+|---|---|---|---|
+| A | ~165 (130-200) | migration ~45, schema comment block ~25, book/staff write paths + `23505` handling ~70, messages, HEARTBEAT ~25. Without the two `[GAP]` tasks ~100. | Low |
+| B | **~900 (800-1,000)** | primitive ~50 + test ~110 + DB wrapper ~100; `resolveRedirectUrl` move + test ~120 (incl. ~33 deleted from `actions.ts`); `oauth-providers` + test ~65; resolver ~160; `loginAction` rewrite ~140 (mostly deletions); /auth/confirm ~75; callback ~45; HEARTBEAT | **High** |
+| C | **~785 (650-850)** | `LoginForm` decomposition ~410 alone (181 lines deleted + ~230 added); `requestOtpAction` ~65; `page.tsx` ~35; `layout.tsx` ~14; `auth.ts` deletion 68; `auth.*` keys ~55 lines × 3 locales ~165; HEARTBEAT | **High** |
+| D | ~190 (150-230) | success CTA ~25; `SetPasswordForm` ~90; keys ~45 × 3 locales' worth; HEARTBEAT | Low |
+| E | ~230 (190-280) | `Step2Auth` ~75 removed + ~95 added; ~18 keys changed × 3 locales ~50; HEARTBEAT | Low-Medium |
+| F | ~195 (160-240) | action ~95; menu ~40; loader ~15; keys ~30; HEARTBEAT | Low |
+| G | ~25 | `HEARTBEAT.md` only | Low (docs-only) |
+| **Total** | **~2,500 (2,100-2,900)** | roughly 6x the 400-line budget | |
+
+- Chained PRs recommended: **Yes**
+- 400-line budget risk: **High** (B and C each exceed 400 on their own; the rest fit)
+- Cohesive cut points that bring every slice inside 400 (one slicing pass, no code compression): B → **B-1 ~270**, **B-2 ~235**, **B-3 ~435 (borderline)**; C → **C-1 ~270**, **C-2a ~200**, **C-2b ~320**. That yields about 10-11 PRs (G may fold into another PR's HEARTBEAT change). If B-3 measures over 400 once drafted, moving `oauth-providers` and B.9 out of it is the lever; if it still exceeds after one honest pass, report the smallest count with a `size:exception` recommendation rather than shrinking code.
+- Strategy-fit note (not a choice): A, D, E, F, G are independently landable, and the D7 gate requires production exposure of A+B+C before E merges — a feature-branch chain that integrates before `main` would delay that exposure and defeat the gate; stacked PRs to `main` fit the sequencing.
+- Delivery strategy: `ask-on-risk` (session preflight) — **risk triggered**
+- Decision needed before apply: **Yes**
+  1. Chain strategy and whether to adopt the B/C cut points (or accept `size:exception` for B and C, not recommended: this is logic, not generated output).
+  2. **B.0** — confirm the callback/confirm `next` and `no_account` handling for the live Google booking flow (blocks B-3 and E).
+  3. Whether to keep the two `[GAP]` tasks A.6/A.7 (recommended) or defer them.
+  4. H.5 production migration authorization; H.6 plan check for Leaked Password Protection.
+
+## Risks
+
+1. **B.0 is a real production regression risk, not a nicety.** As written, D5 routes /auth/callback through a resolver whose customer branch signs out a first-time Google booker and discards `next=/book`. Ships in B-3, live immediately.
+2. **Email template dependency (H.2) is undocumented in the design.** Without it, /auth/confirm never receives `token_hash` and OTP fails; with it changed, the live `signUp` confirmation path depends on B.8 accepting `type=signup`.
+3. **Migration/deploy ordering has no zero-window option inside the single-file design.** Applying the column first is required (Drizzle inserts list every column); the residual window is index-live-before-lowercase-code, bounded to a deploy. An optional zero-window variant splits statement 3 (the unique index) into a second migration applied after PR A deploys; that deviates from design §1.2's single file, so it is an orchestrator/human decision.
+4. **D7 wording vs §11 mismatch:** the gate needs PR C deployed, not just PR B.
+5. **Manual-QA-heavy delivery.** The DB wrapper, resolver, both routes, `requestOtpAction` and the invite action have no automated test (design §9, stated honestly); safety rests on B.10, the GATE.* evidence and per-PR manual QA. The pure seams (policy, redirect guard, provider gate) are unit-tested.
+6. **Leaked Password Protection may be plan-gated** (H.6); Apple stays inert by design (H.7).
