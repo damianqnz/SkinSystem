@@ -1305,10 +1305,18 @@
       "forgot": "Forgot your password?",
       "noAccountCtaLead": "First time here?",
       "noAccountCtaAction": "Book your first appointment",
+      "otp": {
+        "label": "Email",
+        "cta": "Send me a link",
+        "sent": "We’ve sent an access link to {email}. Check your inbox.",
+        "orPassword": "or sign in with your password"
+      },
       "errors": {
         "invalid_credentials": "Invalid email or password.",
         "no_account": "We couldn’t find an account for this space.",
-        "generic": "Something went wrong. Please try again."
+        "generic": "Something went wrong. Please try again.",
+        "rateLimited": "Too many attempts. Please try again in a moment.",
+        "invalid_email": "Enter a valid email address."
       }
     }
   },

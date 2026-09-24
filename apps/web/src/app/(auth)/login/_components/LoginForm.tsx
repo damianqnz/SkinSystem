@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { loginAction, type LoginState } from '../actions';
+import { OtpForm } from './OtpForm';
 import { MagicCard } from '@/shared/components/ui/magic-card';
 import { cn } from '@/shared/lib/utils';
 
@@ -33,6 +34,18 @@ export function LoginForm({ next }: LoginFormProps) {
       gradientColor="rgba(212, 212, 216, 0.18)"
       gradientSize={280}
     >
+      {/* ── Passwordless magic-link (sibling form — never nested) ── */}
+      <OtpForm />
+
+      {/* ── Divider ─────────────────────────────────────────── */}
+      <div className="my-8 flex items-center gap-4">
+        <span className="h-px flex-1 bg-stone-200" aria-hidden />
+        <span className="font-sans text-[10px] font-medium tracking-[0.18em] uppercase text-stone-400">
+          {t('otp.orPassword')}
+        </span>
+        <span className="h-px flex-1 bg-stone-200" aria-hidden />
+      </div>
+
       <form action={formAction} noValidate className="w-full">
         {next && <input type="hidden" name="next" value={next} />}
 
