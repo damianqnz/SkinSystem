@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
-import { headers } from 'next/headers';
 import { Cormorant_Garamond, Outfit } from 'next/font/google';
-import { localeFromHeader } from '@/i18n/detect-locale';
+import { NextIntlClientProvider } from 'next-intl';
+import { getLocale, getMessages } from 'next-intl/server';
+import { pickMessages } from '@/i18n/pick-messages';
+import { AUTH_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
 import '../globals.css';
 
 /**
@@ -26,8 +28,7 @@ const outfit = Outfit({
 });
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
-  const hdrs = await headers();
-  const locale = localeFromHeader(hdrs.get('x-locale'));
+  const [locale, messages] = await Promise.all([getLocale(), getMessages()]);
 
   return (
     <html
@@ -35,7 +36,9 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
       className={`${cormorant.variable} ${outfit.variable}`}
     >
       <body className="min-h-screen bg-[#FAFAF9] text-stone-900 antialiased">
-        {children}
+        <NextIntlClientProvider locale={locale} messages={pickMessages(messages, AUTH_CLIENT_NAMESPACES)}>
+          {children}
+        </NextIntlClientProvider>
       </body>
     </html>
   );

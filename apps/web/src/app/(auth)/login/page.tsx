@@ -1,10 +1,6 @@
 import { Suspense }  from 'react';
-import { headers }   from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { LoginForm } from './_components/LoginForm';
-import { authTranslations, detectAuthLocale, type AuthLocale } from '@/shared/lib/i18n/auth';
-
-// Left panel is aria-hidden and purely decorative — always rendered in Spanish.
-const ES = authTranslations['es'];
 
 export const metadata = {
   title: 'SkinSystem — Acceso',
@@ -23,11 +19,9 @@ async function LoginContent({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const params      = await searchParams;
-  const next        = typeof params.next === 'string' ? params.next : undefined;
-  const headersList = await headers();
-  const locale: AuthLocale = detectAuthLocale(headersList.get('accept-language') ?? '');
-  const t = authTranslations[locale];
+  const params = await searchParams;
+  const next   = typeof params.next === 'string' ? params.next : undefined;
+  const t      = await getTranslations('auth.login');
 
   return (
     <>
@@ -39,21 +33,23 @@ async function LoginContent({
 
       <header className="mb-10">
         <h1 className="font-serif text-[2.625rem] italic leading-[1.1] text-stone-900">
-          {t.heading.split('\n').map((line, i) => (
+          {t('heading').split('\n').map((line, i) => (
             <span key={i} className="block">{line}</span>
           ))}
         </h1>
-        <p className="mt-3 font-sans text-sm text-stone-500">{t.subtitle}</p>
+        <p className="mt-3 font-sans text-sm text-stone-500">{t('subtitle')}</p>
         <div className="mt-5 h-px w-8 bg-stone-300" />
       </header>
 
-      <LoginForm next={next} t={t} />
+      <LoginForm next={next} />
     </>
   );
 }
 
 // ── Page shell (statically cacheable) ─────────────────────────────────────
-export default function LoginPage({ searchParams }: LoginPageProps) {
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const t = await getTranslations('auth.login');
+
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
 
@@ -74,7 +70,7 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         </span>
         <div className="relative">
           <p className="font-serif text-[3rem] italic leading-[1.1] text-stone-100">
-            {ES.tagline.split('. ').map((line, i, arr) => (
+            {t('tagline').split('. ').map((line, i, arr) => (
               <span key={i} className="block">
                 {line}{i < arr.length - 1 ? '.' : ''}
               </span>
