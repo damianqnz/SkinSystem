@@ -18,7 +18,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CONSUMER_CLIENT_NAMESPACES, MARKETING_CLIENT_NAMESPACES } from './client-namespaces';
+import { AUTH_CLIENT_NAMESPACES, CONSUMER_CLIENT_NAMESPACES, MARKETING_CLIENT_NAMESPACES } from './client-namespaces';
 
 const SRC = new URL('..', import.meta.url).pathname;
 
@@ -84,5 +84,11 @@ describe('client-namespace audit (PERF-01 regression guard)', () => {
     const files = walk(join(SRC, 'app', '(marketing)'));
     expect(files.length).toBeGreaterThan(0);
     auditFiles(files, MARKETING_CLIENT_NAMESPACES);
+  });
+
+  it('every (auth) Client Component only reads an allow-listed namespace', () => {
+    const files = walk(join(SRC, 'app', '(auth)'));
+    expect(files.length).toBeGreaterThan(0);
+    auditFiles(files, AUTH_CLIENT_NAMESPACES);
   });
 });

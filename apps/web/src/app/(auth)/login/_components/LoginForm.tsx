@@ -5,25 +5,25 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslations } from 'next-intl';
 import { loginAction, type LoginState } from '../actions';
 import { MagicCard } from '@/shared/components/ui/magic-card';
 import { cn } from '@/shared/lib/utils';
-import type { AuthT } from '@/shared/lib/i18n/auth';
 
 interface LoginFormProps {
   next?: string;
-  t: AuthT;
 }
 
-export function LoginForm({ next, t }: LoginFormProps) {
+export function LoginForm({ next }: LoginFormProps) {
   const [state, formAction, isPending] = useActionState<LoginState, FormData>(
     loginAction,
     null,
   );
   const [showPassword, setShowPassword] = useState(false);
+  const t = useTranslations('auth.login');
 
   const errorMsg = state?.error
-    ? t.errors[state.error as keyof typeof t.errors] ?? t.errors.generic
+    ? (t.has(`errors.${state.error}`) ? t(`errors.${state.error}`) : t('errors.generic'))
     : null;
   const showBookCta = state?.error === 'no_account';
 
@@ -59,7 +59,7 @@ export function LoginForm({ next, t }: LoginFormProps) {
             htmlFor="email"
             className="mb-2 block font-sans text-[10px] font-medium tracking-[0.18em] uppercase text-stone-400"
           >
-            {t.email}
+            {t('email')}
           </label>
           <input
             id="email"
@@ -79,7 +79,7 @@ export function LoginForm({ next, t }: LoginFormProps) {
             htmlFor="password"
             className="mb-2 block font-sans text-[10px] font-medium tracking-[0.18em] uppercase text-stone-400"
           >
-            {t.password}
+            {t('password')}
           </label>
           <div className="relative">
             <input
@@ -124,10 +124,10 @@ export function LoginForm({ next, t }: LoginFormProps) {
           {isPending ? (
             <span className="flex items-center justify-center gap-2">
               <LoadingDots />
-              <span>{t.loading}</span>
+              <span>{t('loading')}</span>
             </span>
           ) : (
-            t.submit
+            t('submit')
           )}
         </button>
 
@@ -137,7 +137,7 @@ export function LoginForm({ next, t }: LoginFormProps) {
             href="#"
             className="transition-colors hover:text-stone-700 underline-offset-4 hover:underline"
           >
-            {t.forgot}
+            {t('forgot')}
           </a>
         </p>
 
@@ -151,12 +151,12 @@ export function LoginForm({ next, t }: LoginFormProps) {
               transition={{ duration: 0.2 }}
               className="mt-4 text-center font-sans text-xs text-stone-500"
             >
-              {t.noAccountCtaLead}{' '}
+              {t('noAccountCtaLead')}{' '}
               <Link
                 href="/book"
                 className="font-medium text-stone-800 underline-offset-4 transition-colors hover:text-stone-950 hover:underline"
               >
-                {t.noAccountCtaAction}
+                {t('noAccountCtaAction')}
               </Link>
             </motion.p>
           )}

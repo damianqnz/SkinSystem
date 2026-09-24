@@ -1292,6 +1292,26 @@
       "status":  "En construcción"
     }
   },
+  "auth": {
+    "login": {
+      "brand": "SkinSystem",
+      "tagline": "Tu espacio de belleza personal.",
+      "heading": "Bienvenida\nde vuelta.",
+      "subtitle": "Accede a tu espacio personal.",
+      "email": "Correo electrónico",
+      "password": "Contraseña",
+      "submit": "Entrar",
+      "loading": "Iniciando sesión…",
+      "forgot": "¿Olvidaste tu contraseña?",
+      "noAccountCtaLead": "¿Primera vez por aquí?",
+      "noAccountCtaAction": "Reserva tu primera cita",
+      "errors": {
+        "invalid_credentials": "Email o contraseña incorrectos.",
+        "no_account": "No encontramos una cuenta asociada a este espacio.",
+        "generic": "Algo fue mal. Inténtalo de nuevo."
+      }
+    }
+  },
   "errors": {
     "notFound": {
       "title": "Página no encontrada",

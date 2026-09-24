@@ -13,3 +13,6 @@ export const CONSUMER_CLIENT_NAMESPACES = ['booking', 'calendar', 'tenant', 'acc
 
 /** `(marketing)` — no Client Component exists there today. */
 export const MARKETING_CLIENT_NAMESPACES: readonly string[] = [];
+
+/** `(auth)` — the login portal's `LoginForm` reads `auth.*`. */
+export const AUTH_CLIENT_NAMESPACES = ['auth'] as const;
