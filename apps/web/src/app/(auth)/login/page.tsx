@@ -21,6 +21,7 @@ async function LoginContent({
 }) {
   const params = await searchParams;
   const next   = typeof params.next === 'string' ? params.next : undefined;
+  const error  = typeof params.error === 'string' ? params.error : undefined;
   const t      = await getTranslations('auth.login');
 
   return (
@@ -41,7 +42,7 @@ async function LoginContent({
         <div className="mt-5 h-px w-8 bg-stone-300" />
       </header>
 
-      <LoginForm next={next} />
+      <LoginForm next={next} initialError={error} />
     </>
   );
 }

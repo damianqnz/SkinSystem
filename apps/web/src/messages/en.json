@@ -1305,6 +1305,12 @@
       "forgot": "Forgot your password?",
       "noAccountCtaLead": "First time here?",
       "noAccountCtaAction": "Book your first appointment",
+      "providers": {
+        "google": "Continue with Google",
+        "apple": "Continue with Apple"
+      },
+      "passwordDisclosure": "Sign in with a password",
+      "noPasswordHint": "With an access link you sign in without needing a password.",
       "otp": {
         "label": "Email",
         "cta": "Send me a link",
@@ -1316,7 +1322,9 @@
         "no_account": "We couldn’t find an account for this space.",
         "generic": "Something went wrong. Please try again.",
         "rateLimited": "Too many attempts. Please try again in a moment.",
-        "invalid_email": "Enter a valid email address."
+        "invalid_email": "Enter a valid email address.",
+        "link_invalid": "This link is no longer valid. Request a new one.",
+        "link_expired": "This link has expired. Request a new one."
       }
     }
   },

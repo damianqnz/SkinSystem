@@ -1305,6 +1305,12 @@
       "forgot": "¿Olvidaste tu contraseña?",
       "noAccountCtaLead": "¿Primera vez por aquí?",
       "noAccountCtaAction": "Reserva tu primera cita",
+      "providers": {
+        "google": "Continuar con Google",
+        "apple": "Continuar con Apple"
+      },
+      "passwordDisclosure": "Entrar con contraseña",
+      "noPasswordHint": "Con un enlace de acceso entras sin necesidad de contraseña.",
       "otp": {
         "label": "Correo electrónico",
         "cta": "Enviarme un enlace",
@@ -1316,7 +1322,9 @@
         "no_account": "No encontramos una cuenta asociada a este espacio.",
         "generic": "Algo fue mal. Inténtalo de nuevo.",
         "rateLimited": "Demasiados intentos. Inténtalo de nuevo en unos minutos.",
-        "invalid_email": "Introduce un correo electrónico válido."
+        "invalid_email": "Introduce un correo electrónico válido.",
+        "link_invalid": "Este enlace ya no es válido. Pide uno nuevo.",
+        "link_expired": "Este enlace ha caducado. Pide uno nuevo."
       }
     }
   },
