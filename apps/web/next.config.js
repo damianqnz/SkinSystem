@@ -15,8 +15,43 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
 
 const supabaseHostname = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname;
 
+// ── Security headers (prod-hardening base) ────────────────────────────────
+// CSP ships as Report-Only first: it surfaces violations without breaking the
+// app while a nonce-based enforced policy is designed later. Two allowances are
+// load-bearing and must NOT be dropped:
+//   • 'unsafe-inline' — ConsumerShell injects a dynamic inline <style> + a FOUC
+//     guard <script>; enforcing without a nonce would blank the consumer site.
+//   • frame-src maps.google.com/www.google.com — MapSection embeds a Google
+//     Maps <iframe>.
+const isProd = process.env.NODE_ENV === 'production';
+const supabaseOrigin = `https://${supabaseHostname}`;
+const supabaseWs     = `wss://${supabaseHostname}`;
+const csp = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self' https://checkout.stripe.com",
+  `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
+  "style-src 'self' 'unsafe-inline'",
+  `img-src 'self' data: blob: ${supabaseOrigin} https://lh3.googleusercontent.com`,
+  "font-src 'self' data:",
+  `connect-src 'self' ${supabaseOrigin} ${supabaseWs}`,
+  "frame-src https://maps.google.com https://www.google.com",
+  ...(isProd ? ["upgrade-insecure-requests"] : []),
+].join('; ');
+const securityHeaders = [
+  { key: 'Content-Security-Policy-Report-Only', value: csp },
+  { key: 'Strict-Transport-Security', value: 'max-age=63072000; includeSubDomains' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()' },
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  poweredByHeader: false,
   // Turbopack puts @react-pdf/renderer on its default externals list, then fails
   // to assign it a ModuleId while building the app-ssr chunk graph:
   //   ModuleId not found for ident: [externals]/@react-pdf/renderer [external]
@@ -58,6 +93,9 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  async headers() {
+    return [{ source: '/:path*', headers: securityHeaders }];
   },
 };
 
