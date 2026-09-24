@@ -1291,5 +1291,22 @@
       "tagline": "A plataforma de reservas e gestão para especialistas em estética.",
       "status":  "Em construção"
     }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Página não encontrada",
+      "description": "A página que procura foi movida ou já não está disponível. Volte ao início para continuar.",
+      "cta": "Voltar ao início"
+    },
+    "error": {
+      "title": "Algo não correu como esperado",
+      "description": "Ocorreu um imprevisto ao carregar esta página. Aguarde um instante e tente novamente.",
+      "retry": "Tentar novamente"
+    },
+    "global": {
+      "title": "Serviço momentaneamente indisponível",
+      "description": "Deparámo-nos com um contratempo inesperado. Atualize a página para retomar.",
+      "retry": "Recarregar página"
+    }
   }
 }

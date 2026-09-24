@@ -1291,5 +1291,22 @@
       "tagline": "The booking and management platform for aesthetics specialists.",
       "status":  "Under construction"
     }
+  },
+  "errors": {
+    "notFound": {
+      "title": "Page not found",
+      "description": "The page you're looking for has moved or is no longer available. Head back home to continue.",
+      "cta": "Back to home"
+    },
+    "error": {
+      "title": "Something went wrong",
+      "description": "An unexpected issue interrupted this page. Take a moment and try again.",
+      "retry": "Try again"
+    },
+    "global": {
+      "title": "Service temporarily unavailable",
+      "description": "We ran into an unexpected problem. Refresh the page to continue.",
+      "retry": "Reload page"
+    }
   }
 }
