@@ -1305,6 +1305,12 @@
       "forgot": "Esqueceste a palavra-passe?",
       "noAccountCtaLead": "Primeira vez por aqui?",
       "noAccountCtaAction": "Reserva a tua primeira consulta",
+      "providers": {
+        "google": "Continuar com Google",
+        "apple": "Continuar com Apple"
+      },
+      "passwordDisclosure": "Entrar com palavra-passe",
+      "noPasswordHint": "Com um link de acesso entras sem precisar de palavra-passe.",
       "otp": {
         "label": "Email",
         "cta": "Enviar-me um link",
@@ -1316,7 +1322,9 @@
         "no_account": "Não encontrámos nenhuma conta associada a este espaço.",
         "generic": "Algo correu mal. Tenta novamente.",
         "rateLimited": "Demasiadas tentativas. Tenta novamente daqui a pouco.",
-        "invalid_email": "Introduz um email válido."
+        "invalid_email": "Introduz um email válido.",
+        "link_invalid": "Este link já não é válido. Pede um novo.",
+        "link_expired": "Este link expirou. Pede um novo."
       }
     }
   },
