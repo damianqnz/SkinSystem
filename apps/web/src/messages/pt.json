@@ -1305,10 +1305,18 @@
       "forgot": "Esqueceste a palavra-passe?",
       "noAccountCtaLead": "Primeira vez por aqui?",
       "noAccountCtaAction": "Reserva a tua primeira consulta",
+      "otp": {
+        "label": "Email",
+        "cta": "Enviar-me um link",
+        "sent": "Enviámos um link de acesso para {email}. Verifica a tua caixa de entrada.",
+        "orPassword": "ou entra com a palavra-passe"
+      },
       "errors": {
         "invalid_credentials": "Email ou palavra-passe incorretos.",
         "no_account": "Não encontrámos nenhuma conta associada a este espaço.",
-        "generic": "Algo correu mal. Tenta novamente."
+        "generic": "Algo correu mal. Tenta novamente.",
+        "rateLimited": "Demasiadas tentativas. Tenta novamente daqui a pouco.",
+        "invalid_email": "Introduz um email válido."
       }
     }
   },

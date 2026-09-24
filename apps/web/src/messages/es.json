@@ -1305,10 +1305,18 @@
       "forgot": "¿Olvidaste tu contraseña?",
       "noAccountCtaLead": "¿Primera vez por aquí?",
       "noAccountCtaAction": "Reserva tu primera cita",
+      "otp": {
+        "label": "Correo electrónico",
+        "cta": "Enviarme un enlace",
+        "sent": "Te hemos enviado un enlace de acceso a {email}. Revisa tu bandeja de entrada.",
+        "orPassword": "o entra con tu contraseña"
+      },
       "errors": {
         "invalid_credentials": "Email o contraseña incorrectos.",
         "no_account": "No encontramos una cuenta asociada a este espacio.",
-        "generic": "Algo fue mal. Inténtalo de nuevo."
+        "generic": "Algo fue mal. Inténtalo de nuevo.",
+        "rateLimited": "Demasiados intentos. Inténtalo de nuevo en unos minutos.",
+        "invalid_email": "Introduce un correo electrónico válido."
       }
     }
   },

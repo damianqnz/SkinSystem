@@ -5,6 +5,7 @@ import { headers } from 'next/headers';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { resolvePostAuthDestination } from '@/infrastructure/auth/resolve-post-auth-destination';
+import { buildTenantOrigin } from '@/infrastructure/auth/resolve-redirect-url';
 
 // ── Validation ────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -68,4 +69,54 @@ export async function loginAction(
 
   if (destination.kind === 'redirect') redirect(destination.url);
   return { error: destination.kind === 'no_account' ? 'no_account' : 'generic' };
+}
+
+// ── OTP (passwordless magic-link) ─────────────────────────────────
+const otpSchema = z.string().email();
+
+/**
+ * State for the passwordless magic-link request form. `sent` is deliberately
+ * returned for BOTH a successful send and any non-429 failure, so the response
+ * can never be used to probe whether an account exists (anti-enumeration).
+ */
+export type OtpState =
+  | { status: 'idle' }
+  | { status: 'sent'; email: string }
+  | { status: 'error'; error: 'rateLimited' | 'invalid_email' | 'generic' }
+  | null;
+
+/**
+ * Sends a Supabase magic-link (OTP) to `email`. The confirmation link points at
+ * `/auth/confirm` WITHOUT a `next` param: forcing `?next=/me` would send staff
+ * to /me, so with no `next` the shared post-auth resolver routes each user by
+ * role (staff → /dashboard, customer → /me).
+ *
+ * Anti-enumeration: apart from a 429 rate-limit, the action always resolves to
+ * `sent` — it never branches on whether a customers/user row exists.
+ */
+export async function requestOtpAction(
+  _prev: OtpState,
+  formData: FormData,
+): Promise<OtpState> {
+  const parsed = otpSchema.safeParse(formData.get('email'));
+  if (!parsed.success) return { status: 'error', error: 'invalid_email' };
+  const email = parsed.data;
+
+  // Tenant context (the subdomain the user is browsing)
+  const tenantSlug = (await headers()).get('x-tenant-slug') ?? '';
+  if (!tenantSlug) return { status: 'error', error: 'generic' };
+
+  const supabase = await createSupabaseServerClient();
+  const emailRedirectTo = `${buildTenantOrigin(tenantSlug)}/auth/confirm`;
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo, shouldCreateUser: true },
+  });
+
+  // Rate limit is the only outcome that changes the response.
+  if (error?.status === 429) return { status: 'error', error: 'rateLimited' };
+
+  // Success OR any other (non-429) error resolves identically.
+  return { status: 'sent', email };
 }
