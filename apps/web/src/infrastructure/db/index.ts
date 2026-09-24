@@ -20,11 +20,12 @@ const client =
   globalForDb.dbClient ??
   postgres(process.env.DATABASE_URL!, {
     prepare: false, // Required for Supabase Transaction mode pooler
+    max: 1, // One connection per serverless instance; the Supabase pooler multiplexes across instances
   });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForDb.dbClient = client;
-}
+// Reuse the client across warm serverless invocations and dev HMR reloads so a
+// hot instance never opens a second pool on the shared pooler.
+globalForDb.dbClient = client;
 
 export const db = drizzle(client, { schema });
 export type DB = typeof db;
