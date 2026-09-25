@@ -5,7 +5,8 @@ import { DEFAULT_LOCALE }  from '@/i18n/config';
 import { getOrganizationBySlug }      from '@/domains/organizations/service';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { getMyCustomer }              from '@/domains/customers/service-me';
-import { ProfileForm } from '../_components/ProfileForm';
+import { ProfileForm }      from '../_components/ProfileForm';
+import { SetPasswordForm }  from '../_components/SetPasswordForm';
 import { buildLoginUrl } from '@/infrastructure/auth/build-login-url';
 
 export default async function PerfilPage() {
@@ -51,6 +52,10 @@ export default async function PerfilPage() {
         initialName={customer?.fullName ?? (user.user_metadata?.full_name as string) ?? ''}
         initialPhone={customer?.phone ?? ''}
       />
+
+      <hr className="border-stone-100" />
+
+      <SetPasswordForm />
     </div>
   );
 }

@@ -258,6 +258,29 @@
           "invalidData":    "Dados inválidos",
           "orgNotFound":    "Negócio não encontrado",
           "profileNotFound": "Perfil não encontrado"
+        },
+        "password": {
+          "title":       "Definir palavra-passe",
+          "description": "Opcional: adicione uma palavra-passe para também poder entrar sem link por email.",
+          "newPassword": {
+            "label":       "Nova palavra-passe",
+            "placeholder": "Mínimo 6 caracteres"
+          },
+          "confirmPassword": {
+            "label":       "Confirmar palavra-passe",
+            "placeholder": "Repita a palavra-passe"
+          },
+          "cta":          "Guardar palavra-passe",
+          "saving":       "A guardar…",
+          "saved":        "Guardada",
+          "toastSuccess": "Palavra-passe definida com sucesso",
+          "errors": {
+            "tooShort":     "A palavra-passe deve ter pelo menos 6 caracteres",
+            "mismatch":     "As palavras-passe não coincidem",
+            "weakPassword": "Esta palavra-passe é demasiado fraca ou já foi exposta numa fuga de dados. Escolha outra.",
+            "reauthNeeded": "Por segurança, volte a iniciar sessão antes de definir uma nova palavra-passe",
+            "generic":      "Não foi possível definir a palavra-passe. Tente novamente."
+          }
         }
       }
     }

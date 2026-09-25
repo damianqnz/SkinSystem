@@ -258,6 +258,29 @@
           "invalidData":     "Datos inválidos",
           "orgNotFound":     "Negocio no encontrado",
           "profileNotFound": "Perfil no encontrado"
+        },
+        "password": {
+          "title":       "Definir contraseña",
+          "description": "Opcional: agrega una contraseña para poder iniciar sesión también sin un enlace por email.",
+          "newPassword": {
+            "label":       "Nueva contraseña",
+            "placeholder": "Mínimo 6 caracteres"
+          },
+          "confirmPassword": {
+            "label":       "Confirmar contraseña",
+            "placeholder": "Repite la contraseña"
+          },
+          "cta":          "Guardar contraseña",
+          "saving":       "Guardando…",
+          "saved":        "Guardada",
+          "toastSuccess": "Contraseña definida correctamente",
+          "errors": {
+            "tooShort":     "La contraseña debe tener al menos 6 caracteres",
+            "mismatch":     "Las contraseñas no coinciden",
+            "weakPassword": "Esta contraseña es demasiado débil o ha aparecido en una filtración de datos. Elige otra.",
+            "reauthNeeded": "Por seguridad, vuelve a iniciar sesión antes de definir una nueva contraseña",
+            "generic":      "No se pudo definir la contraseña. Inténtalo de nuevo."
+          }
         }
       }
     }
