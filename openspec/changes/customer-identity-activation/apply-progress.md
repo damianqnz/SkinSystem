@@ -239,3 +239,82 @@ The B-3 section above described a single uncommitted branch `feat/customer-ident
 Closing re-verification on 2026-09-23 (branch `b3b-wiring`, 3 commits over main), delegated to `gentle-ai-verify`, read-only, working tree untouched: `pnpm check-types` exit 0, `pnpm lint` exit 0 (`--max-warnings 0`), `pnpm test` 147/147 (cold via `--force`), `pnpm build` exit 0 with `/auth/confirm` and `/auth/callback` in the route table, REQ8-CHK 0 matches, `git status --short` shows only the pre-existing untracked `openspec/` and `.pi/`. Environment note: turbo is not installed locally (global 2.10.13 used); check-types/lint/build were turbo cache hits, only test was forced cold.
 
 Still OPEN for PR B: B.10 manual QA (needs H.4 identities + a deploy; no DB harness, design §9), then push `b3b-wiring` and open its PR stacked on `b3a-resolver`. B.11/B.12/B.13 are done. Next plan slice: PR C.
+
+---
+
+# Apply progress: customer-identity-activation -- PR D (In-product entry point + set-password)
+
+Date: 2026-09-25. Mode: sdd-apply (standard, no strict TDD declared). Strategy: stacked-to-main, ask-on-risk (confirmed by the parent orchestrator). Boundary: PR D only, tasks D.1-D.6. Branch `feat/customer-identity-activation-d-entrypoint`, created off a clean `main` (which already contains PR A, B, C). Nothing pushed, no PR opened -- the human decides that. PR E and F are untouched; PR E is still correctly blocked on the GATE.6 `HEARTBEAT.md` entry, which this slice does not touch.
+
+## Tasks
+
+| Task | State | Notes |
+|---|---|---|
+| D.1 booking CTA | done | `book/success/page.tsx`: `createSupabaseServerClient()` + `getUser()` (mirrors `me/perfil/page.tsx`), CTA card rendered only when `!user`. Link `href="/login?next=/me"`. No identity logic added. |
+| D.2 SetPasswordForm | done | New `SetPasswordForm.tsx` (client component), mounted from `me/perfil/page.tsx` after `<ProfileForm>`. Calls `supabase.auth.updateUser({ password })` on the BROWSER client (`createSupabaseClient()`), from the already-authenticated session. Validation extracted into a pure, unit-tested Zod schema. |
+| D.3 manual QA | OPEN (human-deferral) | No harness exists for a real Supabase Auth session / real OTP email delivery in this environment (design section 9). Needs a deployed preview/production and H.4-style identities. Left unchecked. |
+| D.4 gates + REQ8-CHK | done | See "Gate results" below. |
+| D.5 HB | done | `HEARTBEAT.md` entry added (counts only, no customer emails). |
+| D.6 rollback boundary | done | Pure UI revert, no schema/data effect -- see below. |
+
+## Design decisions made while implementing
+
+1. **Password minimum length = 6, not 8.** `spec.md` Req 5 / design section 4.3 do not state a number. The task brief allowed "a sensible minimum such as 8" if unspecified, but the codebase already has a load-bearing precedent: `loginSchema` in `(auth)/login/actions.ts` uses `z.string().min(6)` for password sign-in, which is Supabase Auth's own default minimum. Using 8 client-side would create a gap where the client accepts an 8-char requirement that is stricter than what `loginSchema` (and Supabase itself) actually enforces, with no corresponding server-side tightening. Aligned `SetPasswordForm` to 6 and documented the reasoning in `set-password-schema.ts`'s header comment, per the task's own "align with the Supabase Auth setting" instruction.
+2. **Pure seam extracted and tested**, per the TDD-mode instruction ("add a Vitest unit test only for a genuinely pure/testable seam"): `apps/web/src/domains/customers/set-password-schema.ts` (Zod schema + refine for confirmation match, no `server-only`, no DB import) with `set-password-schema.test.ts` (4 cases: exact-minimum accepted, below-minimum rejected, mismatched confirmation rejected with `path: ['confirmPassword']`, missing confirmation rejected). `SetPasswordForm.tsx` itself is a Client Component and, per design section 9, has no RTL/jsdom harness -- not faked.
+3. **Error mapping surface**: `error.code === 'weak_password'` and `error.code === 'reauthentication_needed'` read off Supabase's `AuthError.code` (verified against the installed `@supabase/auth-js@2.103.0` `ErrorCode` union, which includes both). `weak_password` is inert until PR G enables Leaked Password Protection (still Free-plan-deferred, per the human's 2026-09-19 decision); the mapping is in place so it activates with zero further code change.
+4. **CTA placement and copy**: a bordered secondary card (not the solid primary "back home" button) placed above `backHome`, using `--accent-spa` for a small key icon, `font-cormorant` for the title and `font-outfit` for body/CTA text -- consistent with the existing card treatment already on that page (the appointment-details block) and DESIGN_SYSTEM.md's 60-30-10 / luxury typography rules. No skeleton/async fetch was added, so there is no CLS risk.
+5. **`account.me.perfil.password` keys placed as a sibling of the existing `errors` key** inside `perfil`, not nested under it, since these are form-level strings (labels, CTA, toasts) rather than the profile-form's own error catalogue.
+
+## Files changed
+
+| File | Change | Lines |
+|---|---|---|
+| `apps/web/src/app/(tenant)/[tenant]/book/success/page.tsx` | +session check, +CTA card | +33 / -1 |
+| `apps/web/src/app/(account)/me/perfil/page.tsx` | +import, +mount | +7 / -1 |
+| `apps/web/src/app/(account)/me/_components/SetPasswordForm.tsx` | new | 121 |
+| `apps/web/src/domains/customers/set-password-schema.ts` | new | 33 |
+| `apps/web/src/domains/customers/set-password-schema.test.ts` | new, 4 tests | 32 |
+| `apps/web/src/messages/{pt,es,en}.json` | `booking.success.activate*` (3 keys) + `account.me.perfil.password.*` (9-ish keys incl. nested `errors`), x3 locales | +23 each |
+
+**Total changed lines: 323** (321 insertions + 2 deletions, per `git diff --stat main -- apps/web`, final state after the pre-commit review fix round below). Well under the 400-line budget; no `size:exception` needed. Not counted: `tasks.md`, this file, `HEARTBEAT.md` (SDD/doc artifacts, committed separately per the run brief).
+
+## Gate results (observed, 2026-09-25, on branch `feat/customer-identity-activation-d-entrypoint`)
+
+- `pnpm check-types`: exit 0, 2/2 tasks successful (turbo cache hit on `@repo/ui`, miss+pass on `web`).
+- `pnpm lint`: exit 0 (`--max-warnings 0`), 2/2 tasks successful.
+- `pnpm exec turbo run test --force`: 17 files, **153/153 tests passed** (cold, no cache), includes the 5 new `set-password-schema.test.ts` cases (one added during the review fix round, below) and the existing `messages.test.ts` tri-locale parity check.
+- `pnpm build`: exit 0, Next.js 16.3.5 (Turbopack) build succeeded; `/[tenant]/book/success` and `/me/perfil` both present in the route table.
+- **REQ8-CHK**: `rg -n "from\('customers'\)|from\('appointments'\)" apps/web/src` -- **0 matches** (exit 1, ripgrep's "no match" convention). `SetPasswordForm` calls only `supabase.auth.updateUser`, no Drizzle/customers import; the success-page session check calls only `supabase.auth.getUser()`.
+- **I18N-CHK**: all six new keys (3 `booking.success.activate*` + `account.me.perfil.password.*` tree) present in `pt.json`, `es.json`, `en.json` at identical paths (verified via line-number parity and confirmed by the passing `messages.test.ts` parity suite); no literal strings landed in the two edited `.tsx` files; no `_i18n.ts` files added; ICU ellipsis used correctly for "Saving..."/"Guardando..."/"A guardar..." (no raw string concatenation).
+- `git diff --stat main -- apps/web/src/proxy.ts apps/web/src/i18n/request.ts`: **empty** -- neither file touched.
+
+## Work-unit commits (executed, Conventional Commits)
+
+1. `e08c30d` -- `feat(booking): show a session-gated CTA to activate an account after booking` -- `book/success/page.tsx` + the `booking.success.activate*` hunk in all three `messages/*.json` (staged via `git add -p`, selecting only that hunk). 4 files, 41 insertions(+), 1 deletion(-).
+2. `49af551` -- `feat(account): add residual set-password affordance to /me/perfil` -- `SetPasswordForm.tsx`, `set-password-schema.ts` + test, `me/perfil/page.tsx`, + the `account.me.perfil.password.*` hunk in all three `messages/*.json`. 7 files, 280 insertions(+), 1 deletion(-) (final, after the fix round below; SHA amended twice).
+
+Both commits are on `feat/customer-identity-activation-d-entrypoint`, stacked on `main`, NOT pushed and NOT opened as a PR (human decision per the run brief).
+
+### Pre-commit review fix round (commit 2 only)
+
+The repo's pre-commit `Gentleman Guardian Angel` AI review gate caught two real defects across two rounds on commit 2, both fixed before the commit was allowed to land (amended in place, not a separate commit, since the bug never existed on `main` or in any pushed history):
+
+1. **Validation-error misclassification**: the first draft distinguished "mismatch" from "too short" by `issue.path[0] === 'confirmPassword'`, but a too-short `confirmPassword` field ALSO produces an issue at that same path (Zod still runs `.refine()` even when a sibling field-level check already failed), so two matching-but-short passwords would have shown "Passwords don't match" instead of the correct "must be at least 6 characters" message. Fixed by discriminating on `issue.code === 'custom'` instead (only the `.refine()` mismatch check produces a `custom` issue; `.min()` produces `too_small`). Locked in with a new schema test: `reports a too_small (not custom) issue when both fields are equal but too short`.
+2. **Missing label/input association**: neither `<label>` had `htmlFor` pointing at its `<input>`'s `id` (WCAG AA). Fixed by adding `id="set-password-new"` / `id="set-password-confirm"` and matching `htmlFor` on both fields.
+
+Both rounds re-ran the full gate suite (check-types, lint, test, build) before the commit was finalized; the numbers in "Gate results" above are the final, post-fix state.
+
+## Rollback boundary (D.6)
+
+`git revert 49af551 e08c30d` (or delete the branch pre-merge) removes the CTA link/card, `SetPasswordForm`, and the schema file, and restores `book/success/page.tsx` and `me/perfil/page.tsx` to their PR-C state. **Pure UI revert**: no migration, no write to `customers` or `auth.users`, no `HEARTBEAT.md`-recorded data dependency in either direction. A customer who already set a password via `updateUser` keeps that password in `auth.users` after the revert (Supabase Auth is untouched by reverting application code) -- harmless, matching the B.13 precedent that already-written auth state is safe to leave behind a UI revert.
+
+## Deviations from tasks/design
+
+None beyond the two documented decisions above (password minimum = 6, pure-seam extraction). No task text was reinterpreted; D.3 is left unchecked exactly as instructed rather than attempted or faked.
+
+## Open items for the orchestrator/human
+
+- D.3 manual QA (needs a deployed environment).
+- PR C's own D.3-equivalent tasks (C.10-C.12) are still open per `tasks.md` and were NOT touched by this slice (out of boundary).
+- PR E remains correctly blocked on GATE.6; this slice does not affect that gate.
+- Req 10 / Leaked Password Protection remains deferred (Free plan); the `weak_password` mapping added here is inert until PR G lands.
