@@ -43,6 +43,11 @@ export type CustomerWithStats = {
   address: string | null; city: string | null; state: string | null;
   postalCode: string | null;
   socialLinks: Record<string, unknown> | null;
+  /**
+   * Derived from `authUserId != null` - profile-only (getCustomerProfile).
+   * Never expose the raw `authUserId` itself to the client (Req 8).
+   */
+  isActivated?: boolean;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -165,6 +170,7 @@ export async function getCustomerProfile(
         postalCode:     customers.postalCode,
         notes:          customers.notes,
         socialLinks:    customers.socialLinks,
+        authUserId:     customers.authUserId,
         lastVisitAt:    sql<Date | null>`MAX(${appointments.startAt})`,
         visitCount:     sql<number>`COUNT(${appointments.id})::int`,
       })
@@ -183,7 +189,7 @@ export async function getCustomerProfile(
     const lastVisitAt = r.lastVisitAt instanceof Date ? r.lastVisitAt : r.lastVisitAt ? new Date(String(r.lastVisitAt)) : null;
     const status: ClientStatus = (r.clientStatus as ClientStatus) ?? getClientStatus(visitCount, lastVisitAt);
     return {
-      data: { id: r.id, organizationId: r.organizationId, fullName: r.fullName, email: r.email, phone: r.phone, isGuest: r.isGuest, createdAt: r.createdAt, lastVisitAt, visitCount, status, isBlocked: r.isBlocked, avatarUrl: r.avatarUrl ?? null, notes: r.notes ?? null, company: r.company ?? null, country: r.country ?? null, countryIso: r.countryIso ?? null, address: r.address ?? null, city: r.city ?? null, state: r.state ?? null, postalCode: r.postalCode ?? null, socialLinks: (r.socialLinks as Record<string, unknown>) ?? null },
+      data: { id: r.id, organizationId: r.organizationId, fullName: r.fullName, email: r.email, phone: r.phone, isGuest: r.isGuest, createdAt: r.createdAt, lastVisitAt, visitCount, status, isBlocked: r.isBlocked, avatarUrl: r.avatarUrl ?? null, notes: r.notes ?? null, company: r.company ?? null, country: r.country ?? null, countryIso: r.countryIso ?? null, address: r.address ?? null, city: r.city ?? null, state: r.state ?? null, postalCode: r.postalCode ?? null, socialLinks: (r.socialLinks as Record<string, unknown>) ?? null, isActivated: r.authUserId != null },
       error: null,
     };
   } catch {
