@@ -44,6 +44,7 @@ export default async function CustomerPage({ params }: Props) {
       createdAtIso={c.createdAt instanceof Date ? c.createdAt.toISOString() : String(c.createdAt)}
       locale={locale}
       isBlocked={c.isBlocked}
+      isActivated={c.isActivated ?? false}
       avatarUrl={c.avatarUrl ?? null}
       notes={c.notes ?? null}
       company={c.company ?? null}

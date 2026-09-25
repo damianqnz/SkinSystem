@@ -856,7 +856,14 @@
         "customerNotFound":"Customer not found",
         "failedToCreate":  "Failed to create customer",
         "importFailed":    "Import failed",
-        "duplicateEmail":  "A customer with this email already exists"
+        "duplicateEmail":  "A customer with this email already exists",
+        "inviteLabel":         "Invite to activate account",
+        "toastInviteSent":     "Invite sent to {name}",
+        "inviteNoEmail":       "No email on file",
+        "inviteBlocked":       "Client is blocked",
+        "inviteAlreadyActive": "Already has an account",
+        "inviteRateLimited":   "Too many invites sent recently — try again shortly",
+        "inviteFailed":        "Could not send the invite"
       },
       "appointments": {
         "yearLabel":      "This year",
