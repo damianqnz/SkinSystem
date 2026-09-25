@@ -882,7 +882,14 @@
         "customerNotFound":"Cliente não encontrado",
         "failedToCreate":  "Não foi possível criar o cliente",
         "importFailed":    "Erro ao importar",
-        "duplicateEmail":  "Já existe um cliente com este e-mail"
+        "duplicateEmail":  "Já existe um cliente com este e-mail",
+        "inviteLabel":         "Convidar para ativar conta",
+        "toastInviteSent":     "Convite enviado para {name}",
+        "inviteNoEmail":       "Sem e-mail registado",
+        "inviteBlocked":       "O cliente está bloqueado",
+        "inviteAlreadyActive": "Já tem uma conta",
+        "inviteRateLimited":   "Demasiados convites enviados recentemente — tente novamente em breve",
+        "inviteFailed":        "Não foi possível enviar o convite"
       },
       "appointments": {
         "yearLabel":      "Este ano",

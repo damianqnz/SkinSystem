@@ -38,7 +38,7 @@ interface Props {
   id: string; fullName: string; email: string | null; phone: string | null;
   isGuest: boolean; visitCount: number; lastVisitAtIso: string | null;
   status: ClientStatus; createdAtIso: string; locale: string;
-  isBlocked: boolean; avatarUrl: string | null; notes: string | null;
+  isBlocked: boolean; isActivated: boolean; avatarUrl: string | null; notes: string | null;
   company?: string | null; country?: string | null; countryIso?: string | null;
   address?: string | null; city?: string | null; state?: string | null;
   postalCode?: string | null; socialLinks?: Record<string, unknown> | null;
@@ -46,7 +46,7 @@ interface Props {
 
 const TR = 'px-3 py-2.5 font-sans text-[11px] uppercase tracking-wider border-b-2 border-transparent transition-colors data-[state=active]:border-[#D4AF37] data-[state=active]:text-stone-900 text-stone-400 disabled:opacity-30 disabled:cursor-not-allowed';
 
-export function CustomerProfileClient({ id, fullName, email, phone, isGuest, visitCount, lastVisitAtIso, status, createdAtIso, locale, isBlocked: initialBlocked, avatarUrl: initialAvatarUrl, notes, company, country, countryIso: _countryIso, address, city, state, postalCode, socialLinks }: Props) {
+export function CustomerProfileClient({ id, fullName, email, phone, isGuest, visitCount, lastVisitAtIso, status, createdAtIso, locale, isBlocked: initialBlocked, isActivated, avatarUrl: initialAvatarUrl, notes, company, country, countryIso: _countryIso, address, city, state, postalCode, socialLinks }: Props) {
   const t            = useTranslations('dashboard.customers.profile');
   const intlLocale   = useLocale();
   const router       = useRouter();
@@ -138,7 +138,7 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
             <button onClick={() => setEditOpen(true)} className="p-1.5 rounded-md hover:bg-stone-100 text-stone-400 transition-colors" aria-label={t('editAriaLabel')}>
               <Pencil size={14} strokeWidth={1.5} />
             </button>
-            <CustomerActionsMenu customerId={id} fullName={fullName} locale={locale} isBlocked={isBlocked} onBlockToggled={setIsBlocked} />
+            <CustomerActionsMenu customerId={id} fullName={fullName} locale={locale} isBlocked={isBlocked} isActivated={isActivated} email={email} onBlockToggled={setIsBlocked} />
           </div>
         </div>
 

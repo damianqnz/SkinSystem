@@ -4,11 +4,12 @@ import { useState, useTransition } from 'react';
 import { useRouter }   from 'next/navigation';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import * as AlertDialog  from '@radix-ui/react-alert-dialog';
-import { MoreHorizontal, ShieldOff, ShieldCheck, Trash2 } from 'lucide-react';
+import { MoreHorizontal, ShieldOff, ShieldCheck, Trash2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
-import { toggleBlockCustomerAction } from '../../actions/toggle-block-customer';
-import { deleteCustomerAction }      from '../../actions/delete-customer';
+import { toggleBlockCustomerAction }        from '../../actions/toggle-block-customer';
+import { deleteCustomerAction }             from '../../actions/delete-customer';
+import { inviteCustomerActivationAction }   from '../../actions/invite-customer-activation';
 import { cn } from '@/shared/lib/utils';
 
 interface Props {
@@ -16,15 +17,27 @@ interface Props {
   fullName:    string;
   locale:      string;
   isBlocked:   boolean;
+  isActivated: boolean;
+  email:       string | null;
   onBlockToggled: (next: boolean) => void;
 }
 
-export function CustomerActionsMenu({ customerId, fullName, locale: _locale, isBlocked, onBlockToggled }: Props) {
+export function CustomerActionsMenu({ customerId, fullName, locale: _locale, isBlocked, isActivated, email, onBlockToggled }: Props) {
   const t       = useTranslations('dashboard.customers.actions');
   const router  = useRouter();
   const [deleteOpen,    setDeleteOpen]   = useState(false);
   const [blockPending,  startBlock]      = useTransition();
   const [deletePending, startDelete]     = useTransition();
+  const [invitePending, startInvite]     = useTransition();
+
+  // QA (disabled states must have a clear reason): the same three conditions
+  // the server action itself refuses on (design §5.1 step 4), so the menu item
+  // and the server-side check can never disagree about the reason.
+  const inviteDisabledReason = !email ? t('inviteNoEmail')
+    : isBlocked ? t('inviteBlocked')
+    : isActivated ? t('inviteAlreadyActive')
+    : null;
+  const canInvite = inviteDisabledReason === null;
 
   function handleToggleBlock() {
     startBlock(async () => {
@@ -32,6 +45,14 @@ export function CustomerActionsMenu({ customerId, fullName, locale: _locale, isB
       if (res.error) { toast.error(res.error.message); return; }
       onBlockToggled(res.data!.isBlocked);
       toast.success(res.data!.isBlocked ? t('toastBlocked') : t('toastUnblocked'));
+    });
+  }
+
+  function handleInvite() {
+    startInvite(async () => {
+      const res = await inviteCustomerActivationAction(customerId);
+      if (res.error) { toast.error(res.error.message); return; }
+      toast.success(t('toastInviteSent', { name: fullName }));
     });
   }
 
@@ -55,6 +76,13 @@ export function CustomerActionsMenu({ customerId, fullName, locale: _locale, isB
         <DropdownMenu.Portal>
           <DropdownMenu.Content align="end" sideOffset={4}
             className="z-50 w-52 bg-white rounded-sm shadow-lg border border-stone-100 py-1 focus:outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 duration-150">
+            <DropdownMenu.Item onSelect={handleInvite} disabled={!canInvite || invitePending}
+              title={inviteDisabledReason ?? undefined}
+              className={cn('flex items-center gap-2 px-3 py-2 font-sans text-sm outline-none transition-colors', canInvite ? 'text-stone-700 cursor-pointer hover:bg-stone-50' : 'text-stone-300 cursor-not-allowed')}>
+              <Mail size={14} strokeWidth={1.5} />
+              {t('inviteLabel')}
+            </DropdownMenu.Item>
+            <DropdownMenu.Separator className="h-px bg-stone-100 mx-2 my-0.5" />
             <DropdownMenu.Item onSelect={handleToggleBlock} disabled={blockPending}
               className={cn('flex items-center gap-2 px-3 py-2 font-sans text-sm cursor-pointer outline-none transition-colors hover:bg-stone-50', isBlocked ? 'text-emerald-700' : 'text-stone-700')}>
               {isBlocked ? <ShieldCheck size={14} strokeWidth={1.5} /> : <ShieldOff size={14} strokeWidth={1.5} />}

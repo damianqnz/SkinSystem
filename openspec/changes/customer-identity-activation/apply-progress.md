@@ -242,6 +242,69 @@ Still OPEN for PR B: B.10 manual QA (needs H.4 identities + a deploy; no DB harn
 
 ---
 
+# Apply progress: customer-identity-activation — PR F (Staff-triggered invite)
+
+Date: 2026-09-25. Mode: Standard (`sdd-apply`). Strategy: `ask-on-risk`, already confirmed by the human (see the "Decisions confirmed by the human" block in `tasks.md`). Boundary: tasks F.1-F.7 only. Branch `feat/customer-identity-activation-f-invite`, created off `main` (PR B already merged; PR F's only dependency). Nothing pushed, no PR opened, nothing merged — those are the human's decision per the run brief.
+
+## Tasks
+
+| Task | State | Notes |
+|---|---|---|
+| F.1 action shell + eligibility rules | done | See "Deviation" below: eligibility rules moved into `domains/customers/service.ts` (`inviteCustomerActivation`), Server Action is a thin shell. |
+| F.2 fresh cookie-less OTP client | done | Lives inside `inviteCustomerActivation()` (moved with F.1). `emailRedirectTo` built from the inviting staff's own `x-tenant-slug` via `buildTenantOrigin`. |
+| F.3 UI menu item | done | `CustomerActionsMenu.tsx` new `DropdownMenu.Item`, disabled with a `title` tooltip; `isActivated` derived in `service.ts`, threaded through `page.tsx` → `CustomerProfileClient`. |
+| F.4 manual QA | OPEN, deliberately deferred | Human-only; needs a deployed env + a real test inbox (design §9, no harness). Left unchecked in `tasks.md` with a note, not attempted or faked. |
+| F.5 gates + REQ8-CHK | done | See "Gate results" below. |
+| F.6 HB | done | `HEARTBEAT.md` entry `2026-09-25 #1`. |
+| F.7 rollback boundary | done | See "Rollback boundary" below. |
+
+## Files changed
+
+| File | Change | ~Lines (insert/delete) |
+|---|---|---|
+| `apps/web/src/app/(dashboard)/dashboard/customers/actions/invite-customer-activation.ts` | new — thin Server Action shell | +91 |
+| `apps/web/src/domains/customers/service.ts` | + `inviteCustomerActivation()` domain function; + `isActivated` derived field on `CustomerWithStats` / `getCustomerProfile` | +78 / -0 |
+| `apps/web/src/app/(dashboard)/dashboard/customers/[id]/_components/CustomerActionsMenu.tsx` | + invite menu item, `email`/`isActivated` props | +36 / -3 |
+| `apps/web/src/app/(dashboard)/dashboard/customers/[id]/_components/CustomerProfileClient.tsx` | + `isActivated` prop, threaded to menu | +6 / -2 |
+| `apps/web/src/app/(dashboard)/dashboard/customers/[id]/page.tsx` | + `isActivated` prop passed from loader | +1 |
+| `apps/web/src/messages/en.json` | + 7 `dashboard.customers.actions.invite*` / `toastInviteSent` keys | +9 / -1 |
+| `apps/web/src/messages/es.json` | same 7 keys, ES copy | +9 / -1 |
+| `apps/web/src/messages/pt.json` | same 7 keys, PT copy | +9 / -1 |
+
+**Total diff vs `main`: 228 insertions + 11 deletions across 8 files = 239 changed lines** (`git diff --stat main...HEAD`), under the 400-line budget (forecast was ~195, range 160-240). Not counted: `openspec/` doc updates and `HEARTBEAT.md` (gitignored), committed separately per instructions.
+
+## Work-unit commits
+
+1. `c96b851` `feat(customers): add staff-triggered activation invite action (F.1-F.2)` — action shell + `inviteCustomerActivation()` domain function + the 7 i18n keys (tests are N/A — no harness for Server Actions per design §9).
+2. `c14bb73` `feat(customers): surface an invite-to-activate menu item on the profile (F.3)` — `isActivated` derivation + UI wiring.
+
+## Gate results (observed, cold where the pnpm wrapper allows `--force`)
+
+- `pnpm check-types`: exit 0, 2/2 tasks successful.
+- `pnpm lint --force`: exit 0 (`--max-warnings 0`), 2/2.
+- `pnpm exec turbo run test --force`: 16 files, **148/148** passed (baseline before this PR: 148 — no new automated tests added; F.1-F.3 land in a Server Action and dashboard UI, neither has a test harness per design §9, consistent with the PR's own ~195-line forecast basis). `pnpm test --force` itself errors because pnpm rejects the `--force` flag on its own `test` script; `pnpm exec turbo run test --force` was used instead, matching the precedent recorded in the PR B-3 addendum above.
+- `pnpm build --force`: exit 0, Next.js build succeeded; no new routes (server-action-only surface).
+- REQ8-CHK: `rg -n "from\('customers'\)|from\('appointments'\)" apps/web/src` → 0 matches (exit 1). All new `customers` access is Drizzle over the server-only `db`, explicit columns, `organization_id` predicate unconditional in `inviteCustomerActivation()`.
+- I18N-CHK: no literal strings in the touched `.tsx` files; 7 keys added to `pt.json`/`es.json`/`en.json` in the same commit as the behaviour that consumes them (parity enforced by `messages.test.ts`, part of the 148/148); ICU named arg (`{name}`) on `toastInviteSent`; no `_i18n.ts` files created; `git diff --stat main...HEAD -- apps/web/src/proxy.ts apps/web/src/i18n/request.ts` is empty (untouched).
+
+## Deviations from the run brief (recorded, not silent)
+
+1. **F.1's eligibility rules + OTP send moved from the Server Action into a new `inviteCustomerActivation()` function in `domains/customers/service.ts`**, instead of living inline in `invite-customer-activation.ts` as a literal mirror of `toggle-block-customer.ts` would produce. Cause: the repo's local `gga` pre-commit AI review gate (Architect lens, `CLAUDE.md` domain-isolation rule — "business logic only in `src/domains`") failed the commit twice: first on the eligibility/OTP-send logic living in the action, second (after the first fix) on that same logic's `db.select()` call running unguarded — every other function in `service.ts` wraps its DB access in `try { … } catch { return dbErr(...) }`, this one didn't. Both fixed: `inviteCustomerActivation(organizationId, customerId, emailRedirectTo)` now owns the org-scoped SELECT, the four typed refusals, the fresh cookie-less OTP client, and a try/catch → `dbErr('DB_ERROR')` fallback for infrastructure failures. `invite-customer-activation.ts` (the Server Action) keeps exactly the staff-auth + org-resolution boilerplate that mirrors `toggle-block-customer.ts` — that part of the mirror instruction is preserved — then delegates and maps the typed error code to a translated message via a small `ERROR_KEY` lookup table. Net effect: identical behaviour and identical security invariant (fresh, cookie-less, discarded Supabase client — never the cookie-bound SSR client), better factoring, gate now passes clean.
+2. **Two non-blocking notes from the same automated reviewer**, left as-is, out of this PR's scope: (a) `domains/customers/service.ts` is now 267 lines, past the codebase's informal ~150-line soft guideline for component files — not split here because every function in the file is still a single customer-domain query/mutation, and STANDARDS.md's own rule is "split on responsibility, not line count"; (b) the raw `@supabase/supabase-js` client is instantiated inline in `inviteCustomerActivation()` rather than through an `infrastructure/auth` factory like `buildTenantOrigin` — functionally correct (anon key, `persistSession: false`, no RLS bypass), a factory extraction is a fair follow-up for testability but not required by F.1-F.7.
+3. **Commit-splitting mechanics** (not a design deviation, recorded for process transparency): both work-unit commits were assembled by staging a partial version of `service.ts` while keeping the on-disk working copy at its full, internally-consistent state, so that the repo's pre-commit hook (which type-checks the actual filesystem, not just the git-tree diff) never saw a broken intermediate. No production behaviour or reviewed content differs from what a single un-split commit would have contained; git history is two clean, independently-buildable commits.
+
+## Rollback boundary (F.7)
+
+Remove `apps/web/src/app/(dashboard)/dashboard/customers/actions/invite-customer-activation.ts`; remove `inviteCustomerActivation()` from `domains/customers/service.ts`; revert the `DropdownMenu.Item` + `email`/`isActivated` prop threading in `CustomerActionsMenu.tsx` / `CustomerProfileClient.tsx` / `page.tsx`; remove the `isActivated` field/select from `service.ts`'s `CustomerWithStats` / `getCustomerProfile`; remove the 7 `dashboard.customers.actions.invite*` / `toastInviteSent` keys from `pt.json`/`es.json`/`en.json`. **No schema or data effect** — this PR performs zero writes to `customers` (confirmed by REQ8-CHK and by code inspection: `inviteCustomerActivation()` only SELECTs and calls `signInWithOtp` on a client discarded at function return).
+
+## Open items for the orchestrator/human
+
+- F.4 manual QA (Owner + Staff invite flow, staff-cookie-unchanged check, DB-row-unlinked-until-click check, disabled states, cross-tenant `NOT_FOUND`) — needs a deployed environment and a real test inbox.
+- Push `feat/customer-identity-activation-f-invite` and open its PR when the human decides to — not done here, per the run brief ("Do NOT push, open a PR, or merge").
+- PRs C, D, E, G remain not started (out of this slice's scope). PR B's own open items (B.10 manual QA, pushing `b3b-wiring`) are unchanged by this work and remain as recorded in the PR B-3 section above.
+
+---
+
 # Apply progress: customer-identity-activation -- PR D (In-product entry point + set-password)
 
 Date: 2026-09-25. Mode: sdd-apply (standard, no strict TDD declared). Strategy: stacked-to-main, ask-on-risk (confirmed by the parent orchestrator). Boundary: PR D only, tasks D.1-D.6. Branch `feat/customer-identity-activation-d-entrypoint`, created off a clean `main` (which already contains PR A, B, C). Nothing pushed, no PR opened -- the human decides that. PR E and F are untouched; PR E is still correctly blocked on the GATE.6 `HEARTBEAT.md` entry, which this slice does not touch.
