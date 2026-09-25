@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { eq, and, asc, inArray, sql, or, ilike } from 'drizzle-orm';
+import { createClient } from '@supabase/supabase-js';
 import { db } from '@/infrastructure/db';
 import { customers } from './schema';
 import { appointments } from '@/infrastructure/db/schema/booking';
@@ -187,5 +188,74 @@ export async function getCustomerProfile(
     };
   } catch {
     return dbErr('Failed to fetch customer profile');
+  }
+}
+
+// -- Staff-triggered activation invite (Req 4 scenario 3-4, design.md sec 5) --
+
+/**
+ * Sends an OTP/magic-link activation email to a guest customer's address on
+ * record, on behalf of a staff member. Refuses (typed, staff-facing codes,
+ * not subject to the anti-enumeration posture that governs the customer-path
+ * OTP request) when the row is out of scope for `organizationId`
+ * (`NOT_FOUND` - tenant isolation, Req 4 scenario 4), has no email
+ * (`NO_EMAIL`), is blocked (`BLOCKED`), or is already linked to an
+ * `authUserId` (`ALREADY_ACTIVE`).
+ *
+ * SECURITY (design.md sec 5.2): sends via a FRESH, cookie-less Supabase
+ * client constructed here and discarded - never a cookie-bound SSR
+ * client, which would write the customer's auth cookies into the CALLER's
+ * (the inviting staff member's) own browser session. Performs NO write to
+ * `customers`: no `authUserId`, no `isGuest`. The actual link happens later,
+ * when the customer clicks the emailed link and lands on `/auth/confirm`, via
+ * the Requirement 2 `activateCustomerIdentity` primitive - not here.
+ *
+ * `emailRedirectTo` is the caller's responsibility to build (from the
+ * inviting staff member's own tenant, via `buildTenantOrigin` - an
+ * `infrastructure/auth` concern, not a domain one).
+ */
+export async function inviteCustomerActivation(
+  organizationId:  string,
+  customerId:      string,
+  emailRedirectTo: string,
+): Promise<Result<{ sent: true }>> {
+  try {
+    const rows = await db
+      .select({ email: customers.email, isBlocked: customers.isBlocked, authUserId: customers.authUserId })
+      .from(customers)
+      .where(and(eq(customers.id, customerId), eq(customers.organizationId, organizationId)))
+      .limit(1);
+
+    const row = rows[0];
+    if (!row) return { data: null, error: { message: 'Customer not found', code: 'NOT_FOUND' } };
+    if (!row.email) return { data: null, error: { message: 'Customer has no email on file', code: 'NO_EMAIL' } };
+    if (row.isBlocked) return { data: null, error: { message: 'Customer is blocked', code: 'BLOCKED' } };
+    if (row.authUserId) return { data: null, error: { message: 'Customer is already activated', code: 'ALREADY_ACTIVE' } };
+
+    const otpClient = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+
+    const { error: otpErr } = await otpClient.auth.signInWithOtp({
+      email: row.email,
+      options: { emailRedirectTo, shouldCreateUser: true },
+    });
+
+    if (otpErr) {
+      const isRateLimited = otpErr.status === 429;
+      return {
+        data: null,
+        error: {
+          message: isRateLimited ? 'Rate limited' : 'Failed to send invite',
+          code:    isRateLimited ? 'RATE_LIMITED' : 'SEND_FAILED',
+        },
+      };
+    }
+
+    return { data: { sent: true }, error: null };
+  } catch {
+    return dbErr('Failed to send activation invite');
   }
 }
