@@ -188,6 +188,9 @@
       "treatmentLabel": "Treatment",
       "dateTimeLabel": "Date and time",
       "confirmationNote": "You'll receive a confirmation by email. If you need to cancel, please do so at least 24h in advance.",
+      "activateTitle": "Turn this booking into an account",
+      "activateBody": "Sign in with a link sent to your email to track your bookings and save your details for next time.",
+      "activateCta": "Sign in with an email link",
       "backHome": "Back to home"
     }
   },
@@ -255,6 +258,29 @@
           "invalidData":     "Invalid data",
           "orgNotFound":     "Business not found",
           "profileNotFound": "Profile not found"
+        },
+        "password": {
+          "title":       "Set a password",
+          "description": "Optional: add a password so you can also sign in without an email link.",
+          "newPassword": {
+            "label":       "New password",
+            "placeholder": "Minimum 6 characters"
+          },
+          "confirmPassword": {
+            "label":       "Confirm password",
+            "placeholder": "Repeat the password"
+          },
+          "cta":          "Save password",
+          "saving":       "Saving\u2026",
+          "saved":        "Saved",
+          "toastSuccess": "Password set successfully",
+          "errors": {
+            "tooShort":     "Password must be at least 6 characters",
+            "mismatch":     "Passwords don't match",
+            "weakPassword": "This password is too weak or has appeared in a data breach. Please choose another one.",
+            "reauthNeeded": "For your security, please sign in again before setting a new password",
+            "generic":      "Couldn't set the password. Please try again."
+          }
         }
       }
     }

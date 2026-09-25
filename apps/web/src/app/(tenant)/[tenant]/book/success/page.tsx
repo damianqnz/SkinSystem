@@ -1,6 +1,6 @@
 import Link                    from 'next/link';
 import { headers }             from 'next/headers';
-import { CheckCircle2 }        from 'lucide-react';
+import { CheckCircle2, KeyRound } from 'lucide-react';
 import { getOrganizationBySlug } from '@/domains/organizations/service';
 import { db }                  from '@/infrastructure/db';
 import { appointments }        from '@/domains/booking/schema';
@@ -9,6 +9,7 @@ import { eq, and }             from 'drizzle-orm';
 import { localeFromHeader }    from '@/i18n/detect-locale';
 import { toIntlTag }           from '@/i18n/intl-tag';
 import { getTranslations }     from 'next-intl/server';
+import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import type { Metadata }       from 'next';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -41,6 +42,13 @@ export default async function BookSuccessPage({ searchParams }: SuccessPageProps
 
   const orgResult = await getOrganizationBySlug(slug);
   const org       = orgResult.data;
+
+  // D6: the CTA only makes sense for a visitor with no session — a signed-in
+  // customer already went through the activation funnel (resolvePostAuthDestination)
+  // and would find the banner redundant. No identity logic lives here; this is
+  // purely a link into the existing PR B funnel (/login?next=/me).
+  const supabase        = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   // Fetch appointment details if ID provided
   let appointmentInfo: { serviceName: string; startAt: Date } | null = null;
@@ -124,6 +132,29 @@ export default async function BookSuccessPage({ searchParams }: SuccessPageProps
           <p className="text-xs text-stone-400 leading-relaxed">
             {t('confirmationNote')}
           </p>
+
+          {/* D6 residual affordance -- booking-confirmation is the ONE genuine
+              unactivated moment (design section 4.3): a guest with a customers row
+              and no session. Hidden for a signed-in customer. */}
+          {!user && (
+            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 text-left space-y-2">
+              <div className="flex items-center gap-2">
+                <KeyRound size={16} className="text-[var(--accent-spa,#D4AF37)]" />
+                <p className="font-cormorant text-lg font-semibold text-stone-900">
+                  {t('activateTitle')}
+                </p>
+              </div>
+              <p className="text-xs text-stone-500 leading-relaxed">
+                {t('activateBody')}
+              </p>
+              <Link
+                href="/login?next=/me"
+                className="inline-flex items-center justify-center gap-2 mt-1 w-full px-4 py-3 text-sm font-outfit font-medium text-stone-900 border border-stone-200 rounded-xl hover:bg-stone-50 transition-colors"
+              >
+                {t('activateCta')}
+              </Link>
+            </div>
+          )}
 
           <Link
             href="/"
