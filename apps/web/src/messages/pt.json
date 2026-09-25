@@ -188,6 +188,9 @@
       "treatmentLabel": "Tratamento",
       "dateTimeLabel": "Data e hora",
       "confirmationNote": "Vai receber uma confirmação por email. Se precisar de cancelar, faça-o com pelo menos 24h de antecedência.",
+      "activateTitle": "Transforme esta marcação numa conta",
+      "activateBody": "Entre com um link enviado para o seu email para acompanhar as suas marcações e guardar os seus dados para a próxima vez.",
+      "activateCta": "Entrar com link por email",
       "backHome": "Voltar ao início"
     }
   },

@@ -188,6 +188,9 @@
       "treatmentLabel": "Treatment",
       "dateTimeLabel": "Date and time",
       "confirmationNote": "You'll receive a confirmation by email. If you need to cancel, please do so at least 24h in advance.",
+      "activateTitle": "Turn this booking into an account",
+      "activateBody": "Sign in with a link sent to your email to track your bookings and save your details for next time.",
+      "activateCta": "Sign in with an email link",
       "backHome": "Back to home"
     }
   },

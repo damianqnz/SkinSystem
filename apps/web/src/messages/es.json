@@ -188,6 +188,9 @@
       "treatmentLabel": "Tratamiento",
       "dateTimeLabel": "Fecha y hora",
       "confirmationNote": "Recibirás una confirmación por email. Si necesitas cancelar, hazlo con al menos 24h de antelación.",
+      "activateTitle": "Convierte esta reserva en una cuenta",
+      "activateBody": "Inicia sesión con un enlace enviado a tu email para seguir tus reservas y guardar tus datos para la próxima vez.",
+      "activateCta": "Entrar con enlace por email",
       "backHome": "Volver al inicio"
     }
   },
