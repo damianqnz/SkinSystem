@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { cn } from '@/shared/lib/utils';
+import { ConnectCalendarModal } from './ConnectCalendarModal';
 
 interface CalendarSource {
   id:    string;
@@ -26,6 +28,8 @@ interface CalendarsSidebarProps {
 const LS_KEY = 'agenda.sidebar.open';
 
 export function CalendarsSidebar({ tenantName, linkedGoogleEmail }: CalendarsSidebarProps) {
+  const t = useTranslations('dashboard.calendar.sidebar');
+
   // Hydrated lazily from localStorage — safe because reading it is synchronous
   // and this only runs once, during the initial client render (guarded for SSR
   // the same way the previous effect-based hydration was).
@@ -46,7 +50,7 @@ export function CalendarsSidebar({ tenantName, linkedGoogleEmail }: CalendarsSid
   };
 
   const sources: CalendarSource[] = [
-    { id: 'tenant',  label: tenantName || 'Estética',  color: '#D4AF37', badge: tenantName?.[0]?.toUpperCase() ?? 'L', provider: 'local' },
+    { id: 'tenant',  label: tenantName || t('localFallback'),  color: '#D4AF37', badge: tenantName?.[0]?.toUpperCase() ?? 'L', provider: 'local' },
     ...(linkedGoogleEmail
       ? [{ id: 'google', label: linkedGoogleEmail, color: '#4285F4', badge: 'G', provider: 'google' as const }]
       : []),
@@ -83,13 +87,13 @@ export function CalendarsSidebar({ tenantName, linkedGoogleEmail }: CalendarsSid
               className="text-[13px] tracking-wide text-(--color-spa-stone) truncate"
               style={{ fontFamily: 'var(--font-serif)' }}
             >
-              Os seus calendários
+              {t('heading')}
             </h2>
           )}
           <button
             type="button"
             onClick={toggle}
-            aria-label={open ? 'Fechar painel' : 'Abrir painel'}
+            aria-label={open ? t('collapseAria') : t('expandAria')}
             className="ml-auto p-1.5 rounded-md text-spa-muted hover:text-(--color-spa-stone) hover:bg-stone-100 transition-colors"
           >
             {open
@@ -118,18 +122,20 @@ export function CalendarsSidebar({ tenantName, linkedGoogleEmail }: CalendarsSid
               ))}
 
               {/* Connect new */}
-              <button
-                type="button"
-                className="group w-full flex items-center gap-2.5 px-2.5 py-2 mt-2
+              <ConnectCalendarModal>
+                <button
+                  type="button"
+                  className="group w-full flex items-center gap-2.5 px-2.5 py-2 mt-2
                            text-[12px] text-spa-muted hover:text-(--color-spa-stone)
                            rounded-md hover:bg-stone-100/70 transition-colors text-left"
-                style={{ fontFamily: 'var(--font-sans)' }}
-              >
-                <span className="w-5 h-5 rounded-md border border-dashed border-spa-border flex items-center justify-center group-hover:border-[#D4AF37]">
-                  <Plus size={10} strokeWidth={1.5} className="group-hover:text-[#D4AF37]" />
-                </span>
-                Conectar o calendário
-              </button>
+                  style={{ fontFamily: 'var(--font-sans)' }}
+                >
+                  <span className="w-5 h-5 rounded-md border border-dashed border-spa-border flex items-center justify-center group-hover:border-[#D4AF37]">
+                    <Plus size={10} strokeWidth={1.5} className="group-hover:text-[#D4AF37]" />
+                  </span>
+                  {t('connectCta')}
+                </button>
+              </ConnectCalendarModal>
             </motion.div>
           )}
         </AnimatePresence>

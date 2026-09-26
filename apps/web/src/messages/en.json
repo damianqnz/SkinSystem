@@ -1035,6 +1035,22 @@
         "toastSelectService": "Select a service",
         "toastSelectCustomer": "Select a client",
         "toastCreated": "Appointment created"
+      },
+      "connect": {
+        "title": "Connect calendar",
+        "description": "Sync your appointments with your personal calendar.",
+        "closeAria": "Close",
+        "google": "Google Calendar",
+        "apple": "Apple Calendar",
+        "comingSoon": "Coming soon",
+        "note": "Connecting will be available soon."
+      },
+      "sidebar": {
+        "heading": "Your calendars",
+        "collapseAria": "Collapse panel",
+        "expandAria": "Expand panel",
+        "connectCta": "Connect calendar",
+        "localFallback": "Studio"
       }
     },
     "integrations": {

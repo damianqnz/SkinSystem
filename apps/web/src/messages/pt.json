@@ -1035,6 +1035,22 @@
         "toastSelectService": "Selecione um serviço",
         "toastSelectCustomer": "Selecione um cliente",
         "toastCreated": "Marcação criada"
+      },
+      "connect": {
+        "title": "Conectar calendário",
+        "description": "Sincroniza as tuas marcações com o teu calendário pessoal.",
+        "closeAria": "Fechar",
+        "google": "Google Calendar",
+        "apple": "Apple Calendar",
+        "comingSoon": "Em breve",
+        "note": "A ligação estará disponível em breve."
+      },
+      "sidebar": {
+        "heading": "Os seus calendários",
+        "collapseAria": "Fechar painel",
+        "expandAria": "Abrir painel",
+        "connectCta": "Conectar calendário",
+        "localFallback": "Estética"
       }
     },
     "integrations": {
