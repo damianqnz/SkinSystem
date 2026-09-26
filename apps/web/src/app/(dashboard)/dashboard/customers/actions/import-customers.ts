@@ -9,7 +9,7 @@ import { getTranslations } from 'next-intl/server';
 import { db } from '@/infrastructure/db';
 import { customers } from '@/infrastructure/db/schema/customers';
 import { isUniqueViolation, CUSTOMERS_ORG_EMAIL_UNIQUE_INDEX } from '@/infrastructure/db/unique-violation';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { localeFromHeader } from '@/i18n/detect-locale';
 import type { Result } from '@/shared/types/result';
 
@@ -33,13 +33,11 @@ export type ImportResult = { imported: number; skipped: number };
 export async function importCustomersAction(
   raw: { rows: { fullName: string; email?: string | null; phone?: string | null }[] },
 ): Promise<Result<ImportResult>> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const t = await getActionTranslations();
-  if (!user) return { data: null, error: { message: t('unauthorized'), code: 'AUTH_ERROR' } };
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) return { data: null, error: { message: auth.error, code: auth.code } };
+  const orgId = auth.orgId;
 
-  const orgId = user.user_metadata.organization_id as string | undefined;
-  if (!orgId) return { data: null, error: { message: t('noOrganization'), code: 'AUTH_ERROR' } };
+  const t = await getActionTranslations();
 
   const parsed = inputSchema.safeParse(raw);
   if (!parsed.success) {

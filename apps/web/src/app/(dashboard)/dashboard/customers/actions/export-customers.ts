@@ -3,7 +3,7 @@
 import 'server-only';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { getCustomersWithStats } from '@/domains/customers/service';
 import { localeFromHeader } from '@/i18n/detect-locale';
 import type { Result } from '@/shared/types/result';
@@ -22,23 +22,17 @@ function esc(v: string | null | undefined): string {
 }
 
 export async function exportCustomersAction(): Promise<Result<ExportResult>> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) return { data: null, error: { message: auth.error, code: auth.code } };
 
   const h      = await headers();
   const locale = localeFromHeader(h.get('x-locale'));
-  const [tActions, tStatus, tCols] = await Promise.all([
-    getTranslations({ locale, namespace: 'dashboard.customers.actions' }),
+  const [tStatus, tCols] = await Promise.all([
     getTranslations({ locale, namespace: 'customers.status' }),
     getTranslations({ locale, namespace: 'dashboard.customers.export.columns' }),
   ]);
 
-  if (!user) return { data: null, error: { message: tActions('unauthorized'), code: 'AUTH_ERROR' } };
-
-  const orgId = user.user_metadata.organization_id as string | undefined;
-  if (!orgId) return { data: null, error: { message: tActions('noOrganization'), code: 'AUTH_ERROR' } };
-
-  const result = await getCustomersWithStats(orgId);
+  const result = await getCustomersWithStats(auth.orgId);
   if (result.error) return { data: null, error: result.error };
 
   const COLS = [
