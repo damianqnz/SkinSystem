@@ -1,9 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Loader2, Mail, ChevronRight }         from 'lucide-react';
+import { Apple, Loader2, Mail, ChevronRight } from 'lucide-react';
 import { useTranslations }                     from 'next-intl';
 import { createSupabaseClient }                from '@/infrastructure/supabase/client';
+import {
+  resolveEnabledOAuthProviders,
+  type OAuthProvider,
+} from '@/infrastructure/auth/oauth-providers';
 
 // ── Props ─────────────────────────────────────────────────────
 
@@ -13,9 +17,22 @@ interface Step2AuthProps {
   onContinueAsGuest: () => void;
 }
 
-type AuthView = 'options' | 'login' | 'register';
+type AuthView = 'options' | 'login';
 
-// ── Google icon ────────────────────────────────────────────────
+type OtpState =
+  | { status: 'idle' }
+  | { status: 'sent'; email: string }
+  | { status: 'rateLimited' }
+  | { status: 'failed' };
+
+// `NEXT_PUBLIC_*` is inlined at build time, so this list is a build-time
+// constant — resolved once here rather than on every render, mirroring
+// `OAuthButtons.tsx`. Apple ships inert until the flag is set (Req 9, H.7).
+const PROVIDERS = resolveEnabledOAuthProviders({
+  appleEnabled: process.env.NEXT_PUBLIC_SUPABASE_APPLE_ENABLED,
+});
+
+// ── Provider icons ────────────────────────────────────────────
 
 function GoogleIcon() {
   return (
@@ -26,6 +43,12 @@ function GoogleIcon() {
       <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
     </svg>
   );
+}
+
+function ProviderIcon({ provider, loading }: { provider: OAuthProvider; loading: boolean }) {
+  if (loading) return <Loader2 size={18} className="animate-spin text-stone-400" />;
+  if (provider === 'apple') return <Apple size={18} className="text-stone-800" aria-hidden />;
+  return <GoogleIcon />;
 }
 
 // ── Component ─────────────────────────────────────────────────
@@ -39,13 +62,15 @@ export function Step2Auth({
 
   const [view,        setView]         = useState<AuthView>('options');
   const [authError,   setAuthError]    = useState<string | null>(null);
-  const [oauthLoading, setOauthLoading] = useState<'google' | null>(null);
+  const [oauthLoading, setOauthLoading] = useState<OAuthProvider | null>(null);
   const [isPending,   startTransition] = useTransition();
+  const [otpState,    setOtpState]     = useState<OtpState>({ status: 'idle' });
+  const [otpPending,  setOtpPending]   = useState(false);
 
   const supabase = createSupabaseClient();
 
   // ── OAuth helper ───────────────────────────────────────────
-  async function signInWithOAuth(provider: 'google') {
+  async function signInWithOAuth(provider: OAuthProvider) {
     setOauthLoading(provider);
     setAuthError(null);
 
@@ -63,7 +88,7 @@ export function Step2Auth({
     // On success the browser navigates away — no need to clear loading state
   }
 
-  // ── Email login ────────────────────────────────────────────
+  // ── Email login (password, for an already-activated customer) ──
   function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setAuthError(null);
@@ -78,24 +103,40 @@ export function Step2Auth({
     });
   }
 
-  // ── Email register ─────────────────────────────────────────
-  function handleRegister(e: React.FormEvent<HTMLFormElement>) {
+  // ── Passwordless OTP request ─────────────────────────────────
+  // Anti-enumeration: the SAME "check your inbox" confirmation renders whether
+  // or not a customers row exists for this email — the only outcome that
+  // changes the UI is a 429 rate limit, which never claims the link was sent.
+  async function handleOtpRequest(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setAuthError(null);
-    const fd       = new FormData(e.currentTarget);
-    const fullName = fd.get('fullName') as string;
-    const email    = fd.get('email') as string;
-    const pass     = fd.get('password') as string;
+    const fd    = new FormData(e.currentTarget);
+    const email = (fd.get('email') as string).trim();
 
-    startTransition(async () => {
-      const { error } = await supabase.auth.signUp({
+    setOtpPending(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password: pass,
-        options: { data: { full_name: fullName } },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=/book`,
+          shouldCreateUser: true,
+        },
       });
-      if (error) { setAuthError(error.message); return; }
-      onAuthenticated();
-    });
+
+      if (error?.status === 429) {
+        setOtpState({ status: 'rateLimited' });
+        return;
+      }
+      // Success OR any other (non-429) error resolves identically.
+      setOtpState({ status: 'sent', email });
+    } catch {
+      // A thrown (network/unexpected) failure is NOT an enumeration signal — it
+      // does not depend on whether the account exists — so surface a retryable
+      // error and keep the form visible instead of falsely claiming the link
+      // was sent.
+      setOtpState({ status: 'failed' });
+    } finally {
+      setOtpPending(false);
+    }
   }
 
   const inputClass =
@@ -103,12 +144,19 @@ export function Step2Auth({
     'focus:outline-none focus:ring-2 focus:ring-stone-900/20 focus:border-stone-400 ' +
     'placeholder:text-stone-300 transition-colors';
 
-  // ── Login form ─────────────────────────────────────────────
+  // ── Login view (passwordless primary, password secondary) ────
   if (view === 'login') {
     return (
       <div>
-        <button type="button" onClick={() => { setView('options'); setAuthError(null); }}
-          className="text-xs text-stone-400 hover:text-stone-700 mb-5 transition-colors">
+        <button
+          type="button"
+          onClick={() => {
+            setView('options');
+            setAuthError(null);
+            setOtpState({ status: 'idle' });
+          }}
+          className="text-xs text-stone-400 hover:text-stone-700 mb-5 transition-colors"
+        >
           {t('back')}
         </button>
         <h2 className="font-cormorant text-2xl font-semibold text-stone-900 mb-1 text-center">
@@ -116,76 +164,70 @@ export function Step2Auth({
         </h2>
         <p className="text-xs text-stone-400 text-center mb-6">{t('subtitleLogin')}</p>
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="field-label">{t('emailLabel')}</label>
-            <input name="email" type="email" required
-              placeholder={t('emailPlaceholder')}
-              className={`mt-1.5 ${inputClass}`} />
+        {otpState.status === 'sent' ? (
+          <div
+            role="status"
+            className="flex items-start gap-3 rounded-xl border border-stone-200 bg-stone-50 px-4 py-4"
+          >
+            <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-stone-400" />
+            <p className="text-sm leading-relaxed text-stone-600">
+              {t('otpSent', { email: otpState.email })}
+            </p>
           </div>
-          <div>
-            <label className="field-label">{t('passwordLabel')}</label>
-            <input name="password" type="password" required
-              placeholder={t('passwordPlaceholder')}
-              className={`mt-1.5 ${inputClass}`} />
-          </div>
+        ) : (
+          <>
+            {/* Passwordless — primary */}
+            <form onSubmit={handleOtpRequest} className="space-y-4">
+              <div>
+                <label htmlFor="step2auth-otp-email" className="field-label">{t('emailLabel')}</label>
+                <input id="step2auth-otp-email" name="email" type="email" required
+                  placeholder={t('emailPlaceholder')}
+                  className={`mt-1.5 ${inputClass}`} />
+              </div>
 
-          {authError && <p className="text-sm text-red-500">{authError}</p>}
+              {otpState.status === 'rateLimited' && (
+                <p role="alert" className="text-sm text-red-500">{t('otpRateLimited')}</p>
+              )}
+              {otpState.status === 'failed' && (
+                <p role="alert" className="text-sm text-red-500">{t('otpError')}</p>
+              )}
 
-          <button type="submit" disabled={isPending}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-stone-900 text-white font-outfit font-medium text-sm rounded-xl hover:bg-stone-700 disabled:opacity-60 transition-colors">
-            {isPending ? <Loader2 size={16} className="animate-spin" /> : t('enter')}
-          </button>
+              <button type="submit" disabled={otpPending}
+                className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-stone-900 text-white font-outfit font-medium text-sm rounded-xl hover:bg-stone-700 disabled:opacity-60 transition-colors">
+                {otpPending ? <Loader2 size={16} className="animate-spin" /> : t('otpCta')}
+              </button>
+            </form>
 
-          <button type="button" onClick={() => { setView('register'); setAuthError(null); }}
-            className="w-full text-xs text-stone-400 hover:text-stone-700 transition-colors pt-1">
-            {t('noAccount')} <span className="underline">{t('createNow')}</span>
-          </button>
-        </form>
-      </div>
-    );
-  }
+            <div className="flex items-center gap-3 my-6">
+              <div className="flex-1 h-px bg-stone-100" />
+              <span className="text-xs text-stone-300 font-outfit">{t('or')}</span>
+              <div className="flex-1 h-px bg-stone-100" />
+            </div>
 
-  // ── Register form ──────────────────────────────────────────
-  if (view === 'register') {
-    return (
-      <div>
-        <button type="button" onClick={() => { setView('options'); setAuthError(null); }}
-          className="text-xs text-stone-400 hover:text-stone-700 mb-5 transition-colors">
-          {t('back')}
-        </button>
-        <h2 className="font-cormorant text-2xl font-semibold text-stone-900 mb-1 text-center">
-          {t('headingRegister')}
-        </h2>
-        <p className="text-xs text-stone-400 text-center mb-6">{t('subtitleRegister')}</p>
+            {/* Password — secondary, sign-in only, for an already-activated customer */}
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label htmlFor="step2auth-login-email" className="field-label">{t('emailLabel')}</label>
+                <input id="step2auth-login-email" name="email" type="email" required
+                  placeholder={t('emailPlaceholder')}
+                  className={`mt-1.5 ${inputClass}`} />
+              </div>
+              <div>
+                <label htmlFor="step2auth-login-password" className="field-label">{t('passwordLabel')}</label>
+                <input id="step2auth-login-password" name="password" type="password" required
+                  placeholder={t('passwordPlaceholder')}
+                  className={`mt-1.5 ${inputClass}`} />
+              </div>
 
-        <form onSubmit={handleRegister} className="space-y-4">
-          <div>
-            <label className="field-label">{t('fullNameLabel')}</label>
-            <input name="fullName" type="text" required minLength={2}
-              placeholder={t('fullNamePlaceholder')}
-              className={`mt-1.5 ${inputClass}`} />
-          </div>
-          <div>
-            <label className="field-label">{t('emailLabel')}</label>
-            <input name="email" type="email" required
-              placeholder={t('emailPlaceholder')}
-              className={`mt-1.5 ${inputClass}`} />
-          </div>
-          <div>
-            <label className="field-label">{t('passwordLabel')}</label>
-            <input name="password" type="password" required minLength={6}
-              placeholder={t('passwordMinPlaceholder')}
-              className={`mt-1.5 ${inputClass}`} />
-          </div>
+              {authError && <p role="alert" className="text-sm text-red-500">{authError}</p>}
 
-          {authError && <p className="text-sm text-red-500">{authError}</p>}
-
-          <button type="submit" disabled={isPending}
-            className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-stone-900 text-white font-outfit font-medium text-sm rounded-xl hover:bg-stone-700 disabled:opacity-60 transition-colors">
-            {isPending ? <Loader2 size={16} className="animate-spin" /> : t('createAccount')}
-          </button>
-        </form>
+              <button type="submit" disabled={isPending}
+                className="w-full flex items-center justify-center gap-2 py-3 px-6 border border-stone-200 text-stone-700 font-outfit font-medium text-sm rounded-xl hover:bg-stone-50 disabled:opacity-60 transition-colors">
+                {isPending ? <Loader2 size={16} className="animate-spin" /> : t('enter')}
+              </button>
+            </form>
+          </>
+        )}
       </div>
     );
   }
@@ -202,23 +244,22 @@ export function Step2Auth({
 
       <div className="space-y-3">
 
-        {/* Google */}
-        <button
-          type="button"
-          onClick={() => signInWithOAuth('google')}
-          disabled={oauthLoading !== null}
-          className="w-full flex items-center gap-3 px-4 py-3 border border-stone-200 rounded-xl bg-white text-sm font-outfit text-stone-700 hover:bg-stone-50 disabled:opacity-60 transition-colors"
-        >
-          {oauthLoading === 'google'
-            ? <Loader2 size={18} className="animate-spin text-stone-400" />
-            : <GoogleIcon />}
-          <span>{t('google')}</span>
-          {oauthLoading !== 'google' && <ChevronRight size={14} className="ml-auto text-stone-300" />}
-        </button>
+        {/* Google / Apple (Apple only when NEXT_PUBLIC_SUPABASE_APPLE_ENABLED === 'true') */}
+        {PROVIDERS.map((provider) => (
+          <button
+            key={provider}
+            type="button"
+            onClick={() => signInWithOAuth(provider)}
+            disabled={oauthLoading !== null}
+            className="w-full flex items-center gap-3 px-4 py-3 border border-stone-200 rounded-xl bg-white text-sm font-outfit text-stone-700 hover:bg-stone-50 disabled:opacity-60 transition-colors"
+          >
+            <ProviderIcon provider={provider} loading={oauthLoading === provider} />
+            <span>{t(provider)}</span>
+            {oauthLoading !== provider && <ChevronRight size={14} className="ml-auto text-stone-300" />}
+          </button>
+        ))}
 
-        {/* Apple — pendiente de Apple Developer membership */}
-
-        {/* Email */}
+        {/* Email (passwordless OTP + secondary password) */}
         <button
           type="button"
           onClick={() => setView('login')}
@@ -226,17 +267,6 @@ export function Step2Auth({
         >
           <Mail size={18} className="text-stone-400" />
           <span>{t('email')}</span>
-          <ChevronRight size={14} className="ml-auto text-stone-300" />
-        </button>
-
-        {/* Criar Perfil */}
-        <button
-          type="button"
-          onClick={() => setView('register')}
-          className="w-full flex items-center gap-3 px-4 py-3 border border-stone-200 rounded-xl bg-white text-sm font-outfit text-stone-600 hover:bg-stone-50 transition-colors"
-        >
-          <span className="text-base leading-none text-stone-400">+</span>
-          <span>{t('createProfile')}</span>
           <ChevronRight size={14} className="ml-auto text-stone-300" />
         </button>
       </div>

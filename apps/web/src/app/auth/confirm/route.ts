@@ -9,8 +9,8 @@ import { loginErrorRedirect, postAuthResponse } from '@/infrastructure/auth/post
  * Email-OTP / magic-link landing. Links arrive as `?token_hash=…&type=…&next=…`
  * and are consumed with `verifyOtp` (the PKCE `?code=` shape is /auth/callback).
  *
- * `type` is an explicit allow-list. `signup` is required: the live Step2Auth
- * `signUp()` confirmation shares the "Confirm signup" template. `recovery`,
+ * `type` is an explicit allow-list. `signup` is required: the sign-up
+ * confirmation shares the "Confirm signup" template. `recovery`,
  * `invite` and `email_change` are deliberately absent.
  *
  * `next` is a relative same-origin path only; anything else is ignored and the
