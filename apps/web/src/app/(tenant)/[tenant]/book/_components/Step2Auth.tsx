@@ -22,7 +22,8 @@ type AuthView = 'options' | 'login';
 type OtpState =
   | { status: 'idle' }
   | { status: 'sent'; email: string }
-  | { status: 'rateLimited' };
+  | { status: 'rateLimited' }
+  | { status: 'failed' };
 
 // `NEXT_PUBLIC_*` is inlined at build time, so this list is a build-time
 // constant — resolved once here rather than on every render, mirroring
@@ -128,9 +129,11 @@ export function Step2Auth({
       // Success OR any other (non-429) error resolves identically.
       setOtpState({ status: 'sent', email });
     } catch {
-      // A thrown (network/unexpected) failure keeps the SAME anti-enumeration
-      // confirmation — it never reveals more than a returned { error } would.
-      setOtpState({ status: 'sent', email });
+      // A thrown (network/unexpected) failure is NOT an enumeration signal — it
+      // does not depend on whether the account exists — so surface a retryable
+      // error and keep the form visible instead of falsely claiming the link
+      // was sent.
+      setOtpState({ status: 'failed' });
     } finally {
       setOtpPending(false);
     }
@@ -185,6 +188,9 @@ export function Step2Auth({
               {otpState.status === 'rateLimited' && (
                 <p role="alert" className="text-sm text-red-500">{t('otpRateLimited')}</p>
               )}
+              {otpState.status === 'failed' && (
+                <p role="alert" className="text-sm text-red-500">{t('otpError')}</p>
+              )}
 
               <button type="submit" disabled={otpPending}
                 className="w-full flex items-center justify-center gap-2 py-3.5 px-6 bg-stone-900 text-white font-outfit font-medium text-sm rounded-xl hover:bg-stone-700 disabled:opacity-60 transition-colors">
@@ -213,7 +219,7 @@ export function Step2Auth({
                   className={`mt-1.5 ${inputClass}`} />
               </div>
 
-              {authError && <p className="text-sm text-red-500">{authError}</p>}
+              {authError && <p role="alert" className="text-sm text-red-500">{authError}</p>}
 
               <button type="submit" disabled={isPending}
                 className="w-full flex items-center justify-center gap-2 py-3 px-6 border border-stone-200 text-stone-700 font-outfit font-medium text-sm rounded-xl hover:bg-stone-50 disabled:opacity-60 transition-colors">

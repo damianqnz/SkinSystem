@@ -130,6 +130,7 @@
       "otpCta":              "Enviarme un enlace",
       "otpSent":             "Te hemos enviado un enlace de acceso a {email}. Revisa tu bandeja de entrada.",
       "otpRateLimited":      "Demasiados intentos. Inténtalo de nuevo en unos minutos.",
+      "otpError":            "No pudimos enviar el enlace. Revisa tu conexión e inténtalo de nuevo.",
       "errorCredentials":    "Email o contraseña incorrectos"
     },
     "confirm": {

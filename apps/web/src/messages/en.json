@@ -130,6 +130,7 @@
       "otpCta":              "Send me a link",
       "otpSent":             "We’ve sent an access link to {email}. Check your inbox.",
       "otpRateLimited":      "Too many attempts. Please try again shortly.",
+      "otpError":            "We couldn’t send the link. Check your connection and try again.",
       "errorCredentials":    "Invalid email or password"
     },
     "confirm": {
