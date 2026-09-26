@@ -56,12 +56,14 @@ export function CalendarDayNav({ date, locale, view }: CalendarDayNavProps) {
     const step = view === 'week' ? 7 : 1;
     d.setUTCDate(d.getUTCDate() + delta * step);
     const sp = new URLSearchParams(params.toString());
+    sp.delete('month');
     sp.set('date', d.toISOString().slice(0, 10));
     router.push(`${path}?${sp.toString()}`);
   }
 
   function goToday() {
     const sp = new URLSearchParams(params.toString());
+    sp.delete('month');
     sp.delete('date');
     router.push(`${path}?${sp.toString()}`);
   }

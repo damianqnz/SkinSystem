@@ -44,6 +44,7 @@ export function ViewSwitcher({ current }: ViewSwitcherProps) {
   const setView = (next: CalendarView) => {
     if (next === current) return;
     const sp = new URLSearchParams(Array.from(params.entries()));
+    sp.delete('month');
     sp.set('view', next);
     startTransition(() => router.push(`/dashboard/calendar?${sp.toString()}`, { scroll: false }));
   };

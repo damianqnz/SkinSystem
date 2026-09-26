@@ -18,7 +18,6 @@ import { localeFromHeader }   from '@/i18n/detect-locale';
 
 interface CalendarPageProps {
   searchParams: Promise<{
-    month?: string;
     date?:  string;
     view?:  string;
   }>;
@@ -35,7 +34,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   const locale = localeFromHeader(hdrs.get('x-locale'));
   const t      = await getTranslations({ locale, namespace: 'dashboard.calendar' });
 
-  const { month: monthParam, date: dateParam, view: viewParam } = await searchParams;
+  const { date: dateParam, view: viewParam } = await searchParams;
 
   const orgRes = await getOrganizationBySlug(slug);
   if (orgRes.error || !orgRes.data) notFound();
@@ -45,9 +44,13 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
     ? (viewParam as CalendarView)
     : 'month';
 
+  // Universal anchor — derived once from the `date` searchParam (UTC midnight).
+  const anchor = dateParam
+    ? new Date(dateParam + 'T00:00:00Z')
+    : (() => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); return d; })();
+
   // ── Month / Team view ─────────────────────────────────────────
   if (view === 'month' || view === 'team') {
-    const anchor     = monthParam ? new Date(monthParam + 'T00:00:00Z') : new Date();
     const monthStart = getMonthStart(anchor);
 
     return (
@@ -68,9 +71,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   }
 
   // ── Day / Week view ───────────────────────────────────────────
-  const anchorDate = dateParam
-    ? new Date(dateParam + 'T00:00:00Z')
-    : (() => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); return d; })();
+  const anchorDate = anchor;
 
   return (
     <div className="flex flex-col h-full min-h-0">
