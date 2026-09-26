@@ -381,3 +381,76 @@ None beyond the two documented decisions above (password minimum = 6, pure-seam 
 - PR C's own D.3-equivalent tasks (C.10-C.12) are still open per `tasks.md` and were NOT touched by this slice (out of boundary).
 - PR E remains correctly blocked on GATE.6; this slice does not affect that gate.
 - Req 10 / Leaked Password Protection remains deferred (Free plan); the `weak_password` mapping added here is inert until PR G lands.
+
+---
+
+# Apply progress: customer-identity-activation — PR E DRAFT (Step2Auth migration)
+
+Date: 2026-09-26. Mode: sdd-apply (standard, no strict TDD declared). Strategy: `ask-on-risk` (already confirmed by the human, per `tasks.md`'s "Decisions confirmed by the human" block). Boundary: tasks **E.1, E.2, E.3, E.4, E.7, E.8, E.9** only. **DRAFT — NOT merged, NOT pushed, NO PR opened.** Branch `feat/customer-identity-activation-e-step2auth`, created off a clean `main` (which already contains PR A/B/C/D/F and the AUTH-01 fix). E.0 (the merge gate, blocked on the GATE.6 `HEARTBEAT.md` entry) was explicitly NOT touched or marked; E.5/E.6 (human QA / conversion watch, both need a deployed environment) were explicitly NOT attempted.
+
+## Tasks
+
+| Task | State | Notes |
+|---|---|---|
+| E.0 gate | correctly left `[ ]`, note added | GATE.6 does not exist yet (A+B+C not yet deployed to production, H.1-H.4 open). Not touched per the run brief. |
+| E.1 remove signUp/register path | done | `handleRegister`, the `'register'` view, the "Criar Perfil" button, `'register'` from `AuthView`, and the `noAccount`/`createNow` link all removed. `handleLogin`, Google OAuth, guest option kept. |
+| E.2 OTP + Apple | done | `signInWithOtp({ email, options: { emailRedirectTo: \`${origin}/auth/confirm?next=/book\`, shouldCreateUser: true } })`; identical "check your inbox" state except a distinct 429 rate-limit message; `signInWithOAuth` generalized to `'google' \| 'apple'`; Apple rendered by mapping `resolveEnabledOAuthProviders({ appleEnabled: process.env.NEXT_PUBLIC_SUPABASE_APPLE_ENABLED })`, ships inert (flag unset). |
+| E.3 i18n | done | `booking.auth.*` in pt/es/en: 9 keys dropped (verified zero other consumers via `rg` before deletion), 4 keys added (`apple`, `otpCta`, `otpSent` w/ ICU `{email}`, `otpRateLimited`); `emailLabel`/`emailPlaceholder` reused for the OTP field. Parity green (`messages.test.ts`). |
+| E.4 gate | done | `rg 'signUp\(' apps/web/src` → 0 matches. The only match after E.1-E.3 was a comment in `apps/web/src/app/auth/confirm/route.ts` referencing the removed call; reworded (one-word-scope change, no behavior change) to drop the literal `signUp(`. |
+| E.5 booking QA | OPEN, deliberately deferred | Human-only; needs a deployed environment, no harness exists for a Client Component's real auth flow (design §9). Left unchecked with a note in `tasks.md`. |
+| E.6 conversion watch | OPEN, deliberately deferred | Needs PR E actually deployed for a 14-day window; cannot run from an unmerged draft branch. Left unchecked with a note in `tasks.md`. |
+| E.7 gates + REQ8-CHK | done | See "Gate results" below. |
+| E.8 HB | done | `HEARTBEAT.md` entry `2026-09-26 #1`. |
+| E.9 rollback boundary | done | See below. |
+
+## Design decisions made while implementing
+
+1. **UI structure for the 'login' view**: rather than a single shared email field, the OTP form and the password form are two independent, self-contained `<form>` elements (own email field each), mirroring the real `/login` page's `OtpForm.tsx` / password-disclosure pattern (PR C) rather than trying to share one input across two submit handlers. The OTP form renders first (primary, matches design.md's "Add" column ordering); a divider (`t('or')`, reusing the existing key) separates it from the password form (secondary, sign-in only, unchanged behavior for an already-activated customer).
+2. **No new `passwordDisclosure`-style collapse control was added** (unlike `/login`'s `<details>` tier-2 pattern) — the run brief's E.3 key list did not include one, and Step2Auth is a booking-funnel modal already several steps deep; both forms stay visible rather than adding another interaction layer. Reviewer feedback flagged this as a nit ("two email fields is a lot to scroll on 375px") — recorded as a follow-up, not implemented here, to keep this a faithful E.1-E.4/E.7-E.9 slice.
+3. **`OtpState` is a 3-arm discriminated union** (`idle | sent | rateLimited`), not a 4-arm union with a separate `error: 'generic'` case: per the design and run brief, success and any non-429 error resolve to the identical `sent` confirmation (anti-enumeration), so there is nothing for a fourth arm to represent.
+4. **`Apple` icon** imported from `lucide-react` (already a dependency, already used the same way in `OAuthButtons.tsx`) rather than an inline SVG, for consistency with the reference component.
+5. **Pre-commit review fixes applied** (see commit `bfe6018`): `signInWithOtp` wrapped in `try/finally` so `otpPending` cannot get stuck if the call throws instead of resolving `{ error }`; `htmlFor`/`id` added to the OTP-form and password-form labels (WCAG AA — the two email fields previously shared a purely visual, unassociated label). Both were flagged as "should fix, non-blocking" by the repo's `gga` pre-commit AI review gate and applied because they were cheap and correctness/accessibility-affecting.
+
+## Files changed
+
+| File | Change | ~Lines (insert/delete) |
+|---|---|---|
+| `apps/web/src/app/(tenant)/[tenant]/book/_components/Step2Auth.tsx` | rewrite (E.1, E.2, review fixes) | +200 / -193 (net +7; most "deleted" lines are the register view/handler being replaced by the OTP form) |
+| `apps/web/src/app/auth/confirm/route.ts` | comment reword only (E.4) | +2 / -2 |
+| `apps/web/src/messages/{pt,es,en}.json` | `booking.auth.*` key drop + add (E.3) | ~+14 / -19 each |
+
+**Total diff vs `main`: 200 insertions + 193 deletions across 5 files = 393 changed lines** (`git diff --stat main`), under the 400-line budget (forecast ~230, range 190-280 — landed a bit higher than the midpoint but comfortably under; the OTP form plus a two-field login view added more lines than the forecast's rough estimate). Not counted: `openspec/` doc updates and `HEARTBEAT.md` (gitignored), committed separately per instructions.
+
+## Work-unit commits (executed, Conventional Commits)
+
+1. `6dd3709` — `feat(booking): migrate Step2Auth off bare signUp to OTP + Apple-gated OAuth` — E.1, E.2, E.3 (component + all three locale files together, since the behavior and its strings are one unit).
+2. `bdcd338` — `docs(auth): reword confirm-route comment so no account-creating call site remains (E.4)` — the one-line comment fix in `route.ts`, isolated so the E.4 gate change is independently reviewable and revertible from the E.1-E.3 behavior change.
+3. `bfe6018` — `fix(booking): guard OTP pending state and associate email/password labels` — the two pre-commit-review fixes, kept as their own commit rather than folded into commit 1 (both were caught by the review gate AFTER commit 1 landed, on the working tree).
+
+All three commits are on `feat/customer-identity-activation-e-step2auth`, stacked on `main`, **NOT pushed, no PR opened, not merged** — per the explicit run-brief instruction ("this is a DRAFT, do NOT merge/push/PR").
+
+## Gate results (observed, 2026-09-26, on branch `feat/customer-identity-activation-e-step2auth`)
+
+- `pnpm check-types`: exit 0, 2/2 tasks successful.
+- `pnpm lint --force`: exit 0 (`--max-warnings 0`), 2/2 tasks successful.
+- `pnpm exec turbo run test --force`: 17 files, **153/153 tests passed** — unchanged from the `main` baseline. No new automated tests: `Step2Auth.tsx` is a Client Component with no RTL/jsdom harness per design §9 (confirmed, not faked); the run brief itself anticipated this ("unlikely here").
+- `pnpm build --force`: exit 0, Next.js 16.3.5 (Turbopack) build succeeded; `/[tenant]/book` and `/auth/confirm` both present in the route table.
+- **E.4 gate**: `rg -n "signUp\(" apps/web/src` → **0 matches** (exit 1, ripgrep's "no match" convention). Before the `bdcd338` fix it was 1 match (the `route.ts` comment).
+- **REQ8-CHK**: `rg -n "from\('customers'\)\|from\('appointments'\)" apps/web/src` → **0 matches**. This slice adds zero server/DB code — `Step2Auth.tsx` calls only `supabase.auth.*` on the browser client; `route.ts`'s change is a comment only.
+- **I18N-CHK**: no literal user-facing strings in the touched `.tsx` (verified via `rg`, excluding JSX attributes/SVG paths); all new/removed keys checked for parity across pt/es/en (`messages.test.ts`, part of the 153/153); ICU named arg `{email}` used correctly in `otpSent`; no `_i18n.ts` files; `git diff --stat main -- apps/web/src/proxy.ts apps/web/src/i18n/request.ts` is **empty** (neither touched).
+
+## Deviations from the run brief
+
+None beyond the two documented UI/design choices above (independent OTP/password forms instead of a shared field; no new password-disclosure toggle). No task text was reinterpreted; E.0/E.5/E.6 are left exactly as instructed — unchecked, with notes, not attempted or faked.
+
+## Rollback boundary (E.9)
+
+Reverting `bfe6018` + `bdcd338` + `6dd3709` (in that order, or as a single `git revert` of the range) restores the bare `signUp()` account-creation path in `Step2Auth.tsx` and the original `route.ts` comment. **No data dependency in either direction** — this slice adds/removes zero server code and touches no table (confirmed by REQ8-CHK and by code inspection: every new call in `Step2Auth.tsx` is `supabase.auth.*` on the browser client).
+
+## Open items for the orchestrator/human
+
+- **Do not push, open a PR, or merge this branch** — explicit instruction for this draft. The orchestrator/human decides when.
+- E.0 stays blocked until the GATE.6 `HEARTBEAT.md` entry exists: deploy A+B+C to production, run H.1-H.4, then run the D7 evidence gate (GATE.1-GATE.6).
+- E.5 (booking-funnel QA at 375px) and E.6 (7-day-before/after conversion watch) need a deployed environment; left unchecked in `tasks.md` with notes, not attempted or faked.
+- PR G / Req 10 (Leaked Password Protection) remains deferred (Free plan) — unaffected by this slice.
+- Reviewer's non-blocking follow-up ideas, not implemented here (out of the E.1-E.4/E.7-E.9 boundary): split `Step2Auth.tsx`'s login view into its own file (file is now ~290 lines, past the informal 150-line soft guideline); consider a password-disclosure toggle to reduce the two-email-field scroll on 375px; translate the raw OAuth `error.message` shown by `signInWithOAuth` (pre-existing, not introduced by this PR).
