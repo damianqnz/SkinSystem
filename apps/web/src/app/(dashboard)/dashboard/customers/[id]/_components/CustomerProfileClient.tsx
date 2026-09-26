@@ -6,7 +6,7 @@ import { useGSAP }   from '@gsap/react';
 import gsap          from 'gsap';
 import * as Tabs     from '@radix-ui/react-tabs';
 import Image         from 'next/image';
-import { CalendarPlus, Pencil, Stethoscope } from 'lucide-react';
+import { ArrowLeft, CalendarPlus, Pencil, Stethoscope } from 'lucide-react';
 import Link          from 'next/link';
 import { toast }     from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
@@ -97,6 +97,14 @@ export function CustomerProfileClient({ id, fullName, email, phone, isGuest, vis
 
       {/* Profile header */}
       <div className="p-6 border-b border-spa-border space-y-4 shrink-0">
+        {/* Back to list — mobile only; on desktop the list stays in the sidebar */}
+        <Link
+          href="/dashboard/customers"
+          className="md:hidden inline-flex items-center gap-1.5 font-sans text-xs text-stone-400 hover:text-stone-700 transition-colors"
+        >
+          <ArrowLeft size={14} strokeWidth={1.5} />
+          {t('backToList')}
+        </Link>
         <div className="flex items-start gap-4">
           {/* Avatar */}
           <button onClick={() => fileInputRef.current?.click()} disabled={avatarLoading}
