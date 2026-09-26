@@ -27,8 +27,9 @@ export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps
 
   const buildHref = (monthIso?: string) => {
     const sp = new URLSearchParams(Array.from(params.entries()));
-    if (monthIso) sp.set('month', monthIso);
-    else          sp.delete('month');
+    sp.delete('month');            // legacy param, no longer read
+    if (monthIso) sp.set('date', monthIso);
+    else          sp.delete('date'); // "today" → clear anchor
     return `${pathname}${sp.toString() ? `?${sp.toString()}` : ''}`;
   };
 
