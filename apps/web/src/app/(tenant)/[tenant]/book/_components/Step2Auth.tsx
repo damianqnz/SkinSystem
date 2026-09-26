@@ -112,21 +112,26 @@ export function Step2Auth({
     const email = (fd.get('email') as string).trim();
 
     setOtpPending(true);
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/confirm?next=/book`,
-        shouldCreateUser: true,
-      },
-    });
-    setOtpPending(false);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=/book`,
+          shouldCreateUser: true,
+        },
+      });
 
-    if (error?.status === 429) {
-      setOtpState({ status: 'rateLimited' });
-      return;
+      if (error?.status === 429) {
+        setOtpState({ status: 'rateLimited' });
+        return;
+      }
+      // Success OR any other (non-429) error resolves identically.
+      setOtpState({ status: 'sent', email });
+    } finally {
+      // Always clears, even if signInWithOtp throws instead of returning
+      // { error } — otherwise the button could stay disabled forever.
+      setOtpPending(false);
     }
-    // Success OR any other (non-429) error resolves identically.
-    setOtpState({ status: 'sent', email });
   }
 
   const inputClass =
@@ -169,8 +174,8 @@ export function Step2Auth({
             {/* Passwordless — primary */}
             <form onSubmit={handleOtpRequest} className="space-y-4">
               <div>
-                <label className="field-label">{t('emailLabel')}</label>
-                <input name="email" type="email" required
+                <label htmlFor="step2auth-otp-email" className="field-label">{t('emailLabel')}</label>
+                <input id="step2auth-otp-email" name="email" type="email" required
                   placeholder={t('emailPlaceholder')}
                   className={`mt-1.5 ${inputClass}`} />
               </div>
@@ -194,14 +199,14 @@ export function Step2Auth({
             {/* Password — secondary, sign-in only, for an already-activated customer */}
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="field-label">{t('emailLabel')}</label>
-                <input name="email" type="email" required
+                <label htmlFor="step2auth-login-email" className="field-label">{t('emailLabel')}</label>
+                <input id="step2auth-login-email" name="email" type="email" required
                   placeholder={t('emailPlaceholder')}
                   className={`mt-1.5 ${inputClass}`} />
               </div>
               <div>
-                <label className="field-label">{t('passwordLabel')}</label>
-                <input name="password" type="password" required
+                <label htmlFor="step2auth-login-password" className="field-label">{t('passwordLabel')}</label>
+                <input id="step2auth-login-password" name="password" type="password" required
                   placeholder={t('passwordPlaceholder')}
                   className={`mt-1.5 ${inputClass}`} />
               </div>
