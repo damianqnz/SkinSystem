@@ -846,6 +846,7 @@
       },
       "profile": {
         "blockedBanner":    "Cliente bloqueado — não pode fazer reservas online.",
+        "backToList":       "Todos os clientes",
         "guestBadge":       "Convidado",
         "visits":           "{count} visitas",
         "scheduleCta":      "Agendar consulta",
