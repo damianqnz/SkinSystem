@@ -127,9 +127,11 @@ export function Step2Auth({
       }
       // Success OR any other (non-429) error resolves identically.
       setOtpState({ status: 'sent', email });
+    } catch {
+      // A thrown (network/unexpected) failure keeps the SAME anti-enumeration
+      // confirmation — it never reveals more than a returned { error } would.
+      setOtpState({ status: 'sent', email });
     } finally {
-      // Always clears, even if signInWithOtp throws instead of returning
-      // { error } — otherwise the button could stay disabled forever.
       setOtpPending(false);
     }
   }
@@ -181,7 +183,7 @@ export function Step2Auth({
               </div>
 
               {otpState.status === 'rateLimited' && (
-                <p className="text-sm text-red-500">{t('otpRateLimited')}</p>
+                <p role="alert" className="text-sm text-red-500">{t('otpRateLimited')}</p>
               )}
 
               <button type="submit" disabled={otpPending}
