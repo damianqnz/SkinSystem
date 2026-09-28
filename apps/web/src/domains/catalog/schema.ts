@@ -14,15 +14,17 @@ import {
   catalogCategories,
   catalogServices,
   serviceStaff,
+  serviceCategories,
   type CatalogCategory,
   type NewCatalogCategory,
   type CatalogService,
   type NewCatalogService,
   type ServiceStaff,
+  type ServiceCategory,
 } from '@/infrastructure/db/schema/catalog';
 
 // ── Table references (Drizzle) ────────────────────────────────
-export { catalogCategories, catalogServices, serviceStaff };
+export { catalogCategories, catalogServices, serviceStaff, serviceCategories };
 
 // ── Inferred types ────────────────────────────────────────────
 export type {
@@ -31,6 +33,7 @@ export type {
   CatalogService,
   NewCatalogService,
   ServiceStaff,
+  ServiceCategory,
 };
 
 // Short domain aliases
@@ -56,11 +59,12 @@ export const createCategorySchema = z.object({
   descriptionI18n: i18nSchema.optional(),
   sortOrder:       z.number().int().nonnegative().optional().default(0),
   isActive:        z.boolean().optional().default(true),
+  isPublic:        z.boolean().optional().default(true),
 });
 
 export const createServiceSchema = z.object({
   organizationId:      z.string().uuid(),
-  categoryId:          z.string().uuid().nullable().optional(),
+  categoryIds:         z.array(z.string().uuid()).optional().default([]),
   nameI18n:            i18nSchema,
   descriptionI18n:     i18nSchema.optional(),
   /** Duration in minutes */
@@ -72,13 +76,19 @@ export const createServiceSchema = z.object({
   bufferAfterMinutes:  z.number().int().nonnegative().optional().default(0),
   depositPercent:      z.number().int().min(0).max(100).optional().default(100),
   isActive:            z.boolean().optional().default(true),
+  isPublic:            z.boolean().optional().default(true),
   color:               z.string().regex(/^#[0-9A-Fa-f]{6}$/).nullable().optional(),
 });
+
+export const updateCategorySchema = createCategorySchema
+  .omit({ organizationId: true })
+  .partial();
 
 export const updateServiceSchema = createServiceSchema
   .omit({ organizationId: true })
   .partial();
 
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>;
+export type UpdateCategoryInput = z.infer<typeof updateCategorySchema>;
 export type CreateServiceInput  = z.infer<typeof createServiceSchema>;
 export type UpdateServiceInput  = z.infer<typeof updateServiceSchema>;

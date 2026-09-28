@@ -4,7 +4,7 @@ import { useState }           from 'react';
 import Link                   from 'next/link';
 import Image                  from 'next/image';
 import { ChevronUp, ChevronDown, ChevronRight } from 'lucide-react';
-import type { CategoryWithServices } from '@/domains/catalog/service';
+import type { CategoryWithServices } from '@/domains/catalog/catalog-read';
 
 // ── Helpers ───────────────────────────────────────────────────
 

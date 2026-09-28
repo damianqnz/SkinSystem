@@ -20,7 +20,7 @@ import 'server-only';
 import { eq, and, or, gte, like, inArray } from 'drizzle-orm';
 import { db } from '@/infrastructure/db';
 import { customers } from '@/domains/customers/schema';
-import { catalogCategories, catalogServices } from '@/domains/catalog/schema';
+import { catalogCategories, catalogServices, serviceCategories } from '@/domains/catalog/schema';
 import { appointments } from './schema';
 import { payments, couponRedemptions } from '@/infrastructure/db/schema/booking';
 import type { AppointmentStatus } from './schema';
@@ -441,7 +441,6 @@ export async function seedTenantData(
     const svcRows = await db.insert(catalogServices).values(
       SERVICES.map((s, idx) => ({
         organizationId:  orgId,
-        categoryId:      catLookup[s.category],
         nameI18n:        s.name,
         descriptionI18n: {},
         durationMinutes: s.duration,
@@ -458,6 +457,14 @@ export async function seedTenantData(
       duration: catalogServices.durationMinutes,
       cents:    catalogServices.priceCents,
     });
+
+    await db.insert(serviceCategories).values(
+      svcRows.map((row, idx) => ({
+        organizationId: orgId,
+        serviceId:      row.id,
+        categoryId:     catLookup[SERVICES[idx]!.category],
+      })),
+    );
 
     // 3. Customers
     const custRows = await db.insert(customers).values(
