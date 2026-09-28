@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { Loader2, Mail, ChevronRight }         from 'lucide-react';
 import { useTranslations }                     from 'next-intl';
 import { createSupabaseClient }                from '@/infrastructure/supabase/client';
+import { buildEmailConfirmRedirect }           from '@/infrastructure/auth/resolve-redirect-url';
 
 // ── Props ─────────────────────────────────────────────────────
 
@@ -91,7 +92,14 @@ export function Step2Auth({
       const { error } = await supabase.auth.signUp({
         email,
         password: pass,
-        options: { data: { full_name: fullName } },
+        options: {
+          data: { full_name: fullName },
+          // The "Confirm signup" template appends `?token_hash=…&type=signup` to
+          // this URL, so it must be the query-less /auth/confirm. Without it
+          // Supabase falls back to the Site URL, and the link would land on the
+          // site root with the token params attached to the wrong route.
+          emailRedirectTo: buildEmailConfirmRedirect(window.location.origin),
+        },
       });
       if (error) { setAuthError(error.message); return; }
       onAuthenticated();
