@@ -10,9 +10,9 @@ import {
 }                                      from '@/infrastructure/db/schema/settings';
 import { googleReviews }               from '@/infrastructure/db/schema/notifications';
 import { availabilityRules }           from '@/infrastructure/db/schema/calendar';
-import { getCategoriesWithServices }   from '@/domains/catalog/service';
+import { getPublicCatalog }            from '@/domains/catalog/catalog-read';
 import { DAY_KEYS }                    from '@/i18n/calendar-keys';
-import type { CategoryWithServices }   from '@/domains/catalog/service';
+import type { CategoryWithServices }   from '@/domains/catalog/catalog-read';
 import type { SupportedLocale }        from '@/i18n/config';
 
 // ── Types ─────────────────────────────────────────────────────
@@ -168,7 +168,7 @@ export async function getLandingData(slug: string, locale: SupportedLocale): Pro
     themeConfig:  (rawOrg.themeConfig  ?? {}) as Record<string, string>,
   };
 
-  const [phonesRows, galleryRows, reviewsRows, rulesRows, catalogResult] = await Promise.all([
+  const [phonesRows, galleryRows, reviewsRows, rulesRows, publicCatalogResult] = await Promise.all([
     db.select({ phone: organizationPhones.phone, label: organizationPhones.label, isPrimary: organizationPhones.isPrimary })
       .from(organizationPhones)
       .where(eq(organizationPhones.organizationId, org.id))
@@ -198,7 +198,7 @@ export async function getLandingData(slug: string, locale: SupportedLocale): Pro
       .where(and(eq(availabilityRules.organizationId, org.id), isNull(availabilityRules.profileId)))
       .orderBy(asc(availabilityRules.dayOfWeek)),
 
-    getCategoriesWithServices(org.id),
+    getPublicCatalog(org.id),
   ]);
 
   const reviews    = reviewsRows as Review[];
@@ -216,6 +216,6 @@ export async function getLandingData(slug: string, locale: SupportedLocale): Pro
     openStatus,
     avgRating,
     reviewCount: reviews.length,
-    categories: catalogResult.data?.categories ?? [],
+    categories: publicCatalogResult.data?.categories ?? [],
   };
 }

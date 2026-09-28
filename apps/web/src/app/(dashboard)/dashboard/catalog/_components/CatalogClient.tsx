@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus, Search } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { Plus, Search, ChevronDown } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
+import { resolveI18nField } from '@/i18n/resolve-i18n-field';
+import { CatalogSidebar } from './CatalogSidebar';
 import { CatalogIsland } from './CatalogIsland';
 import { CategoryDrawer } from './CategoryDrawer';
-import type { CategoryWithServices, ServiceRow } from '@/domains/catalog/service';
-
-function resolveI18n(obj: unknown, locale: string): string {
-  if (!obj || typeof obj !== 'object') return '';
-  const o = obj as Record<string, string>;
-  return o[locale] ?? o['es'] ?? o['en'] ?? Object.values(o)[0] ?? '';
-}
+import { ServiceDrawer } from './ServiceDrawer';
+import { RoomComingSoonModal } from './RoomComingSoonModal';
+import type { CategoryWithServices, ServiceRow } from '@/domains/catalog/catalog-read';
 
 interface CatalogClientProps {
   categories:     CategoryWithServices[];
@@ -23,8 +23,13 @@ interface CatalogClientProps {
 export function CatalogClient({ categories, orphans, locale, organizationId }: CatalogClientProps) {
   const t      = useTranslations('dashboard.catalog');
   const intlLocale = useLocale();
+  const searchParams = useSearchParams();
+  const selectedCategoryId = searchParams.get('category');
+
   const [catDrawerOpen, setCatDrawerOpen] = useState(false);
   const [editingCat, setEditingCat]       = useState<CategoryWithServices | null>(null);
+  const [svcDrawerOpen, setSvcDrawerOpen] = useState(false);
+  const [roomInfoOpen, setRoomInfoOpen]   = useState(false);
   const [search, setSearch]               = useState('');
 
   const catShapes = categories.map((c) => ({ id: c.id, nameI18n: c.nameI18n }));
@@ -36,7 +41,7 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
       .map((cat) => ({
         ...cat,
         services: cat.services.filter((svc) =>
-          resolveI18n(svc.nameI18n, intlLocale).toLowerCase().includes(term)
+          resolveI18nField(svc.nameI18n, intlLocale).toLowerCase().includes(term)
         ),
       }))
       .filter((cat) => cat.services.length > 0);
@@ -45,79 +50,118 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
   const filteredOrphans = useMemo<ServiceRow[]>(() => {
     if (!term) return orphans;
     return orphans.filter((svc) =>
-      resolveI18n(svc.nameI18n, intlLocale).toLowerCase().includes(term)
+      resolveI18nField(svc.nameI18n, intlLocale).toLowerCase().includes(term)
     );
   }, [orphans, term, intlLocale]);
 
+  const visibleCategories = selectedCategoryId && selectedCategoryId !== 'none'
+    ? filteredCategories.filter((c) => c.id === selectedCategoryId)
+    : selectedCategoryId === 'none' ? [] : filteredCategories;
+  const visibleOrphans = selectedCategoryId === 'none' ? filteredOrphans
+    : selectedCategoryId ? [] : filteredOrphans;
+
   const totalServices = categories.reduce((n, c) => n + c.services.length, 0) + orphans.length;
   const isEmpty   = categories.length === 0 && orphans.length === 0;
-  const noResults = !isEmpty && term.length > 0 && filteredCategories.length === 0 && filteredOrphans.length === 0;
+  const noResults = !isEmpty && term.length > 0 && visibleCategories.length === 0 && visibleOrphans.length === 0;
 
   return (
-    <>
-      {/* Page header */}
-      <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t('title')}</h1>
-          <p className="text-sm text-stone-400 mt-1">
-            {categories.length} {t('categoriesLabel')} · {totalServices} {t('servicesLabel')}
-          </p>
-        </div>
+    <div className="flex flex-col md:flex-row bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden min-h-[70vh]">
+      <CatalogSidebar categories={categories} orphanCount={orphans.length} />
 
-        <div className="flex items-center gap-2">
-          {!isEmpty && (
-            <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={t('searchPlaceholder')}
-                className="pl-8 pr-3 py-2 rounded-xl border border-stone-200 text-sm text-stone-700
-                           placeholder:text-stone-400 bg-white hover:border-stone-300
-                           focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200
-                           transition-colors w-44 sm:w-52"
-              />
-            </div>
-          )}
-          <button
-            onClick={() => { setEditingCat(null); setCatDrawerOpen(true); }}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-stone-200 text-sm text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors whitespace-nowrap"
-          >
-            <Plus size={14} />
-            {t('newCategory')}
-          </button>
-        </div>
-      </div>
+      <div className="flex-1 min-w-0 p-4 sm:p-8">
+        {/* Page header */}
+        <div className="flex flex-col gap-4 mb-8 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="font-cormorant text-2xl font-semibold text-stone-800">{t('title')}</h1>
+            <p className="text-sm text-stone-400 mt-1">
+              {categories.length} {t('categoriesLabel')} · {totalServices} {t('servicesLabel')}
+            </p>
+          </div>
 
-      {/* Data Islands */}
-      <div className="space-y-4">
-        {isEmpty ? (
-          <EmptyState t={t} onNewCategory={() => { setEditingCat(null); setCatDrawerOpen(true); }} />
-        ) : noResults ? (
-          <NoResults t={t} query={search} onClear={() => setSearch('')} />
-        ) : (
-          <>
-            {filteredCategories.map((cat) => (
-              <CatalogIsland
-                key={cat.id}
-                category={cat}
-                categories={catShapes}
-                locale={locale}
-                organizationId={organizationId}
-                onEditCategory={() => { setEditingCat(cat); setCatDrawerOpen(true); }}
-              />
-            ))}
-            {(!term || filteredOrphans.length > 0) && (
-              <CatalogIsland
-                category={null}
-                categories={catShapes}
-                locale={locale}
-                organizationId={organizationId}
-              />
+          <div className="flex items-center gap-2">
+            {!isEmpty && (
+              <div className="relative">
+                <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('searchPlaceholder')}
+                  className="pl-8 pr-3 py-2 rounded-xl border border-stone-200 text-sm text-stone-700
+                             placeholder:text-stone-400 bg-white hover:border-stone-300
+                             focus:outline-none focus:border-amber-300 focus:ring-1 focus:ring-amber-200
+                             transition-colors w-44 sm:w-52"
+                />
+              </div>
             )}
-          </>
-        )}
+
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger asChild>
+                <button className="flex items-center gap-2 px-4 py-2 rounded-xl border border-stone-200 text-sm text-stone-600 hover:bg-stone-50 hover:border-stone-300 transition-colors whitespace-nowrap">
+                  <Plus size={14} />
+                  {t('addMenuLabel')}
+                  <ChevronDown size={12} className="text-stone-400" />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content
+                  align="end"
+                  sideOffset={4}
+                  className="z-50 min-w-[160px] rounded-xl bg-white border border-stone-100 shadow-lg p-1 text-sm"
+                >
+                  <DropdownMenu.Item
+                    onSelect={() => setSvcDrawerOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-stone-700 hover:bg-stone-50 cursor-pointer outline-none"
+                  >
+                    {t('addMenuService')}
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    onSelect={() => { setEditingCat(null); setCatDrawerOpen(true); }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-stone-700 hover:bg-stone-50 cursor-pointer outline-none"
+                  >
+                    {t('addMenuCategory')}
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    onSelect={() => setRoomInfoOpen(true)}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg text-stone-700 hover:bg-stone-50 cursor-pointer outline-none"
+                  >
+                    {t('addMenuRoom')}
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </div>
+        </div>
+
+        {/* Data Islands */}
+        <div className="space-y-4">
+          {isEmpty ? (
+            <EmptyState t={t} onNewCategory={() => { setEditingCat(null); setCatDrawerOpen(true); }} />
+          ) : noResults ? (
+            <NoResults t={t} query={search} onClear={() => setSearch('')} />
+          ) : (
+            <>
+              {visibleCategories.map((cat) => (
+                <CatalogIsland
+                  key={cat.id}
+                  category={cat}
+                  categories={catShapes}
+                  locale={locale}
+                  organizationId={organizationId}
+                  onEditCategory={() => { setEditingCat(cat); setCatDrawerOpen(true); }}
+                />
+              ))}
+              {visibleOrphans.length > 0 && (
+                <CatalogIsland
+                  category={null}
+                  categories={catShapes}
+                  locale={locale}
+                  organizationId={organizationId}
+                />
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       <CategoryDrawer
@@ -127,7 +171,21 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
         onSuccess={() => { setCatDrawerOpen(false); setEditingCat(null); }}
         category={editingCat}
       />
-    </>
+
+      <ServiceDrawer
+        key={svcDrawerOpen ? 'quick-add' : 'quick-add-closed'}
+        open={svcDrawerOpen}
+        onClose={() => setSvcDrawerOpen(false)}
+        onSuccess={() => setSvcDrawerOpen(false)}
+        categories={catShapes}
+        locale={locale}
+        service={null}
+        defaultCategoryId={selectedCategoryId && selectedCategoryId !== 'none' ? selectedCategoryId : null}
+        organizationId={organizationId}
+      />
+
+      <RoomComingSoonModal open={roomInfoOpen} onClose={() => setRoomInfoOpen(false)} />
+    </div>
   );
 }
 

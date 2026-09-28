@@ -8,19 +8,21 @@ import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
 import { createCategoryAction, updateCategoryAction } from '../actions';
 import type { CatalogActionState } from '../actions';
-import type { CategoryWithServices } from '@/domains/catalog/service';
+import type { CategoryWithServices } from '@/domains/catalog/catalog-read';
 
 interface CategoryDrawerProps {
   open:      boolean;
   onClose:   () => void;
-  onSuccess: () => void;
-  category?: Pick<CategoryWithServices, 'id' | 'nameI18n' | 'descriptionI18n' | 'isActive'> | null;
+  onSuccess: (id?: string) => void;
+  category?: Pick<CategoryWithServices, 'id' | 'nameI18n' | 'descriptionI18n' | 'isActive' | 'isPublic'> | null;
+  /** Higher stacking context when opened as a sub-modal from ServiceDrawer. */
+  stacked?:  boolean;
 }
 
 type I18n = { es: string; en: string; pt: string };
 const IDLE: CatalogActionState = { status: 'idle' };
 
-export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryDrawerProps) {
+export function CategoryDrawer({ open, onClose, onSuccess, category, stacked }: CategoryDrawerProps) {
   const t      = useTranslations('dashboard.catalog');
   const isEdit = !!category;
 
@@ -36,6 +38,7 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
     return { es: d['es'] ?? '', en: d['en'] ?? '', pt: d['pt'] ?? '' };
   });
   const [isActive, setIsActive] = useState(category?.isActive ?? true);
+  const [isPublic, setIsPublic] = useState(category?.isPublic ?? true);
   const [tab, setTab]           = useState<'es' | 'en' | 'pt'>('es');
 
   const action = isEdit ? updateCategoryAction : createCategoryAction;
@@ -46,14 +49,14 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
   // unrelated parent re-renders while `state.status` stays 'success'/'error'. Only
   // `state` should retrigger this effect.
   useEffect(() => {
-    if (state.status === 'success') { toast.success(state.message); onSuccess(); onClose(); }
+    if (state.status === 'success') { toast.success(state.message); onSuccess(state.id); onClose(); }
     if (state.status === 'error')   toast.error(state.message);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const payload: Record<string, unknown> = { nameI18n, descriptionI18n: descI18n, isActive };
+    const payload: Record<string, unknown> = { nameI18n, descriptionI18n: descI18n, isActive, isPublic };
     if (isEdit && category) payload['id'] = category.id;
     (dispatch as (p: unknown) => void)(payload);
   }
@@ -61,9 +64,9 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
   return (
     <Dialog.Root open={open} onOpenChange={(o) => !o && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/25 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className={`fixed inset-0 bg-black/25 backdrop-blur-sm data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 ${stacked ? 'z-[60]' : 'z-50'}`} />
         <Dialog.Content
-          className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-sm bg-white shadow-2xl flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-200"
+          className={`fixed right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-2xl flex flex-col data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right duration-200 ${stacked ? 'z-[60]' : 'z-50'}`}
           aria-describedby={undefined}
         >
           <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100 shrink-0">
@@ -112,6 +115,17 @@ export function CategoryDrawer({ open, onClose, onSuccess, category }: CategoryD
                 <p className="text-[11px] text-stone-400">{t('categoryActiveHint')}</p>
               </div>
               <Switch.Root checked={isActive} onCheckedChange={setIsActive}
+                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-stone-200">
+                <Switch.Thumb className="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0.5" />
+              </Switch.Root>
+            </section>
+
+            <section className="flex items-center justify-between py-3 border-t border-stone-100">
+              <div>
+                <p className="text-sm font-medium text-stone-700">{t('categoryPublicLabel')}</p>
+                <p className="text-[11px] text-stone-400">{t('categoryPublicHint')}</p>
+              </div>
+              <Switch.Root checked={isPublic} onCheckedChange={setIsPublic}
                 className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-stone-200">
                 <Switch.Thumb className="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0.5" />
               </Switch.Root>

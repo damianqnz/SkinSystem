@@ -22,6 +22,8 @@ export const catalogCategories = pgTable('catalog_categories', {
   descriptionI18n: jsonb('description_i18n').notNull().default({}),
   sortOrder:       integer('sort_order').notNull().default(0),
   isActive:        boolean('is_active').notNull().default(true),
+  /** Visible on the public booking site. Independent of isActive (internal usability). */
+  isPublic:        boolean('is_public').notNull().default(true),
   createdAt:       timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   updatedAt:       timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
@@ -32,7 +34,6 @@ export const catalogCategories = pgTable('catalog_categories', {
 export const catalogServices = pgTable('catalog_services', {
   id:                   uuid('id').primaryKey().defaultRandom(),
   organizationId:       uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
-  categoryId:           uuid('category_id').references(() => catalogCategories.id, { onDelete: 'set null' }),
   /** { es: "...", en: "...", pt: "..." } */
   nameI18n:             jsonb('name_i18n').notNull().default({}),
   descriptionI18n:      jsonb('description_i18n').notNull().default({}),
@@ -43,6 +44,8 @@ export const catalogServices = pgTable('catalog_services', {
   bufferBeforeMinutes:  integer('buffer_before_minutes').notNull().default(0),
   bufferAfterMinutes:   integer('buffer_after_minutes').notNull().default(0),
   isActive:             boolean('is_active').notNull().default(true),
+  /** Visible on the public booking site. Independent of isActive (internal usability). */
+  isPublic:             boolean('is_public').notNull().default(true),
   sortOrder:            integer('sort_order').notNull().default(0),
   // Added Phase 3b
   color:                text('color'),
@@ -68,8 +71,22 @@ export const serviceStaff = pgTable('service_staff', {
   createdAt:      timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ── service_categories ───────────────────────────────────────
+// Many-to-many: which categories a service belongs to. Single source of
+// truth for the service↔category relation. catalog_services.category_id
+// (legacy single-category column) was dropped once this bridge took over.
+export const serviceCategories = pgTable('service_categories', {
+  id:             uuid('id').primaryKey().defaultRandom(),
+  organizationId: uuid('organization_id').notNull().references(() => organizations.id, { onDelete: 'cascade' }),
+  serviceId:      uuid('service_id').notNull().references(() => catalogServices.id, { onDelete: 'cascade' }),
+  categoryId:     uuid('category_id').notNull().references(() => catalogCategories.id, { onDelete: 'cascade' }),
+  createdAt:      timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type CatalogCategory = typeof catalogCategories.$inferSelect;
 export type NewCatalogCategory = typeof catalogCategories.$inferInsert;
 export type CatalogService = typeof catalogServices.$inferSelect;
 export type NewCatalogService = typeof catalogServices.$inferInsert;
 export type ServiceStaff = typeof serviceStaff.$inferSelect;
+export type ServiceCategory = typeof serviceCategories.$inferSelect;
+export type NewServiceCategory = typeof serviceCategories.$inferInsert;

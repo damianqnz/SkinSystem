@@ -2,7 +2,7 @@ import { Suspense }               from 'react';
 import { headers }                from 'next/headers';
 import { notFound }               from 'next/navigation';
 import { getOrganizationBySlug }  from '@/domains/organizations/service';
-import { getCategoriesWithServices } from '@/domains/catalog/service';
+import { getCategoriesWithServices } from '@/domains/catalog/catalog-read';
 import { CatalogClient }          from './_components/CatalogClient';
 import { CatalogSkeleton }        from './_components/CatalogSkeleton';
 import { localeFromHeader }       from '@/i18n/detect-locale';

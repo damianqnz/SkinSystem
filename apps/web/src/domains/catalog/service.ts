@@ -1,13 +1,12 @@
 import 'server-only';
 
-import { eq, and, asc } from 'drizzle-orm';
+import { eq, and, asc, inArray } from 'drizzle-orm';
 import { db }              from '@/infrastructure/db';
 import { organizations }   from '@/infrastructure/db/schema/organizations';
-import { catalogCategories, catalogServices } from './schema';
+import { catalogCategories, catalogServices, serviceCategories } from './schema';
+import { SVC_COLS, dbErr } from './columns';
 import type {
-  SelectCategory,
   SelectService,
-  CreateCategoryInput,
   CreateServiceInput,
   UpdateServiceInput,
 } from './schema';
@@ -15,91 +14,29 @@ import type { Result } from '@/shared/types/result';
 
 // ── Helpers ───────────────────────────────────────────────────
 
-const dbErr = (msg: string): Result<never> =>
-  ({ data: null, error: { message: msg, code: 'DB_ERROR' } });
-
-const CAT_COLS = {
-  id:              catalogCategories.id,
-  organizationId:  catalogCategories.organizationId,
-  nameI18n:        catalogCategories.nameI18n,
-  descriptionI18n: catalogCategories.descriptionI18n,
-  sortOrder:       catalogCategories.sortOrder,
-  isActive:        catalogCategories.isActive,
-  createdAt:       catalogCategories.createdAt,
-  updatedAt:       catalogCategories.updatedAt,
-};
-
-const SVC_COLS = {
-  id:                  catalogServices.id,
-  organizationId:      catalogServices.organizationId,
-  categoryId:          catalogServices.categoryId,
-  nameI18n:            catalogServices.nameI18n,
-  descriptionI18n:     catalogServices.descriptionI18n,
-  durationMinutes:     catalogServices.durationMinutes,
-  priceCents:          catalogServices.priceCents,
-  currency:            catalogServices.currency,
-  depositPercent:      catalogServices.depositPercent,
-  bufferBeforeMinutes: catalogServices.bufferBeforeMinutes,
-  bufferAfterMinutes:  catalogServices.bufferAfterMinutes,
-  isActive:            catalogServices.isActive,
-  sortOrder:           catalogServices.sortOrder,
-  color:               catalogServices.color,
-  slug:                catalogServices.slug,
-  invasivenessLevel:   catalogServices.invasivenessLevel,
-  coverImageUrl:       catalogServices.coverImageUrl,
-  createdAt:           catalogServices.createdAt,
-  updatedAt:           catalogServices.updatedAt,
-};
-
-// ── Composite read ────────────────────────────────────────────
-
-export type ServiceRow = SelectService;
-
-export type CategoryWithServices = SelectCategory & {
-  services: ServiceRow[];
-};
-
 /**
- * Fetch all categories + all services for a tenant, grouped in JS.
- * Services without categoryId are returned as `orphans`.
- * Tenant isolation: every query filtered by `organizationId`.
+ * categoryIds arrive from client input validated only as UUIDs, so a caller
+ * could name a category belonging to another tenant: the bridge's foreign key
+ * proves the category exists somewhere, not that it belongs to this org.
  */
-export async function getCategoriesWithServices(
+async function findForeignCategoryIds(
   organizationId: string,
-): Promise<Result<{ categories: CategoryWithServices[]; orphans: ServiceRow[] }>> {
-  try {
-    const [cats, svcs] = await Promise.all([
-      db.select(CAT_COLS)
-        .from(catalogCategories)
-        .where(eq(catalogCategories.organizationId, organizationId))
-        .orderBy(asc(catalogCategories.sortOrder), asc(catalogCategories.createdAt)),
-
-      db.select(SVC_COLS)
-        .from(catalogServices)
-        .where(eq(catalogServices.organizationId, organizationId))
-        .orderBy(asc(catalogServices.sortOrder), asc(catalogServices.createdAt)),
-    ]);
-
-    const catMap = new Map<string, ServiceRow[]>();
-    const orphans: ServiceRow[] = [];
-
-    for (const svc of svcs) {
-      if (!svc.categoryId) { orphans.push(svc); continue; }
-      const list = catMap.get(svc.categoryId) ?? [];
-      list.push(svc);
-      catMap.set(svc.categoryId, list);
-    }
-
-    const categories: CategoryWithServices[] = cats.map((c) => ({
-      ...c,
-      services: catMap.get(c.id) ?? [],
-    }));
-
-    return { data: { categories, orphans }, error: null };
-  } catch {
-    return dbErr('Failed to fetch catalog');
-  }
+  categoryIds:    string[],
+): Promise<string[]> {
+  if (categoryIds.length === 0) return [];
+  const owned = await db
+    .select({ id: catalogCategories.id })
+    .from(catalogCategories)
+    .where(and(
+      eq(catalogCategories.organizationId, organizationId),
+      inArray(catalogCategories.id, categoryIds),
+    ));
+  const ownedIds = new Set(owned.map((row) => row.id));
+  return categoryIds.filter((id) => !ownedIds.has(id));
 }
+
+const foreignCategoryErr = (): Result<never> =>
+  ({ data: null, error: { message: 'Category does not belong to this organization', code: 'FORBIDDEN' } });
 
 /** Active services only — for booking/calendar (public-facing). */
 export async function getActiveServices(
@@ -142,51 +79,6 @@ export async function getServiceById(
   }
 }
 
-// ── Category CRUD ─────────────────────────────────────────────
-
-export async function createCategory(
-  input: CreateCategoryInput,
-): Promise<Result<{ id: string }>> {
-  try {
-    const rows = await db
-      .insert(catalogCategories)
-      .values({
-        organizationId:  input.organizationId,
-        nameI18n:        input.nameI18n,
-        descriptionI18n: input.descriptionI18n ?? {},
-        sortOrder:       input.sortOrder ?? 0,
-        isActive:        input.isActive ?? true,
-      })
-      .returning({ id: catalogCategories.id });
-    if (!rows[0]) return dbErr('Insert returned empty');
-    return { data: { id: rows[0].id }, error: null };
-  } catch {
-    return dbErr('Failed to create category');
-  }
-}
-
-export async function updateCategory(
-  id:             string,
-  organizationId: string,
-  patch:          Partial<Pick<SelectCategory, 'nameI18n' | 'descriptionI18n' | 'sortOrder' | 'isActive'>>,
-): Promise<Result<{ id: string }>> {
-  try {
-    const rows = await db
-      .update(catalogCategories)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(and(
-        eq(catalogCategories.id, id),
-        eq(catalogCategories.organizationId, organizationId),
-      ))
-      .returning({ id: catalogCategories.id });
-    const row = rows[0];
-    if (!row) return { data: null, error: { message: 'Category not found', code: 'NOT_FOUND' } };
-    return { data: { id: row.id }, error: null };
-  } catch {
-    return dbErr('Failed to update category');
-  }
-}
-
 // ── Service CRUD ──────────────────────────────────────────────
 
 export async function createService(
@@ -203,25 +95,46 @@ export async function createService(
       currency = orgRows[0]?.defaultCurrency ?? 'EUR';
     }
 
-    const rows = await db
-      .insert(catalogServices)
-      .values({
-        organizationId:      input.organizationId,
-        categoryId:          input.categoryId ?? null,
-        nameI18n:            input.nameI18n,
-        descriptionI18n:     input.descriptionI18n ?? {},
-        durationMinutes:     input.durationMinutes,
-        priceCents:          input.priceCents,
-        currency,
-        bufferBeforeMinutes: input.bufferBeforeMinutes ?? 0,
-        bufferAfterMinutes:  input.bufferAfterMinutes ?? 0,
-        depositPercent:      input.depositPercent ?? 100,
-        isActive:            input.isActive ?? true,
-        color:               input.color ?? null,
-      })
-      .returning({ id: catalogServices.id });
-    if (!rows[0]) return dbErr('Insert returned empty');
-    return { data: { id: rows[0].id }, error: null };
+    const categoryIds = [...new Set(input.categoryIds ?? [])];
+    if ((await findForeignCategoryIds(input.organizationId, categoryIds)).length > 0) {
+      return foreignCategoryErr();
+    }
+
+    const id = await db.transaction(async (tx) => {
+      const rows = await tx
+        .insert(catalogServices)
+        .values({
+          organizationId:      input.organizationId,
+          nameI18n:            input.nameI18n,
+          descriptionI18n:     input.descriptionI18n ?? {},
+          durationMinutes:     input.durationMinutes,
+          priceCents:          input.priceCents,
+          currency,
+          bufferBeforeMinutes: input.bufferBeforeMinutes ?? 0,
+          bufferAfterMinutes:  input.bufferAfterMinutes ?? 0,
+          depositPercent:      input.depositPercent ?? 100,
+          isActive:            input.isActive ?? true,
+          isPublic:            input.isPublic ?? true,
+          color:               input.color ?? null,
+        })
+        .returning({ id: catalogServices.id });
+      const newId = rows[0]?.id;
+      if (!newId) throw new Error('Insert returned empty');
+
+      if (categoryIds.length > 0) {
+        await tx.insert(serviceCategories).values(
+          categoryIds.map((categoryId) => ({
+            organizationId: input.organizationId,
+            serviceId:      newId,
+            categoryId,
+          })),
+        );
+      }
+
+      return newId;
+    });
+
+    return { data: { id }, error: null };
   } catch {
     return dbErr('Failed to create service');
   }
@@ -233,17 +146,41 @@ export async function updateService(
   patch:          UpdateServiceInput,
 ): Promise<Result<{ id: string }>> {
   try {
-    const rows = await db
-      .update(catalogServices)
-      .set({ ...patch, updatedAt: new Date() })
-      .where(and(
-        eq(catalogServices.id, id),
-        eq(catalogServices.organizationId, organizationId),
-      ))
-      .returning({ id: catalogServices.id });
-    const row = rows[0];
-    if (!row) return { data: null, error: { message: 'Service not found', code: 'NOT_FOUND' } };
-    return { data: { id: row.id }, error: null };
+    const { categoryIds: rawCategoryIds, ...fields } = patch;
+    const categoryIds = rawCategoryIds && [...new Set(rawCategoryIds)];
+    if (categoryIds && (await findForeignCategoryIds(organizationId, categoryIds)).length > 0) {
+      return foreignCategoryErr();
+    }
+
+    const updatedId = await db.transaction(async (tx) => {
+      const rows = await tx
+        .update(catalogServices)
+        .set({ ...fields, updatedAt: new Date() })
+        .where(and(
+          eq(catalogServices.id, id),
+          eq(catalogServices.organizationId, organizationId),
+        ))
+        .returning({ id: catalogServices.id });
+      const row = rows[0];
+      if (!row) return null;
+
+      if (categoryIds !== undefined) {
+        await tx.delete(serviceCategories).where(and(
+          eq(serviceCategories.serviceId, row.id),
+          eq(serviceCategories.organizationId, organizationId),
+        ));
+        if (categoryIds.length > 0) {
+          await tx.insert(serviceCategories).values(
+            categoryIds.map((categoryId) => ({ organizationId, serviceId: row.id, categoryId })),
+          );
+        }
+      }
+
+      return row.id;
+    });
+
+    if (!updatedId) return { data: null, error: { message: 'Service not found', code: 'NOT_FOUND' } };
+    return { data: { id: updatedId }, error: null };
   } catch {
     return dbErr('Failed to update service');
   }
