@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Plus, Pencil } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
+import { resolveI18nField } from '@/i18n/resolve-i18n-field';
 import { ServiceRow } from './ServiceRow';
 import { ServiceDrawer } from './ServiceDrawer';
-import type { CategoryWithServices, ServiceRow as ServiceRowType } from '@/domains/catalog/service';
+import type { CategoryWithServices, ServiceRow as ServiceRowType } from '@/domains/catalog/catalog-read';
 
 interface CatalogIslandProps {
   category:        CategoryWithServices | null;
@@ -18,12 +19,6 @@ interface CatalogIslandProps {
 
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
-function resolveI18n(obj: unknown, locale: string): string {
-  if (!obj || typeof obj !== 'object') return '';
-  const o = obj as Record<string, string>;
-  return o[locale] ?? o['es'] ?? o['en'] ?? Object.values(o)[0] ?? '';
-}
-
 export function CatalogIsland({ category, categories, locale, organizationId, onEditCategory }: CatalogIslandProps) {
   const t          = useTranslations('dashboard.catalog');
   const intlLocale = useLocale();
@@ -32,8 +27,8 @@ export function CatalogIsland({ category, categories, locale, organizationId, on
   const [editingService, setEditingService] = useState<ServiceRowType | null>(null);
 
   const services = category?.services ?? [];
-  const catName  = category ? resolveI18n(category.nameI18n, intlLocale) : t('noCategory');
-  const catDesc  = category ? resolveI18n(category.descriptionI18n, intlLocale) : '';
+  const catName  = category ? resolveI18nField(category.nameI18n, intlLocale) : t('noCategory');
+  const catDesc  = category ? resolveI18nField(category.descriptionI18n, intlLocale) : '';
   const isOrphan = category === null;
 
   if (isOrphan && services.length === 0) return null;

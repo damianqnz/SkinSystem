@@ -7,9 +7,11 @@ import * as Slider from '@radix-ui/react-slider';
 import { X, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
+import { resolveI18nField } from '@/i18n/resolve-i18n-field';
 import { createServiceAction, updateServiceAction } from '../actions';
+import { CategoryDrawer } from './CategoryDrawer';
 import type { CatalogActionState } from '../actions';
-import type { ServiceRow, CategoryWithServices } from '@/domains/catalog/service';
+import type { ServiceRow, CategoryWithServices } from '@/domains/catalog/catalog-read';
 
 interface ServiceDrawerProps {
   open:               boolean;
@@ -25,12 +27,6 @@ interface ServiceDrawerProps {
 type I18n = { es: string; en: string; pt: string };
 const IDLE: CatalogActionState = { status: 'idle' };
 const COLOR_PALETTE = ['#D4AF37','#0EA5E9','#10B981','#F59E0B','#8B5CF6','#EF4444','#EC4899','#64748B'];
-
-function resolveI18n(obj: unknown, locale: string): string {
-  if (!obj || typeof obj !== 'object') return '';
-  const o = obj as Record<string, string>;
-  return o[locale] ?? o['es'] ?? o['en'] ?? '';
-}
 
 export function ServiceDrawer({
   open, onClose, onSuccess, categories, locale: _locale, service, defaultCategoryId, organizationId,
@@ -56,10 +52,18 @@ export function ServiceDrawer({
   const [deposit,   setDeposit]   = useState(service?.depositPercent ?? 100);
   const [bufBefore, setBufBefore] = useState(service ? String(service.bufferBeforeMinutes) : '0');
   const [bufAfter,  setBufAfter]  = useState(service ? String(service.bufferAfterMinutes) : '0');
-  const [catId,     setCatId]     = useState<string>(service ? (service.categoryId ?? '') : (defaultCategoryId ?? ''));
+  const [categoryIds, setCategoryIds] = useState<string[]>(() =>
+    service ? service.categoryIds : (defaultCategoryId ? [defaultCategoryId] : []),
+  );
   const [isActive,  setIsActive]  = useState(service?.isActive ?? true);
+  const [isPublic,  setIsPublic]  = useState(service?.isPublic ?? true);
   const [color,     setColor]     = useState<string>(service?.color ?? '');
   const [tab,       setTab]       = useState<'es' | 'en' | 'pt'>('es');
+  const [catSubDrawerOpen, setCatSubDrawerOpen] = useState(false);
+
+  function toggleCategory(id: string) {
+    setCategoryIds((prev) => prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]);
+  }
 
   const action = isEdit ? updateServiceAction : createServiceAction;
   const [state, dispatch, isPending] = useActionState<CatalogActionState, unknown>(action, IDLE);
@@ -83,14 +87,14 @@ export function ServiceDrawer({
       depositPercent: deposit,
       bufferBeforeMinutes: parseInt(bufBefore, 10),
       bufferAfterMinutes: parseInt(bufAfter, 10),
-      categoryId: catId || null,
-      isActive, color: color || null,
+      categoryIds,
+      isActive, isPublic, color: color || null,
     };
     if (isEdit && service) payload['id'] = service.id;
     (dispatch as (p: unknown) => void)(payload);
   }
 
-  const catOptions = categories.map((c) => ({ id: c.id, name: resolveI18n(c.nameI18n, intlLocale) }));
+  const catOptions = categories.map((c) => ({ id: c.id, name: resolveI18nField(c.nameI18n, intlLocale) }));
 
   const namePlaceholder =
     tab === 'es' ? t('namePlaceholderEs') :
@@ -207,13 +211,33 @@ export function ServiceDrawer({
               </div>
             </section>
 
-            {/* Category */}
+            {/* Categories (multi-select) */}
             <section>
-              <label className="field-label">{t('categoryLabel')}</label>
-              <select value={catId} onChange={(e) => setCatId(e.target.value)} className="input-editorial w-full mt-1.5">
-                <option value="">{t('noCategory')}</option>
-                {catOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <label className="field-label mb-2 block">{t('categoriesFieldLabel')}</label>
+              {catOptions.length === 0 ? (
+                <p className="text-xs text-stone-400 mb-2">{t('noCategoriesYet')}</p>
+              ) : (
+                <div className="space-y-1.5 mb-2 max-h-36 overflow-y-auto pr-1">
+                  {catOptions.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-stone-50 cursor-pointer text-sm text-stone-700">
+                      <input
+                        type="checkbox"
+                        checked={categoryIds.includes(c.id)}
+                        onChange={() => toggleCategory(c.id)}
+                        className="w-3.5 h-3.5 rounded border-stone-300 text-amber-500 focus:ring-amber-300"
+                      />
+                      {c.name}
+                    </label>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setCatSubDrawerOpen(true)}
+                className="text-xs text-amber-600 hover:text-amber-700 underline underline-offset-2 transition-colors"
+              >
+                {catOptions.length === 0 ? t('createCategoryFromModal') : t('addCategoryFromModal')}
+              </button>
             </section>
 
             {/* Color */}
@@ -243,6 +267,17 @@ export function ServiceDrawer({
                 <Switch.Thumb className="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0.5" />
               </Switch.Root>
             </section>
+
+            <section className="flex items-center justify-between py-3 border-t border-stone-100">
+              <div>
+                <p className="text-sm font-medium text-stone-700">{t('servicePublicLabel')}</p>
+                <p className="text-[11px] text-stone-400">{t('servicePublicHint')}</p>
+              </div>
+              <Switch.Root checked={isPublic} onCheckedChange={setIsPublic}
+                className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none data-[state=checked]:bg-emerald-500 data-[state=unchecked]:bg-stone-200">
+                <Switch.Thumb className="inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0.5" />
+              </Switch.Root>
+            </section>
           </form>
 
           {/* Footer */}
@@ -260,6 +295,16 @@ export function ServiceDrawer({
           </div>
         </Dialog.Content>
       </Dialog.Portal>
+
+      <CategoryDrawer
+        open={catSubDrawerOpen}
+        stacked
+        onClose={() => setCatSubDrawerOpen(false)}
+        onSuccess={(newId) => {
+          setCatSubDrawerOpen(false);
+          if (newId) setCategoryIds((prev) => [...prev, newId]);
+        }}
+      />
     </Dialog.Root>
   );
 }

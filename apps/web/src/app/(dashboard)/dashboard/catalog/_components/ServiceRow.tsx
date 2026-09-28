@@ -5,9 +5,10 @@ import { motion } from 'framer-motion';
 import { Pencil, Circle, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
+import { resolveI18nField } from '@/i18n/resolve-i18n-field';
 import { toggleServiceStatusAction } from '../actions';
 import type { CatalogActionState } from '../actions';
-import type { ServiceRow as ServiceRowType } from '@/domains/catalog/service';
+import type { ServiceRow as ServiceRowType } from '@/domains/catalog/catalog-read';
 
 interface ServiceRowProps {
   service: ServiceRowType;
@@ -18,12 +19,6 @@ interface ServiceRowProps {
 
 const IDLE: CatalogActionState = { status: 'idle' };
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
-
-function resolveI18n(obj: unknown, locale: string): string {
-  if (!obj || typeof obj !== 'object') return '—';
-  const o = obj as Record<string, string>;
-  return o[locale] ?? o['es'] ?? o['en'] ?? Object.values(o)[0] ?? '—';
-}
 
 function fmtPrice(cents: number, currency: string): string {
   return new Intl.NumberFormat('es-ES', {
@@ -72,7 +67,7 @@ export function ServiceRow({ service, locale: _locale, onEdit, index }: ServiceR
     }
   }, [service.id, t]);
 
-  const name  = resolveI18n(service.nameI18n, intlLocale);
+  const name  = resolveI18nField(service.nameI18n, intlLocale);
   const price = fmtPrice(service.priceCents, service.currency);
 
   return (
