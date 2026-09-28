@@ -1147,6 +1147,8 @@
       "bufferAfterLabel":      "Buffer posterior (min)",
       "categoryLabel":         "Categoria",
       "calendarColor":         "Cor no calendário",
+      "depositSliderAria":     "Percentagem de depósito",
+      "colorSwatchAria":       "Cor {color}",
       "serviceActiveLabel":    "Serviço ativo",
       "serviceActiveHint":     "Visível na página de reservas",
       "cancel":                "Cancelar",

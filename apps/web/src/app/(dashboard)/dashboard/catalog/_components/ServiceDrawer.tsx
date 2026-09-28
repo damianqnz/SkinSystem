@@ -18,7 +18,6 @@ interface ServiceDrawerProps {
   onClose:            () => void;
   onSuccess:          () => void;
   categories:         Pick<CategoryWithServices, 'id' | 'nameI18n'>[];
-  locale:             string;
   service?:           ServiceRow | null;
   defaultCategoryId?: string | null;
   organizationId:     string;
@@ -29,7 +28,7 @@ const IDLE: CatalogActionState = { status: 'idle' };
 const COLOR_PALETTE = ['#D4AF37','#0EA5E9','#10B981','#F59E0B','#8B5CF6','#EF4444','#EC4899','#64748B'];
 
 export function ServiceDrawer({
-  open, onClose, onSuccess, categories, locale: _locale, service, defaultCategoryId, organizationId,
+  open, onClose, onSuccess, categories, service, defaultCategoryId, organizationId,
 }: ServiceDrawerProps) {
   const t          = useTranslations('dashboard.catalog');
   const intlLocale = useLocale();
@@ -194,7 +193,7 @@ export function ServiceDrawer({
                 <Slider.Track className="relative h-1 flex-1 bg-stone-200 rounded-full">
                   <Slider.Range className="absolute h-full bg-amber-400 rounded-full" />
                 </Slider.Track>
-                <Slider.Thumb className="block w-4 h-4 bg-white border-2 border-amber-400 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-amber-300" aria-label="Deposit percent" />
+                <Slider.Thumb className="block w-4 h-4 bg-white border-2 border-amber-400 rounded-full shadow focus:outline-none focus:ring-2 focus:ring-amber-300" aria-label={t('depositSliderAria')} />
               </Slider.Root>
               <p className="text-[10px] text-stone-400 mt-1">{depositCopy}</p>
             </section>
@@ -247,7 +246,7 @@ export function ServiceDrawer({
                 {COLOR_PALETTE.map((c) => (
                   <button key={c} type="button" onClick={() => setColor(c === color ? '' : c)}
                     className={['w-7 h-7 rounded-full transition-transform', c === color ? 'scale-125 ring-2 ring-offset-2 ring-stone-400' : 'hover:scale-110'].join(' ')}
-                    style={{ backgroundColor: c }} aria-label={`Color ${c}`} />
+                    style={{ backgroundColor: c }} aria-label={t('colorSwatchAria', { color: c })} />
                 ))}
                 {color && (
                   <button type="button" onClick={() => setColor('')}

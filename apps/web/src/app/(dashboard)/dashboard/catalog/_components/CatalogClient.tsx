@@ -16,11 +16,10 @@ import type { CategoryWithServices, ServiceRow } from '@/domains/catalog/catalog
 interface CatalogClientProps {
   categories:     CategoryWithServices[];
   orphans:        ServiceRow[];
-  locale:         string;
   organizationId: string;
 }
 
-export function CatalogClient({ categories, orphans, locale, organizationId }: CatalogClientProps) {
+export function CatalogClient({ categories, orphans, organizationId }: CatalogClientProps) {
   const t      = useTranslations('dashboard.catalog');
   const intlLocale = useLocale();
   const searchParams = useSearchParams();
@@ -146,7 +145,6 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
                   key={cat.id}
                   category={cat}
                   categories={catShapes}
-                  locale={locale}
                   organizationId={organizationId}
                   onEditCategory={() => { setEditingCat(cat); setCatDrawerOpen(true); }}
                 />
@@ -155,7 +153,6 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
                 <CatalogIsland
                   category={null}
                   categories={catShapes}
-                  locale={locale}
                   organizationId={organizationId}
                 />
               )}
@@ -178,7 +175,6 @@ export function CatalogClient({ categories, orphans, locale, organizationId }: C
         onClose={() => setSvcDrawerOpen(false)}
         onSuccess={() => setSvcDrawerOpen(false)}
         categories={catShapes}
-        locale={locale}
         service={null}
         defaultCategoryId={selectedCategoryId && selectedCategoryId !== 'none' ? selectedCategoryId : null}
         organizationId={organizationId}

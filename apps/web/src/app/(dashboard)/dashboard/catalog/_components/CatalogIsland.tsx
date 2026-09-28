@@ -12,14 +12,13 @@ import type { CategoryWithServices, ServiceRow as ServiceRowType } from '@/domai
 interface CatalogIslandProps {
   category:        CategoryWithServices | null;
   categories:      Pick<CategoryWithServices, 'id' | 'nameI18n'>[];
-  locale:          string;
   organizationId:  string;
   onEditCategory?: () => void;
 }
 
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
-export function CatalogIsland({ category, categories, locale, organizationId, onEditCategory }: CatalogIslandProps) {
+export function CatalogIsland({ category, categories, organizationId, onEditCategory }: CatalogIslandProps) {
   const t          = useTranslations('dashboard.catalog');
   const intlLocale = useLocale();
   const [expanded, setExpanded]             = useState(true);
@@ -112,7 +111,7 @@ export function CatalogIsland({ category, categories, locale, organizationId, on
                   </thead>
                   <tbody>
                     {services.map((svc, i) => (
-                      <ServiceRow key={svc.id} service={svc} locale={locale} onEdit={openEdit} index={i} />
+                      <ServiceRow key={svc.id} service={svc} onEdit={openEdit} index={i} />
                     ))}
                   </tbody>
                 </table>
@@ -140,7 +139,6 @@ export function CatalogIsland({ category, categories, locale, organizationId, on
         onClose={() => { setDrawerOpen(false); setEditingService(null); }}
         onSuccess={() => { setDrawerOpen(false); setEditingService(null); }}
         categories={categories}
-        locale={locale}
         service={editingService}
         defaultCategoryId={category?.id ?? null}
         organizationId={organizationId}
