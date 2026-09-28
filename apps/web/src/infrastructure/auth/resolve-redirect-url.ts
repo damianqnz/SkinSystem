@@ -58,6 +58,25 @@ export function resolveRedirectUrl(
 const RELATIVE_NEXT_BASE = 'http://relative-next.invalid';
 
 /**
+ * The `emailRedirectTo` every auth email in this app must pass.
+ *
+ * `/auth/confirm` consumes `?token_hash=…&type=…`, and the Supabase email
+ * templates append both to this URL. They append with `?`, so the value built
+ * here must NEVER carry a query of its own: `…/auth/confirm?next=/me` plus the
+ * template's `?token_hash=…` yields `…/auth/confirm?next=/me?token_hash=…`, whose
+ * second `?` is not a separator, so `token_hash` never parses and the route
+ * rejects the link. Any query or fragment on the input is therefore dropped
+ * rather than trusted.
+ *
+ * Where the user ends up is decided after verification by
+ * `resolvePostAuthDestination`, which already routes by identity (staff →
+ * /dashboard, customer → /me). A per-flow `next` belongs there, never here.
+ */
+export function buildEmailConfirmRedirect(origin: string): string {
+  return `${new URL(origin).origin}/auth/confirm`;
+}
+
+/**
  * Validates a RELATIVE, same-origin `next` (the shape /auth/callback and
  * /auth/confirm accept) and returns the safe `path?query#hash`, or `null`.
  *

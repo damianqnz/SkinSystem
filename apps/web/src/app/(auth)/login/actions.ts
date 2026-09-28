@@ -5,7 +5,7 @@ import { headers } from 'next/headers';
 import { z } from 'zod';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { resolvePostAuthDestination } from '@/infrastructure/auth/resolve-post-auth-destination';
-import { buildTenantOrigin } from '@/infrastructure/auth/resolve-redirect-url';
+import { buildTenantOrigin, buildEmailConfirmRedirect } from '@/infrastructure/auth/resolve-redirect-url';
 
 // ── Validation ────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -89,7 +89,10 @@ export type OtpState =
  * Sends a Supabase magic-link (OTP) to `email`. The confirmation link points at
  * `/auth/confirm` WITHOUT a `next` param: forcing `?next=/me` would send staff
  * to /me, so with no `next` the shared post-auth resolver routes each user by
- * role (staff → /dashboard, customer → /me).
+ * role (staff → /dashboard, customer → /me). That constraint is enforced by
+ * `buildEmailConfirmRedirect`, which also matters because the email template
+ * appends `?token_hash=…` to this URL and any query already present would make
+ * the link malformed.
  *
  * Anti-enumeration: apart from a 429 rate-limit, the action always resolves to
  * `sent` — it never branches on whether a customers/user row exists.
@@ -107,7 +110,7 @@ export async function requestOtpAction(
   if (!tenantSlug) return { status: 'error', error: 'generic' };
 
   const supabase = await createSupabaseServerClient();
-  const emailRedirectTo = `${buildTenantOrigin(tenantSlug)}/auth/confirm`;
+  const emailRedirectTo = buildEmailConfirmRedirect(buildTenantOrigin(tenantSlug));
 
   const { error } = await supabase.auth.signInWithOtp({
     email,

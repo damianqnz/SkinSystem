@@ -5,6 +5,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  buildEmailConfirmRedirect,
   buildTenantOrigin,
   isBookingFunnelPath,
   parseRelativeNext,
@@ -177,5 +178,35 @@ describe('isBookingFunnelPath', () => {
     const normalized = parseRelativeNext('/book/../dashboard');
     expect(normalized).not.toBeNull();
     expect(isBookingFunnelPath(normalized ?? '')).toBe(false);
+  });
+});
+
+describe('buildEmailConfirmRedirect', () => {
+  it('returns the query-less /auth/confirm URL', () => {
+    expect(buildEmailConfirmRedirect('https://lourdes.skinsystem.pt'))
+      .toBe('https://lourdes.skinsystem.pt/auth/confirm');
+  });
+
+  // The Supabase email template appends `?token_hash=…` to this value. A query
+  // already present would produce `…?next=/me?token_hash=…`, where the second
+  // `?` is not a separator, so token_hash never parses and the route rejects
+  // the link as link_invalid. This is the regression the helper exists for.
+  it('drops a query or fragment instead of emitting a malformed link', () => {
+    expect(buildEmailConfirmRedirect('https://lourdes.skinsystem.pt/auth/confirm?next=/me'))
+      .toBe('https://lourdes.skinsystem.pt/auth/confirm');
+    expect(buildEmailConfirmRedirect('https://lourdes.skinsystem.pt/base#frag'))
+      .toBe('https://lourdes.skinsystem.pt/auth/confirm');
+  });
+
+  it('never emits a second ? that would break the template concatenation', () => {
+    const url = buildEmailConfirmRedirect('https://x.test/auth/confirm?next=/me');
+    expect(url).not.toContain('?');
+    expect(`${url}?token_hash=abc&type=signup`)
+      .toBe('https://x.test/auth/confirm?token_hash=abc&type=signup');
+  });
+
+  it('keeps the dev port of an lvh.me origin', () => {
+    expect(buildEmailConfirmRedirect('http://lourdes.lvh.me:3000'))
+      .toBe('http://lourdes.lvh.me:3000/auth/confirm');
   });
 });

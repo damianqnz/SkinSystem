@@ -17,7 +17,7 @@ import { getTranslations }    from 'next-intl/server';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { inviteCustomerActivation } from '@/domains/customers/service';
 import { localeFromHeader }    from '@/i18n/detect-locale';
-import { buildTenantOrigin }   from '@/infrastructure/auth/resolve-redirect-url';
+import { buildTenantOrigin, buildEmailConfirmRedirect }   from '@/infrastructure/auth/resolve-redirect-url';
 import type { Result }         from '@/shared/types/result';
 
 async function getActionTranslations() {
@@ -65,7 +65,7 @@ export async function inviteCustomerActivationAction(
   const result = await inviteCustomerActivation(
     auth.orgId,
     parsed.data.customerId,
-    `${buildTenantOrigin(slug)}/auth/confirm?next=/me`,
+    buildEmailConfirmRedirect(buildTenantOrigin(slug)),
   );
 
   if (result.error) {
