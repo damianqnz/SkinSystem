@@ -647,7 +647,12 @@
         "successDeactivate":   "Membro desativado",
         "successRoleUpdate":   "Papel atualizado",
         "successInviteCancel": "Convite cancelado",
-        "successInviteSent":   "Convite enviado para {email}"
+        "successInviteSent":   "Convite enviado para {email}",
+        "actions": {
+          "invalidData": "Dados inválidos",
+          "invalidEmail": "E-mail inválido",
+          "cannotManageSelf": "Não pode alterar o seu próprio papel nem desativar-se"
+        }
       },
       "preferences": {
         "page": {

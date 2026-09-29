@@ -4,6 +4,9 @@ export type UserRole = 'super_admin' | 'owner' | 'staff';
 /** Any of these roles = legitimate dashboard user. */
 export const STAFF_ROLES: readonly UserRole[] = ['super_admin', 'owner', 'staff'];
 
+/** Roles allowed to manage the organization itself (team, roles, invitations). */
+export const OWNER_ROLES: readonly UserRole[] = ['super_admin', 'owner'];
+
 /** Discriminant telling callers exactly WHY they were rejected. */
 export type ResolveTenantError =
   | 'NO_TENANT'

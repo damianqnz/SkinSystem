@@ -647,7 +647,12 @@
         "successDeactivate":   "Member deactivated",
         "successRoleUpdate":   "Role updated",
         "successInviteCancel": "Invitation cancelled",
-        "successInviteSent":   "Invitation sent to {email}"
+        "successInviteSent":   "Invitation sent to {email}",
+        "actions": {
+          "invalidData": "Invalid data",
+          "invalidEmail": "Invalid email",
+          "cannotManageSelf": "You can't change your own role or deactivate yourself"
+        }
       },
       "preferences": {
         "page": {
