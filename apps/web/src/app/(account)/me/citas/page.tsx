@@ -4,7 +4,7 @@ import Link             from 'next/link';
 import { Calendar }     from 'lucide-react';
 import { getOrganizationBySlug }      from '@/domains/organizations/service';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
-import { getMyCustomer, getMyAppointments } from '@/domains/customers/service-me';
+import { getMyCustomer, getMyAppointments, countActiveProfessionals } from '@/domains/customers/service-me';
 import { AppointmentTabs } from './_components/AppointmentTabs';
 import { localeFromHeader } from '@/i18n/detect-locale';
 import { getTranslations } from 'next-intl/server';
@@ -48,8 +48,12 @@ export default async function CitasPage() {
     );
   }
 
-  const apptResult = await getMyAppointments(orgResult.data.id, customerResult.data.id);
+  const [apptResult, proCount] = await Promise.all([
+    getMyAppointments(orgResult.data.id, customerResult.data.id),
+    countActiveProfessionals(orgResult.data.id),
+  ]);
   const all = apptResult.data ?? [];
+  const showStaff = (proCount.data ?? 0) > 1;
 
   const now      = new Date();
   const upcoming = all.filter((a) =>
@@ -59,5 +63,5 @@ export default async function CitasPage() {
     new Date(a.startAt) < now || a.status === 'cancelled' || a.status === 'no_show',
   );
 
-  return <AppointmentTabs upcoming={upcoming} past={past} locale={locale} />;
+  return <AppointmentTabs upcoming={upcoming} past={past} locale={locale} showStaff={showStaff} />;
 }

@@ -214,6 +214,7 @@
         "emptySubtitle": "¿Repetimos la experiencia?",
         "bookCta": "Hacer una reserva",
         "total": "Total",
+        "withProfessional": "con {name}",
         "serviceFallback": "Servicio",
         "emptyPast": "Aún no tienes citas pasadas",
         "tabs": {

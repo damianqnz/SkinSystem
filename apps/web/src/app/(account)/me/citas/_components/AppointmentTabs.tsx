@@ -50,7 +50,7 @@ const DEFAULT_STATUS: StatusKey = 'pending';
 
 // ── Appointment card ──────────────────────────────────────────
 
-function AppointmentCard({ appt, locale }: { appt: MeAppointment; locale: string }) {
+function AppointmentCard({ appt, locale, showStaff }: { appt: MeAppointment; locale: string; showStaff: boolean }) {
   const t = useTranslations('account.me.citas');
   const statusKey = (STATUS_CONFIG[appt.status as StatusKey] ? appt.status : DEFAULT_STATUS) as StatusKey;
   const cfg = STATUS_CONFIG[statusKey];
@@ -69,7 +69,12 @@ function AppointmentCard({ appt, locale }: { appt: MeAppointment; locale: string
             <p className="font-cormorant text-[15px] font-semibold text-stone-900 leading-snug truncate">
               {resolveServiceName(appt.serviceNameI18n, locale, t('serviceFallback'))}
             </p>
-            <p className="text-xs text-stone-400 mt-0.5 font-outfit">{appt.durationMinutes} min</p>
+            <p className="text-xs text-stone-400 mt-0.5 font-outfit truncate">
+              {appt.durationMinutes} min
+              {showStaff && appt.staffName && (
+                <> · {t('withProfessional', { name: appt.staffName })}</>
+              )}
+            </p>
           </div>
         </div>
         <span className={`flex items-center gap-1 px-2.5 py-0.5 text-[10px] font-outfit font-medium rounded-full border flex-shrink-0 ${cfg.color}`}>
@@ -142,9 +147,11 @@ interface AppointmentTabsProps {
   upcoming: MeAppointment[];
   past:     MeAppointment[];
   locale:   string;
+  /** Name the professional on each card — only when the tenant has more than one. */
+  showStaff: boolean;
 }
 
-export function AppointmentTabs({ upcoming, past, locale }: AppointmentTabsProps) {
+export function AppointmentTabs({ upcoming, past, locale, showStaff }: AppointmentTabsProps) {
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
   const t = useTranslations('account.me');
 
@@ -195,13 +202,13 @@ export function AppointmentTabs({ upcoming, past, locale }: AppointmentTabsProps
         upcoming.length === 0
           ? <EmptyUpcoming />
           : <div className="space-y-3">
-              {upcoming.map((a) => <AppointmentCard key={a.id} appt={a} locale={locale} />)}
+              {upcoming.map((a) => <AppointmentCard key={a.id} appt={a} locale={locale} showStaff={showStaff} />)}
             </div>
       ) : (
         past.length === 0
           ? <EmptyPast />
           : <div className="space-y-3">
-              {past.map((a) => <AppointmentCard key={a.id} appt={a} locale={locale} />)}
+              {past.map((a) => <AppointmentCard key={a.id} appt={a} locale={locale} showStaff={showStaff} />)}
             </div>
       )}
     </div>
