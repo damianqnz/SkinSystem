@@ -651,7 +651,8 @@
         "actions": {
           "invalidData": "Datos inválidos",
           "invalidEmail": "E-mail inválido",
-          "cannotManageSelf": "No puedes cambiar tu propio rol ni desactivarte"
+          "cannotManageSelf": "No puedes cambiar tu propio rol ni desactivarte",
+          "memberNotFound": "Miembro no encontrado"
         }
       },
       "preferences": {

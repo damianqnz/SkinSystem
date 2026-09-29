@@ -13,6 +13,7 @@ import { db }                         from '@/infrastructure/db';
 import { profiles }                   from '@/infrastructure/db/schema/organizations';
 import { organizationInvitations }    from '@/infrastructure/db/schema/calendar';
 import { localeFromHeader }           from '@/i18n/detect-locale';
+import { evaluateTeamChange, ASSIGNABLE_TEAM_ROLES } from '@/domains/organizations/team-policy';
 import type { Result }                from '@/shared/types/result';
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -35,11 +36,30 @@ function resolveTeamManager() {
   return resolveTenantOrgId(OWNER_ROLES);
 }
 
+type Translator = Awaited<ReturnType<typeof getActionTranslations>>;
+
+/** Loads the target inside the tenant and applies the team-change policy. */
+async function authorizeTeamChange(
+  orgId: string, actorId: string, targetId: string, t: Translator,
+): Promise<Result<null>> {
+  const [target] = await db
+    .select({ id: profiles.id, role: profiles.role })
+    .from(profiles)
+    .where(and(eq(profiles.id, targetId), eq(profiles.organizationId, orgId)))
+    .limit(1);
+
+  switch (evaluateTeamChange(actorId, target)) {
+    case 'allowed':   return { data: null, error: null };
+    case 'self':      return { data: null, error: { message: t('cannotManageSelf'), code: 'FORBIDDEN' } };
+    case 'not_found': return { data: null, error: { message: t('memberNotFound'),   code: 'NOT_FOUND' } };
+  }
+}
+
 // ── Invite staff ───────────────────────────────────────────────
 
 const inviteSchema = z.object({
   email: z.string().email(),
-  role:  z.enum(['staff', 'owner']).default('staff'),
+  role:  z.enum(ASSIGNABLE_TEAM_ROLES).default('staff'),
 });
 
 export async function inviteStaffAction(raw: unknown): Promise<Result<null>> {
@@ -88,11 +108,8 @@ export async function toggleMemberActiveAction(
   const parsed = toggleActiveSchema.safeParse({ profileId, isActive });
   if (!parsed.success) return { data: null, error: { message: t('invalidData'), code: 'VALIDATION_ERROR' } };
 
-  // Mirrors the UI, which hides the menu on your own row: deactivating
-  // yourself would lock you out of the dashboard.
-  if (parsed.data.profileId === auth.userId) {
-    return { data: null, error: { message: t('cannotManageSelf'), code: 'FORBIDDEN' } };
-  }
+  const allowed = await authorizeTeamChange(auth.orgId, auth.userId, parsed.data.profileId, t);
+  if (allowed.error) return allowed;
 
   await db.update(profiles)
     .set({ isActive: parsed.data.isActive, updatedAt: new Date() })
@@ -106,7 +123,7 @@ export async function toggleMemberActiveAction(
 
 const roleSchema = z.object({
   profileId: idSchema,
-  role:      z.enum(['staff', 'owner']),
+  role:      z.enum(ASSIGNABLE_TEAM_ROLES),
 });
 
 export async function updateMemberRoleAction(raw: unknown): Promise<Result<null>> {
@@ -117,10 +134,8 @@ export async function updateMemberRoleAction(raw: unknown): Promise<Result<null>
   const parsed = roleSchema.safeParse(raw);
   if (!parsed.success) return { data: null, error: { message: t('invalidData'), code: 'VALIDATION_ERROR' } };
 
-  // Same rule as above: self-demotion could leave the org without an owner.
-  if (parsed.data.profileId === auth.userId) {
-    return { data: null, error: { message: t('cannotManageSelf'), code: 'FORBIDDEN' } };
-  }
+  const allowed = await authorizeTeamChange(auth.orgId, auth.userId, parsed.data.profileId, t);
+  if (allowed.error) return allowed;
 
   await db.update(profiles)
     .set({ role: parsed.data.role, updatedAt: new Date() })

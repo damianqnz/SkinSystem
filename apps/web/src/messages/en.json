@@ -651,7 +651,8 @@
         "actions": {
           "invalidData": "Invalid data",
           "invalidEmail": "Invalid email",
-          "cannotManageSelf": "You can't change your own role or deactivate yourself"
+          "cannotManageSelf": "You can't change your own role or deactivate yourself",
+          "memberNotFound": "Member not found"
         }
       },
       "preferences": {
