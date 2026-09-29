@@ -72,7 +72,7 @@ export async function blockTimeAction(
     const conflicts = await db
       .select({ startAt: appointments.startAt, customerName: customers.fullName })
       .from(appointments)
-      .innerJoin(customers, eq(appointments.customerId, customers.id))
+      .innerJoin(customers, and(eq(appointments.customerId, customers.id), eq(customers.organizationId, appointments.organizationId)))
       .where(and(
         eq(appointments.organizationId, orgId),
         inArray(appointments.status, [...ACTIVE]),

@@ -79,8 +79,8 @@ export async function getDayView(
         customerName: customers.fullName,
         serviceName:  catalogServices.nameI18n,
       }).from(appointments)
-        .innerJoin(customers,       eq(appointments.customerId, customers.id))
-        .innerJoin(catalogServices, eq(appointments.serviceId, catalogServices.id))
+        .innerJoin(customers, and(eq(appointments.customerId, customers.id), eq(customers.organizationId, appointments.organizationId)))
+        .innerJoin(catalogServices, and(eq(appointments.serviceId, catalogServices.id), eq(catalogServices.organizationId, appointments.organizationId)))
         .where(and(
           eq(appointments.organizationId, orgId),
           between(appointments.startAt, dayStart, dayEnd),

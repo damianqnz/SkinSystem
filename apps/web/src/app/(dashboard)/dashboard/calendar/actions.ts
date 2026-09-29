@@ -167,6 +167,15 @@ export async function createInternalAppointmentAction(
 
   if (!svc[0]) return { status: 'error', message: t('serviceNotFound') };
 
+  // The customer FK is single-column: it proves the customer exists in some
+  // tenant, not in this one.
+  const [customer] = await db
+    .select({ id: customers.id })
+    .from(customers)
+    .where(and(eq(customers.id, parsed.data.customerId), eq(customers.organizationId, auth.orgId)))
+    .limit(1);
+  if (!customer) return { status: 'error', message: t('customerNotFound') };
+
   const endAt = new Date(parsed.data.startAt.getTime() + svc[0].durationMinutes * 60_000);
 
   const result = await createAppointment({

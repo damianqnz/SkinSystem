@@ -1007,6 +1007,7 @@
       "actions": {
         "invalidData": "Dados inválidos",
         "serviceNotFound": "Serviço não encontrado",
+        "customerNotFound": "Cliente não encontrado",
         "invalidId": "ID inválido",
         "notFoundGeneric": "Não encontrada",
         "alreadyCancelled": "Esta marcação já está cancelada",

@@ -1007,6 +1007,7 @@
       "actions": {
         "invalidData": "Invalid data",
         "serviceNotFound": "Service not found",
+        "customerNotFound": "Customer not found",
         "invalidId": "Invalid ID",
         "notFoundGeneric": "Not found",
         "alreadyCancelled": "This appointment is already cancelled",

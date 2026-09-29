@@ -453,9 +453,9 @@ export async function getAppointmentFull(
         staffName:       profiles.fullName,
       })
       .from(appointments)
-      .innerJoin(customers,       eq(appointments.customerId, customers.id))
-      .innerJoin(catalogServices, eq(appointments.serviceId,  catalogServices.id))
-      .innerJoin(profiles,        eq(appointments.staffProfileId, profiles.id))
+      .innerJoin(customers, and(eq(appointments.customerId, customers.id), eq(customers.organizationId, appointments.organizationId)))
+      .innerJoin(catalogServices, and(eq(appointments.serviceId,  catalogServices.id), eq(catalogServices.organizationId, appointments.organizationId)))
+      .innerJoin(profiles, and(eq(appointments.staffProfileId, profiles.id), eq(profiles.organizationId, appointments.organizationId)))
       .where(and(
         eq(appointments.organizationId, organizationId),
         eq(appointments.id, appointmentId),
