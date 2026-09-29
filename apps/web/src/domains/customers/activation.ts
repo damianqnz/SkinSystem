@@ -1,4 +1,5 @@
 import 'server-only';
+import { idSchema } from '@/shared/lib/id-schema';
 
 /**
  * @file activation.ts
@@ -37,8 +38,8 @@ import {
 } from './activation-policy';
 
 const activationInputSchema = z.object({
-  organizationId: z.string().uuid(),
-  authUserId:     z.string().uuid(),
+  organizationId: idSchema,
+  authUserId:     idSchema,
   // Normalized here too (idempotent): the lookup compares `lower(email)`, so an
   // un-normalized value would silently resolve to `no_account`.
   verifiedEmail:  z.string().trim().toLowerCase().email(),

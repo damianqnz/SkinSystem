@@ -1,6 +1,7 @@
 'use server';
 
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { idSchema } from '@/shared/lib/id-schema';
 import { revalidatePath }             from 'next/cache';
 import { z }                          from 'zod';
 import { eq, and }                    from 'drizzle-orm';
@@ -67,7 +68,7 @@ export async function toggleMemberActiveAction(
 // ── Update member role ─────────────────────────────────────────
 
 const roleSchema = z.object({
-  profileId: z.string().uuid(),
+  profileId: idSchema,
   role:      z.enum(['staff', 'owner']),
 });
 

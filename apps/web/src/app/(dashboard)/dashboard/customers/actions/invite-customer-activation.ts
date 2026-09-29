@@ -1,5 +1,6 @@
 'use server';
 import 'server-only';
+import { idSchema } from '@/shared/lib/id-schema';
 
 /**
  * @file invite-customer-activation.ts
@@ -25,7 +26,7 @@ async function getActionTranslations() {
   return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.customers.actions' });
 }
 
-const schema = z.object({ customerId: z.string().uuid() });
+const schema = z.object({ customerId: idSchema });
 
 /** Maps the domain function's typed error code to a translated staff-facing message. */
 const ERROR_KEY: Record<string, string> = {
