@@ -127,8 +127,8 @@ export async function getCalendarWeek(
         totalCents:          appointments.totalCents,
       })
       .from(appointments)
-      .innerJoin(customers,       eq(appointments.customerId,  customers.id))
-      .innerJoin(catalogServices, eq(appointments.serviceId,   catalogServices.id))
+      .innerJoin(customers, and(eq(appointments.customerId,  customers.id), eq(customers.organizationId, appointments.organizationId)))
+      .innerJoin(catalogServices, and(eq(appointments.serviceId,   catalogServices.id), eq(catalogServices.organizationId, appointments.organizationId)))
       .where(and(
         eq(appointments.organizationId, organizationId),
         between(appointments.startAt, weekStart, weekEnd),
@@ -188,8 +188,8 @@ export async function getCalendarMonth(
         totalCents:          appointments.totalCents,
       })
       .from(appointments)
-      .innerJoin(customers,       eq(appointments.customerId, customers.id))
-      .innerJoin(catalogServices, eq(appointments.serviceId,  catalogServices.id))
+      .innerJoin(customers, and(eq(appointments.customerId, customers.id), eq(customers.organizationId, appointments.organizationId)))
+      .innerJoin(catalogServices, and(eq(appointments.serviceId,  catalogServices.id), eq(catalogServices.organizationId, appointments.organizationId)))
       .where(and(
         eq(appointments.organizationId, organizationId),
         between(appointments.startAt, gridStart, gridEnd),

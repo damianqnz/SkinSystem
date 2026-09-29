@@ -103,7 +103,10 @@ export async function getMyAppointments(
         staffName:       profiles.fullName,
       })
       .from(appointments)
-      .innerJoin(catalogServices, eq(appointments.serviceId, catalogServices.id))
+      .innerJoin(catalogServices, and(
+        eq(appointments.serviceId, catalogServices.id),
+        eq(catalogServices.organizationId, appointments.organizationId),
+      ))
       .leftJoin(profiles, and(
         eq(appointments.staffProfileId, profiles.id),
         eq(profiles.organizationId, organizationId),

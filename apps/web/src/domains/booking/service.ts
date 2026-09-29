@@ -18,10 +18,28 @@ const dbErr = (msg: string) =>
 
 // ── createAppointment ─────────────────────────────────────────
 
+/**
+ * `customer_id` is a single-column FK: it proves the customer exists in some
+ * tenant, not in this one. Both callers (the public booking funnel and the
+ * dashboard's internal appointment) resolve their customer inside the tenant,
+ * so the check is a boundary guard, not a behaviour change.
+ */
 export async function createAppointment(
   input: CreateAppointmentInput,
 ): Promise<Result<{ id: string }>> {
   try {
+    const [customer] = await db
+      .select({ id: customers.id })
+      .from(customers)
+      .where(and(
+        eq(customers.id, input.customerId),
+        eq(customers.organizationId, input.organizationId),
+      ))
+      .limit(1);
+    if (!customer) {
+      return { data: null, error: { message: 'Customer not in organization', code: 'NOT_FOUND' } };
+    }
+
     const rows = await db
       .insert(appointments)
       .values({
@@ -453,9 +471,9 @@ export async function getAppointmentFull(
         staffName:       profiles.fullName,
       })
       .from(appointments)
-      .innerJoin(customers,       eq(appointments.customerId, customers.id))
-      .innerJoin(catalogServices, eq(appointments.serviceId,  catalogServices.id))
-      .innerJoin(profiles,        eq(appointments.staffProfileId, profiles.id))
+      .innerJoin(customers, and(eq(appointments.customerId, customers.id), eq(customers.organizationId, appointments.organizationId)))
+      .innerJoin(catalogServices, and(eq(appointments.serviceId,  catalogServices.id), eq(catalogServices.organizationId, appointments.organizationId)))
+      .innerJoin(profiles, and(eq(appointments.staffProfileId, profiles.id), eq(profiles.organizationId, appointments.organizationId)))
       .where(and(
         eq(appointments.organizationId, organizationId),
         eq(appointments.id, appointmentId),

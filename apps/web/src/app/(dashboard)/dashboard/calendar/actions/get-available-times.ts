@@ -5,10 +5,9 @@ import 'server-only';
 import { z } from 'zod';
 import { and, eq, gte, lt, inArray, isNull } from 'drizzle-orm';
 import { db }                        from '@/infrastructure/db';
-import { profiles } from '@/infrastructure/db/schema/organizations';
 import { availabilityRules }         from '@/infrastructure/db/schema/calendar';
 import { appointments }              from '@/domains/booking/schema';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import type { Result }               from '@/shared/types/result';
 
 // ── Types ────────────────────────────────────────────────────
@@ -25,7 +24,7 @@ const inputSchema = z.object({
  * Returns available hourly slots ("HH:MM") for the given date within this org.
  * - Reads org-level availability_rules for the day of week.
  * - Excludes hours occupied by active appointments.
- * - orgId derived exclusively from user.user_metadata (not spoofable).
+ * - orgId derived from the caller's active membership in the tenant.
  */
 export async function getAvailableTimesAction(dateStr: string): Promise<Result<string[]>> {
   const parsed = inputSchema.safeParse({ date: dateStr });
@@ -33,17 +32,11 @@ export async function getAvailableTimesAction(dateStr: string): Promise<Result<s
     return { data: null, error: { code: 'VALIDATION_ERROR', message: 'Fecha inválida' } };
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { data: null, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } };
-  let orgId = user.user_metadata?.organization_id as string | undefined;
-  // Fallback: profiles table (profiles.id === auth.users.id)
-  if (!orgId) {
-    const profileRows = await db.select({ organizationId: profiles.organizationId })
-      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
-    orgId = profileRows[0]?.organizationId;
-  }
-    if (!orgId) return { data: null, error: { code: 'UNAUTHORIZED', message: 'No autorizado' } };
+  // Tenant from an active membership in the request's tenant — never from
+  // user_metadata, which the signed-in user can rewrite via the Auth API.
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) return { data: null, error: { code: 'UNAUTHORIZED', message: auth.error } };
+  const { orgId } = auth;
 
   const { date } = parsed.data;
   // Use noon UTC to safely derive day-of-week regardless of timezone offset
