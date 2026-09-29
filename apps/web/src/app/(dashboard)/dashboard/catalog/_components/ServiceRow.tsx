@@ -6,13 +6,14 @@ import { Pencil, Circle, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations, useLocale } from 'next-intl';
 import { resolveI18nField } from '@/i18n/resolve-i18n-field';
+import { toIntlTag } from '@/i18n/intl-tag';
 import { toggleServiceStatusAction } from '../actions';
 import type { CatalogActionState } from '../actions';
+import type { SupportedLocale } from '@/i18n/config';
 import type { ServiceRow as ServiceRowType } from '@/domains/catalog/catalog-read';
 
 interface ServiceRowProps {
   service: ServiceRowType;
-  locale:  string;
   onEdit:  (service: ServiceRowType) => void;
   index:   number;
 }
@@ -20,16 +21,22 @@ interface ServiceRowProps {
 const IDLE: CatalogActionState = { status: 'idle' };
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
-function fmtPrice(cents: number, currency: string): string {
-  return new Intl.NumberFormat('es-ES', {
+/**
+ * The locale is the reader's, not a fixed one: a staff member working in `en`
+ * or `pt` must not see prices formatted with Spanish conventions. Same defect
+ * I18N-11 fixed for the /me price formatters.
+ */
+function fmtPrice(cents: number, currency: string, intlTag: string): string {
+  return new Intl.NumberFormat(intlTag, {
     style: 'currency', currency,
     minimumFractionDigits: 0, maximumFractionDigits: 2,
   }).format(cents / 100);
 }
 
-export function ServiceRow({ service, locale: _locale, onEdit, index }: ServiceRowProps) {
+export function ServiceRow({ service, onEdit, index }: ServiceRowProps) {
   const t          = useTranslations('dashboard.catalog');
   const intlLocale = useLocale();
+  const intlTag    = toIntlTag(intlLocale as SupportedLocale);
   const [state, dispatch, isPending] = useActionState<CatalogActionState, unknown>(toggleServiceStatusAction, IDLE);
   const [optimisticActive, setOptimisticActive] = useOptimistic(service.isActive);
 
@@ -68,7 +75,7 @@ export function ServiceRow({ service, locale: _locale, onEdit, index }: ServiceR
   }, [service.id, t]);
 
   const name  = resolveI18nField(service.nameI18n, intlLocale);
-  const price = fmtPrice(service.priceCents, service.currency);
+  const price = fmtPrice(service.priceCents, service.currency, intlTag);
 
   return (
     <motion.tr
