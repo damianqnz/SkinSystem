@@ -10,6 +10,14 @@ import { appointments }    from '@/domains/booking/schema';
 import { catalogServices } from '@/infrastructure/db/schema/catalog';
 import { blockedIntervals } from '@/infrastructure/db/schema/calendar';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.calendar.actions' });
+}
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -41,8 +49,10 @@ export async function blockDaysAction(
   toDate:   string,
   reason:   string,
 ): Promise<BlockDaysState> {
+  const t = await getActionTranslations();
+
   const parsed = blockDaysSchema.safeParse({ fromDate, toDate, reason });
-  if (!parsed.success) return { status: 'error', message: 'Datos inválidos' };
+  if (!parsed.success) return { status: 'error', message: t('invalidData') };
 
   // Tenant from an active membership in the request's tenant — never from
   // user_metadata, which the signed-in user can rewrite via the Auth API.
@@ -51,7 +61,7 @@ export async function blockDaysAction(
   const { orgId, userId } = auth;
 
   const { fromDate: from, toDate: to, reason: blockReason } = parsed.data;
-  if (to < from) return { status: 'error', message: '"Hasta" debe ser posterior a "Desde"' };
+  if (to < from) return { status: 'error', message: t('endDateBeforeStart') };
 
   const rangeStart = new Date(`${from}T00:00:00Z`);
   const rangeEnd   = new Date(`${to}T23:59:59.999Z`);
@@ -111,6 +121,6 @@ export async function blockDaysAction(
     return { status: 'success', blockedDays: days.length };
 
   } catch {
-    return { status: 'error', message: 'Error al bloquear los días' };
+    return { status: 'error', message: t('blockDaysFailed') };
   }
 }

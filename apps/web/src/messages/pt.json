@@ -353,7 +353,10 @@
       "errors": {
         "generic": "Erro ao conectar com Stripe:",
         "popupBlocked": "O browser bloqueou a janela popup. Permita popups e tente novamente.",
-        "linkExpired": "O link expirou. Inicie o processo novamente."
+        "linkExpired": "O link expirou. Inicie o processo novamente.",
+        "orgNotFound": "Organização não encontrada",
+        "accountSaveFailed": "Não foi possível salvar a conta do Stripe",
+        "noLinkedAccount": "Nenhuma conta do Stripe está vinculada"
       },
       "newTabBanner": {
         "title": "Stripe abriu num novo separador",
@@ -1019,7 +1022,15 @@
         "notFoundGeneric": "Não encontrada",
         "alreadyCancelled": "Esta marcação já está cancelada",
         "couldNotCreateCustomer": "Não foi possível criar o cliente",
-        "errorCreatingCustomer": "Erro ao criar o cliente"
+        "errorCreatingCustomer": "Erro ao criar o cliente",
+        "invalidName": "O nome é demasiado curto",
+        "invalidEmail": "E-mail inválido",
+        "invalidDate": "Data inválida",
+        "endDateBeforeStart": "A data final deve ser posterior à inicial",
+        "endTimeBeforeStart": "A hora final deve ser posterior à inicial",
+        "blockDaysFailed": "Não foi possível bloquear os dias",
+        "blockTimeFailed": "Não foi possível bloquear o horário",
+        "conflictExists": "Existe uma reserva: {time} — {name}"
       },
       "newAppointment": {
         "back": "Voltar",
