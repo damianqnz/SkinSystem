@@ -2,10 +2,11 @@ import 'server-only';
 
 import { headers }         from 'next/headers';
 import { getTranslations } from 'next-intl/server';
-import { eq, and, desc }   from 'drizzle-orm';
+import { eq, and, desc, count, inArray } from 'drizzle-orm';
 import { localeFromHeader } from '@/i18n/detect-locale';
 import { db }            from '@/infrastructure/db';
 import { customers }     from '@/infrastructure/db/schema/customers';
+import { profiles }      from '@/infrastructure/db/schema/organizations';
 import { appointments }  from '@/infrastructure/db/schema/booking';
 import { catalogServices } from '@/infrastructure/db/schema/catalog';
 import type { Result }   from '@/shared/types/result';
@@ -37,6 +38,8 @@ export type MeAppointment = {
   serviceNameI18n: unknown;   // { es, en, pt }
   serviceColor:   string | null;
   durationMinutes: number;
+  /** Professional who attends the appointment; null only if their profile has no name. */
+  staffName:      string | null;
 };
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -97,11 +100,16 @@ export async function getMyAppointments(
         serviceNameI18n: catalogServices.nameI18n,
         serviceColor:    catalogServices.color,
         durationMinutes: catalogServices.durationMinutes,
+        staffName:       profiles.fullName,
       })
       .from(appointments)
       .innerJoin(catalogServices, and(
         eq(appointments.serviceId, catalogServices.id),
         eq(catalogServices.organizationId, appointments.organizationId),
+      ))
+      .leftJoin(profiles, and(
+        eq(appointments.staffProfileId, profiles.id),
+        eq(profiles.organizationId, organizationId),
       ))
       .where(and(
         eq(appointments.organizationId, organizationId),
@@ -110,6 +118,32 @@ export async function getMyAppointments(
       .orderBy(desc(appointments.startAt));
 
     return { data: rows, error: null };
+  } catch {
+    const t = await getErrorTranslations();
+    return dbErr(t('loadAppointmentsFailed'));
+  }
+}
+
+// ── countActiveProfessionals ──────────────────────────────────
+
+/**
+ * Active professionals (owner or staff) in the tenant. `/me/citas` names the
+ * professional only when there is more than one — with a single professional
+ * the name is redundant noise.
+ */
+export async function countActiveProfessionals(
+  organizationId: string,
+): Promise<Result<number>> {
+  try {
+    const [row] = await db
+      .select({ n: count() })
+      .from(profiles)
+      .where(and(
+        eq(profiles.organizationId, organizationId),
+        eq(profiles.isActive, true),
+        inArray(profiles.role, ['owner', 'staff']),
+      ));
+    return { data: row?.n ?? 0, error: null };
   } catch {
     const t = await getErrorTranslations();
     return dbErr(t('loadAppointmentsFailed'));

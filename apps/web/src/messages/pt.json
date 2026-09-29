@@ -214,6 +214,7 @@
         "emptySubtitle": "Repetimos a experiência?",
         "bookCta": "Fazer uma marcação",
         "total": "Total",
+        "withProfessional": "com {name}",
         "serviceFallback": "Serviço",
         "emptyPast": "Ainda não tem marcações passadas",
         "tabs": {

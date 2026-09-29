@@ -214,6 +214,7 @@
         "emptySubtitle": "Shall we do it again?",
         "bookCta": "Make a booking",
         "total": "Total",
+        "withProfessional": "with {name}",
         "serviceFallback": "Service",
         "emptyPast": "No past appointments yet",
         "tabs": {
