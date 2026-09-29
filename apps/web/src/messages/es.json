@@ -940,7 +940,7 @@
         "title":    "Rutina Home Care",
         "actions": {
           "invalidData": "Datos inválidos.",
-          "unauthorized":"No autorizado."
+          "customerNotFound": "Este cliente no pertenece a tu organización."
         }
       }
     },
@@ -1005,10 +1005,7 @@
         "conflictHint": "Reserva existente:"
       },
       "actions": {
-        "notAuthorized": "No autorizado",
-        "orgNotFoundInSession": "Organización no encontrada en la sesión",
         "invalidData": "Datos inválidos",
-        "noStaffInOrg": "Sin profesional en la organización",
         "serviceNotFound": "Servicio no encontrado",
         "invalidId": "ID inválido",
         "notFoundGeneric": "No encontrada",
@@ -1181,8 +1178,6 @@
       "categoryPublicLabel":  "Categoría visible al público",
       "categoryPublicHint":   "Muestra esta sección en la página de reservas",
       "actions": {
-        "notAuthorized":      "No autorizado",
-        "orgNotFound":        "Organización no encontrada",
         "invalidData":        "Datos inválidos",
         "categoryNotInOrg":   "Esa categoría no pertenece a tu organización",
         "notFound":           "No encontramos ese registro. Recargá la página.",

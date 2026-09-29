@@ -3,6 +3,7 @@ import 'server-only';
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '@/infrastructure/db';
 import { customerRoutines } from '@/infrastructure/db/schema/routines';
+import { customers } from '@/infrastructure/db/schema/customers';
 import type { Result } from '@/shared/types/result';
 import { z } from 'zod';
 import { idSchema } from '@/shared/lib/id-schema';
@@ -14,9 +15,9 @@ export const routineStepSchema = z.object({
   instruction: z.string().min(1).max(200),
 });
 
+// No organizationId: the tenant is the caller's membership, resolved server-side.
 export const saveRoutineSchema = z.object({
   customerId:      idSchema,
-  organizationId:  idSchema,
   locale:          z.enum(['es', 'pt', 'en']),
   title:           z.string().min(1).max(120),
   morningSteps:    z.array(routineStepSchema).max(8),
@@ -35,16 +36,28 @@ const dbErr = (m: string): Result<never> =>
 
 // ── Services ──────────────────────────────────────────────────
 
-/** Persist a new Home Care routine. Returns the new row id. */
+/**
+ * Persist a new Home Care routine. Returns the new row id.
+ * NOT_FOUND when the customer is not in `organizationId`: the FK alone only
+ * proves the customer exists in some tenant.
+ */
 export async function saveCustomerRoutine(
   input: SaveRoutineInput,
+  organizationId: string,
   createdByProfileId: string,
 ): Promise<Result<{ id: string }>> {
   try {
+    const [customer] = await db
+      .select({ id: customers.id })
+      .from(customers)
+      .where(and(eq(customers.id, input.customerId), eq(customers.organizationId, organizationId)))
+      .limit(1);
+    if (!customer) return { data: null, error: { message: 'Customer not in organization', code: 'NOT_FOUND' } };
+
     const rows = await db
       .insert(customerRoutines)
       .values({
-        organizationId:    input.organizationId,
+        organizationId,
         customerId:        input.customerId,
         createdByProfileId,
         locale:            input.locale,

@@ -2,7 +2,7 @@
 
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
-import { createSupabaseServerClient }  from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId }          from '@/shared/lib/resolve-tenant-org-id';
 import { saveCustomerRoutine, saveRoutineSchema } from '@/domains/customers/service-routines';
 import { localeFromHeader } from '@/i18n/detect-locale';
 
@@ -18,8 +18,8 @@ export type SaveRoutineState =
 
 /**
  * saveRoutineAction — Server Action.
- * Security: reads the authenticated user from Supabase session.
- * The specialist's profile ID is derived from auth, not from the client.
+ * Security: the tenant and the specialist's profile ID both come from the
+ * caller's active membership, never from the client payload.
  */
 export async function saveRoutineAction(
   _prev: SaveRoutineState,
@@ -33,14 +33,18 @@ export async function saveRoutineAction(
     return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
-  // 2. Auth — get profile id from session (prevents spoofing)
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { status: 'error', message: t('unauthorized') };
+  // 2. Auth — tenant membership, not a client-supplied organizationId
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) return { status: 'error', message: auth.error };
 
   // 3. Persist
-  const result = await saveCustomerRoutine(parsed.data, user.id);
-  if (result.error) return { status: 'error', message: result.error.message };
+  const result = await saveCustomerRoutine(parsed.data, auth.orgId, auth.userId);
+  if (result.error) {
+    return {
+      status: 'error',
+      message: result.error.code === 'NOT_FOUND' ? t('customerNotFound') : result.error.message,
+    };
+  }
 
   return { status: 'success', routineId: result.data.id };
 }

@@ -7,11 +7,10 @@ import { revalidatePath } from 'next/cache';
 import { eq, and, lt, gt, inArray } from 'drizzle-orm';
 
 import { db } from '@/infrastructure/db';
-import { profiles } from '@/infrastructure/db/schema/organizations';
 import { appointments } from '@/domains/booking/schema';
 import { customers }    from '@/infrastructure/db/schema/customers';
 import { blockedIntervals } from '@/infrastructure/db/schema/calendar';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 
 // ── State ────────────────────────────────────────────────────
 
@@ -42,19 +41,11 @@ export async function blockTimeAction(
   formData: FormData,
 ): Promise<BlockTimeState> {
 
-  // Auth — orgId ALWAYS from session (not spoofable from client)
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { status: 'error', message: 'No autorizado' };
-
-  let orgId = user.user_metadata?.organization_id as string | undefined;
-  // Fallback: profiles table (profiles.id === auth.users.id)
-  if (!orgId) {
-    const profileRows = await db.select({ organizationId: profiles.organizationId })
-      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
-    orgId = profileRows[0]?.organizationId;
-  }
-    if (!orgId) return { status: 'error', message: 'Organización no encontrada' };
+  // Tenant from an active membership in the request's tenant — never from
+  // user_metadata, which the signed-in user can rewrite via the Auth API.
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) return { status: 'error', message: auth.error };
+  const { orgId, userId } = auth;
 
   // Validate form fields
   const parsed = blockSchema.safeParse({
@@ -101,7 +92,7 @@ export async function blockTimeAction(
     // No conflict → insert blocked interval
     await db.insert(blockedIntervals).values({
       organizationId:   orgId,
-      profileId:        user.id,
+      profileId:        userId,
       startAt,
       endAt,
       reason,

@@ -940,7 +940,7 @@
         "title":    "Rotina Home Care",
         "actions": {
           "invalidData": "Dados inválidos.",
-          "unauthorized":"Não autorizado."
+          "customerNotFound": "Este cliente não pertence à sua organização."
         }
       }
     },
@@ -1005,10 +1005,7 @@
         "conflictHint": "Reserva existente:"
       },
       "actions": {
-        "notAuthorized": "Não autorizado",
-        "orgNotFoundInSession": "Organização não encontrada na sessão",
         "invalidData": "Dados inválidos",
-        "noStaffInOrg": "Sem profissional na organização",
         "serviceNotFound": "Serviço não encontrado",
         "invalidId": "ID inválido",
         "notFoundGeneric": "Não encontrada",
@@ -1181,8 +1178,6 @@
       "categoryPublicLabel":  "Categoria visível ao público",
       "categoryPublicHint":   "Mostra esta secção na página de reservas",
       "actions": {
-        "notAuthorized":      "Não autorizado",
-        "orgNotFound":        "Organização não encontrada",
         "invalidData":        "Dados inválidos",
         "categoryNotInOrg":   "Essa categoria não pertence à sua organização",
         "notFound":           "Não encontramos esse registo. Recarregue a página.",

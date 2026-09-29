@@ -1,12 +1,10 @@
 'use server';
-import { eq } from 'drizzle-orm';
 
 import 'server-only';
 
 import { z } from 'zod';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { db } from '@/infrastructure/db';
-import { profiles } from '@/infrastructure/db/schema/organizations';
 import { customers } from '@/domains/customers/schema';
 
 // ── Public types ──────────────────────────────────────────────
@@ -29,19 +27,11 @@ export async function createCustomerAction(
   _prev: CreateCustomerState,
   formData: FormData,
 ): Promise<CreateCustomerState> {
-  // Auth — orgId ALWAYS from session (not spoofable)
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { status: 'error', message: 'No autorizado' };
-
-  let orgId = user.user_metadata?.organization_id as string | undefined;
-  // Fallback: profiles table (profiles.id === auth.users.id)
-  if (!orgId) {
-    const profileRows = await db.select({ organizationId: profiles.organizationId })
-      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
-    orgId = profileRows[0]?.organizationId;
-  }
-    if (!orgId) return { status: 'error', message: 'Organización no encontrada' };
+  // Tenant from an active membership in the request's tenant — never from
+  // user_metadata, which the signed-in user can rewrite via the Auth API.
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) return { status: 'error', message: auth.error };
+  const { orgId } = auth;
 
   const rawEmail = (formData.get('email') as string | null) ?? '';
   const parsed = createSchema.safeParse({

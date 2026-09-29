@@ -19,11 +19,10 @@ import { idSchema } from '@/shared/lib/id-schema';
 import { eq, and } from 'drizzle-orm';
 
 import { db } from '@/infrastructure/db';
-import { profiles } from '@/infrastructure/db/schema/organizations';
 import { customers } from '@/infrastructure/db/schema/customers';
 import { catalogServices } from '@/domains/catalog/schema';
 import { appointments } from '@/domains/booking/schema';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { localeFromHeader } from '@/i18n/detect-locale';
 
 import {
@@ -55,39 +54,18 @@ async function getActionTranslations() {
   return getTranslations({ locale: await getActionLocale(), namespace: 'dashboard.calendar.actions' });
 }
 
+/**
+ * The tenant comes from an active membership in the request's tenant, never
+ * from `user_metadata`: any signed-in user can rewrite their own metadata
+ * through the Auth API, so trusting it let any account act on any tenant.
+ *
+ * `userId` is also the caller's `profiles.id` (they mirror `auth.users.id`),
+ * and the resolver has just proven that profile belongs to `orgId`.
+ */
 async function getAuth(): Promise<AuthOk | { error: string }> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const t = await getActionTranslations();
-  if (!user) return { error: t('notAuthorized') };
-
-  // Fast path: JWT metadata
-  const metaOrgId = user.user_metadata?.organization_id as string | undefined;
-  if (metaOrgId) return { orgId: metaOrgId, userId: user.id };
-  // Fallback: profiles table
-  const profileRows = await db.select({ organizationId: profiles.organizationId })
-    .from(profiles).where(eq(profiles.id, user.id)).limit(1);
-  const orgId = profileRows[0]?.organizationId;
-  if (!orgId) return { error: t('orgNotFoundInSession') };
-  return { orgId, userId: user.id };
-}
-
-/** Resolve the staff profileId for the current user (must belong to the org). */
-async function getStaffProfileId(orgId: string, userId: string): Promise<string | null> {
-  const own = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(and(eq(profiles.id, userId), eq(profiles.organizationId, orgId)))
-    .limit(1);
-  if (own[0]) return own[0].id;
-
-  // Fallback to any active profile in the org
-  const any = await db
-    .select({ id: profiles.id })
-    .from(profiles)
-    .where(eq(profiles.organizationId, orgId))
-    .limit(1);
-  return any[0]?.id ?? null;
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) return { error: auth.error };
+  return { orgId: auth.orgId, userId: auth.userId };
 }
 
 // ── Result types ──────────────────────────────────────────────
@@ -130,8 +108,7 @@ export async function createBlockedIntervalAction(
     return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
-  const profileId = await getStaffProfileId(auth.orgId, auth.userId);
-  if (!profileId) return { status: 'error', message: t('noStaffInOrg') };
+  const profileId = auth.userId;
 
   const result = await createBlockedInterval({
     organizationId: auth.orgId,
@@ -172,8 +149,7 @@ export async function createInternalAppointmentAction(
     return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
-  const profileId = await getStaffProfileId(auth.orgId, auth.userId);
-  if (!profileId) return { status: 'error', message: t('noStaffInOrg') };
+  const profileId = auth.userId;
 
   // Resolve service to compute endAt + price
   const svc = await db

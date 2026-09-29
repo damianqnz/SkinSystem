@@ -39,7 +39,6 @@ const BLANK_STEP: RoutineStep = { productName: '', instruction: '' };
 
 interface Props {
   customerId:       string;
-  organizationId:   string;
   customerName:     string;
   specialistName:   string;
   organizationName: string;
@@ -156,7 +155,7 @@ function LangSelector({ value, onChange }: { value: Locale; onChange: (l: Locale
 
 // ── Main component ────────────────────────────────────────────
 export function HomeCareGenerator({
-  customerId, organizationId, customerName, specialistName, organizationName,
+  customerId, customerName, specialistName, organizationName,
 }: Props) {
   const [locale, setLocale]         = useState<Locale>('es');
   const [morningSteps, setMorning]  = useState<RoutineStep[]>([{ ...BLANK_STEP }]);
@@ -182,7 +181,7 @@ export function HomeCareGenerator({
 
   const handleSave = useCallback(() => {
     const payload = {
-      customerId, organizationId, locale,
+      customerId, locale,
       title: t.title,
       morningSteps:   morningSteps.filter(s => s.productName),
       afternoonSteps: afternoonSteps.filter(s => s.productName),
@@ -194,7 +193,7 @@ export function HomeCareGenerator({
       (dispatch as (input: unknown) => void)(payload);
     });
     setPdfReady(true);
-  }, [customerId, organizationId, locale, t.title, morningSteps, afternoonSteps, nightSteps, notes, dispatch]);
+  }, [customerId, locale, t.title, morningSteps, afternoonSteps, nightSteps, notes, dispatch]);
 
   const saved = actionState.status === 'success';
 

@@ -940,7 +940,7 @@
         "title":    "Home Care Routine",
         "actions": {
           "invalidData": "Invalid data.",
-          "unauthorized":"Not authorized."
+          "customerNotFound": "This client does not belong to your organization."
         }
       }
     },
@@ -1005,10 +1005,7 @@
         "conflictHint": "Existing booking:"
       },
       "actions": {
-        "notAuthorized": "Not authorized",
-        "orgNotFoundInSession": "Organization not found in session",
         "invalidData": "Invalid data",
-        "noStaffInOrg": "No staff member in the organization",
         "serviceNotFound": "Service not found",
         "invalidId": "Invalid ID",
         "notFoundGeneric": "Not found",
@@ -1181,8 +1178,6 @@
       "categoryPublicLabel":  "Category visible to public",
       "categoryPublicHint":   "Shows this section on the booking page",
       "actions": {
-        "notAuthorized":      "Not authorized",
-        "orgNotFound":        "Organization not found",
         "invalidData":        "Invalid data",
         "categoryNotInOrg":   "That category does not belong to your organization",
         "notFound":           "We could not find that record. Reload the page.",
