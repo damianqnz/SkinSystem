@@ -9,6 +9,8 @@ import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
 import { db }                        from '@/infrastructure/db';
 import { profiles }                  from '@/infrastructure/db/schema/organizations';
 import { organizationInvitations }   from '@/infrastructure/db/schema/calendar';
+import { resolveTenantOrgId }        from '@/shared/lib/resolve-tenant-org-id';
+import { OWNER_ROLES }               from '@/shared/lib/resolve-tenant-types';
 import { TeamSection }               from './_components/TeamSection';
 
 export default async function TeamPage() {
@@ -25,10 +27,13 @@ async function TeamContent() {
   const locale = hdrs.get('x-locale') ?? DEFAULT_LOCALE;
   const t      = await getTranslations({ locale, namespace: 'dashboard.settings.team' });
 
-  const [orgResult, supabase] = await Promise.all([
+  const [orgResult, supabase, manager] = await Promise.all([
     getOrganizationBySlug(slug),
     createSupabaseServerClient(),
+    resolveTenantOrgId(OWNER_ROLES),
   ]);
+  // Staff can see the team but not manage it; the actions enforce the same rule.
+  const canManage = !('error' in manager);
 
   if (orgResult.error || !orgResult.data) notFound();
   const orgId = orgResult.data.id;
@@ -74,6 +79,7 @@ async function TeamContent() {
       <TeamSection
         initial={{ members: memberRows, invitations: inviteRows }}
         currentUserId={currentUserId}
+        canManage={canManage}
       />
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { eq } from 'drizzle-orm';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { OWNER_ROLES } from '@/shared/lib/resolve-tenant-types';
 import { getStripe }          from '@/shared/lib/stripe';
 import {
   setStripeAccountId,
@@ -18,8 +19,7 @@ export type StripeConnectState =
   | { status: 'redirect'; url: string }
   | { status: 'error'; message: string };
 
-// Owner-only — Stripe configuration is fiscal data (WF-08).
-const OWNER_ROLES = ['owner', 'super_admin'] as const;
+// Owner-only — Stripe configuration is fiscal data (WF-08): OWNER_ROLES.
 
 function callbackUrls(): { return_url: string; refresh_url: string } {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';

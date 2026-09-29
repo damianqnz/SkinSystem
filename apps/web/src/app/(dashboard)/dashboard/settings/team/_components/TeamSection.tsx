@@ -32,6 +32,8 @@ export interface PendingInvitation {
 interface Props {
   initial: { members: TeamMember[]; invitations: PendingInvitation[] };
   currentUserId: string;
+  /** Owner-level caller. Staff get a read-only list. */
+  canManage: boolean;
 }
 
 function Avatar({ name, url, size = 'md' }: { name: string | null; url: string | null; size?: 'md' | 'sm' }) {
@@ -54,8 +56,8 @@ function RoleBadge({ role, t }: { role: 'super_admin' | 'owner' | 'staff'; t: Te
     : <span className="inline-flex items-center gap-1 text-[10px] bg-stone-100 text-stone-500 rounded px-1.5 py-0.5 font-medium"><User size={10} />{t('roleStaff')}</span>;
 }
 
-function MemberRow({ member, isSelf, onToggleActive, onChangeRole, t }: {
-  member: TeamMember; isSelf: boolean;
+function MemberRow({ member, isSelf, canManage, onToggleActive, onChangeRole, t }: {
+  member: TeamMember; isSelf: boolean; canManage: boolean;
   onToggleActive: (id: string, v: boolean) => void;
   onChangeRole:   (id: string, role: 'staff' | 'owner') => void;
   t: TeamT;
@@ -74,7 +76,7 @@ function MemberRow({ member, isSelf, onToggleActive, onChangeRole, t }: {
         </div>
       </div>
 
-      {!isSelf && (
+      {canManage && !isSelf && (
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             <button className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-50 transition-colors">
@@ -106,8 +108,8 @@ function MemberRow({ member, isSelf, onToggleActive, onChangeRole, t }: {
   );
 }
 
-function InvitationRow({ inv, onCancel, t }: {
-  inv: PendingInvitation; onCancel: (id: string) => void; t: TeamT;
+function InvitationRow({ inv, canManage, onCancel, t }: {
+  inv: PendingInvitation; canManage: boolean; onCancel: (id: string) => void; t: TeamT;
 }) {
   const expired = inv.expiresAt < new Date();
   return (
@@ -124,15 +126,17 @@ function InvitationRow({ inv, onCancel, t }: {
             : <span className="text-[10px] text-stone-400">{t('pending')}</span>}
         </div>
       </div>
-      <button onClick={() => onCancel(inv.id)} title={t('cancelInvite')}
-        className="p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-50 transition-colors">
-        <X size={14} />
-      </button>
+      {canManage && (
+        <button onClick={() => onCancel(inv.id)} title={t('cancelInvite')}
+          className="p-1.5 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-50 transition-colors">
+          <X size={14} />
+        </button>
+      )}
     </div>
   );
 }
 
-export function TeamSection({ initial, currentUserId }: Props) {
+export function TeamSection({ initial, currentUserId, canManage }: Props) {
   const t = useTranslations('dashboard.settings.team');
   const [members,     setMembers]     = useState<TeamMember[]>(initial.members);
   const [invitations, setInvitations] = useState<PendingInvitation[]>(initial.invitations);
@@ -192,7 +196,7 @@ export function TeamSection({ initial, currentUserId }: Props) {
         ) : (
           members.map((m, idx) => (
             <div key={m.id} className={idx < members.length - 1 ? 'border-b border-stone-50' : ''}>
-              <MemberRow member={m} isSelf={m.id === currentUserId} t={t}
+              <MemberRow member={m} isSelf={m.id === currentUserId} canManage={canManage} t={t}
                 onToggleActive={handleToggleActive} onChangeRole={handleChangeRole} />
             </div>
           ))
@@ -205,14 +209,14 @@ export function TeamSection({ initial, currentUserId }: Props) {
           <div className="bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden">
             {invitations.map((inv, idx) => (
               <div key={inv.id} className={idx < invitations.length - 1 ? 'border-b border-stone-50' : ''}>
-                <InvitationRow inv={inv} onCancel={handleCancelInvite} t={t} />
+                <InvitationRow inv={inv} canManage={canManage} onCancel={handleCancelInvite} t={t} />
               </div>
             ))}
           </div>
         </>
       )}
 
-      {showInvite ? (
+      {!canManage ? null : showInvite ? (
         <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5 space-y-4">
           <p className="text-sm font-medium text-stone-800">{t('inviteMember')}</p>
           <div className="flex gap-3">
