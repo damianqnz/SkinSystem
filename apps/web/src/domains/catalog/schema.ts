@@ -10,6 +10,7 @@
  */
 
 import { z } from 'zod';
+import { idSchema } from '@/shared/lib/id-schema';
 import {
   catalogCategories,
   catalogServices,
@@ -54,7 +55,7 @@ const i18nSchema = z.object({
 // ── Zod validators ────────────────────────────────────────────
 
 export const createCategorySchema = z.object({
-  organizationId:  z.string().uuid(),
+  organizationId:  idSchema,
   nameI18n:        i18nSchema,
   descriptionI18n: i18nSchema.optional(),
   sortOrder:       z.number().int().nonnegative().optional().default(0),
@@ -63,8 +64,8 @@ export const createCategorySchema = z.object({
 });
 
 export const createServiceSchema = z.object({
-  organizationId:      z.string().uuid(),
-  categoryIds:         z.array(z.string().uuid()).optional().default([]),
+  organizationId:      idSchema,
+  categoryIds:         z.array(idSchema).optional().default([]),
   nameI18n:            i18nSchema,
   descriptionI18n:     i18nSchema.optional(),
   /** Duration in minutes */

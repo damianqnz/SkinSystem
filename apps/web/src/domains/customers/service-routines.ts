@@ -5,6 +5,7 @@ import { db } from '@/infrastructure/db';
 import { customerRoutines } from '@/infrastructure/db/schema/routines';
 import type { Result } from '@/shared/types/result';
 import { z } from 'zod';
+import { idSchema } from '@/shared/lib/id-schema';
 
 // ── Zod schemas (re-exported for Server Action) ───────────────
 
@@ -14,8 +15,8 @@ export const routineStepSchema = z.object({
 });
 
 export const saveRoutineSchema = z.object({
-  customerId:      z.string().uuid(),
-  organizationId:  z.string().uuid(),
+  customerId:      idSchema,
+  organizationId:  idSchema,
   locale:          z.enum(['es', 'pt', 'en']),
   title:           z.string().min(1).max(120),
   morningSteps:    z.array(routineStepSchema).max(8),

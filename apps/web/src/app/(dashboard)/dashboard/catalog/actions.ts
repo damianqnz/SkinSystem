@@ -1,6 +1,7 @@
 'use server';
 
 import { revalidatePath }              from 'next/cache';
+import { idSchema } from '@/shared/lib/id-schema';
 import { headers }                     from 'next/headers';
 import { getTranslations }             from 'next-intl/server';
 import { z }                           from 'zod';
@@ -95,7 +96,7 @@ export async function updateCategoryAction(
   if ('error' in auth) return { status: 'error', message: auth.error };
 
   const t = await getActionTranslations();
-  const schema = updateCategorySchema.extend({ id: z.string().uuid() });
+  const schema = updateCategorySchema.extend({ id: idSchema });
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
@@ -139,7 +140,7 @@ export async function updateServiceAction(
   if ('error' in auth) return { status: 'error', message: auth.error };
 
   const t = await getActionTranslations();
-  const schema = updateServiceSchema.extend({ id: z.string().uuid() });
+  const schema = updateServiceSchema.extend({ id: idSchema });
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
@@ -161,7 +162,7 @@ export async function toggleServiceStatusAction(
   if ('error' in auth) return { status: 'error', message: auth.error };
 
   const t = await getActionTranslations();
-  const parsed = z.object({ id: z.string().uuid(), isActive: z.boolean() }).safeParse(raw);
+  const parsed = z.object({ id: idSchema, isActive: z.boolean() }).safeParse(raw);
   if (!parsed.success) {
     return { status: 'error', message: t('invalidData') };
   }

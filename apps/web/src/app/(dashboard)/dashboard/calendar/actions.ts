@@ -15,6 +15,7 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
+import { idSchema } from '@/shared/lib/id-schema';
 import { eq, and } from 'drizzle-orm';
 
 import { db } from '@/infrastructure/db';
@@ -153,8 +154,8 @@ export async function createBlockedIntervalAction(
 // ── 2. Internal appointment ───────────────────────────────────
 
 const apptSchema = z.object({
-  customerId: z.string().uuid(),
-  serviceId:  z.string().uuid(),
+  customerId: idSchema,
+  serviceId:  idSchema,
   startAt:    z.coerce.date(),
   guestComment: z.string().max(500).nullable().optional(),
 });
@@ -228,14 +229,14 @@ export async function createInternalAppointmentAction(
 
 // ── 3. Cancel + restore (undo) ────────────────────────────────
 
-const idSchema = z.object({ appointmentId: z.string().uuid() });
+const appointmentIdPayloadSchema = z.object({ appointmentId: idSchema });
 
 export async function cancelAppointmentAction(raw: unknown): Promise<CancelActionResult> {
   const auth = await getAuth();
   if ('error' in auth) return { ok: false, message: auth.error };
 
   const t = await getActionTranslations();
-  const parsed = idSchema.safeParse(raw);
+  const parsed = appointmentIdPayloadSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, message: t('invalidId') };
 
   // Fetch current status *before* mutation so the client can offer an exact undo
@@ -255,7 +256,7 @@ export async function cancelAppointmentAction(raw: unknown): Promise<CancelActio
 }
 
 const restoreSchema = z.object({
-  appointmentId: z.string().uuid(),
+  appointmentId: idSchema,
   status:        z.enum(APPOINTMENT_STATUS),
 });
 
@@ -282,7 +283,7 @@ export async function getAppointmentDetailAction(raw: unknown): Promise<DetailAc
   if ('error' in auth) return { ok: false, message: auth.error };
 
   const t = await getActionTranslations();
-  const parsed = idSchema.safeParse(raw);
+  const parsed = appointmentIdPayloadSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, message: t('invalidId') };
 
   const result = await getAppointmentFull(auth.orgId, parsed.data.appointmentId);

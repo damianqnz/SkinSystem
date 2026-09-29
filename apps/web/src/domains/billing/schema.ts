@@ -13,6 +13,7 @@
  */
 
 import { z } from 'zod';
+import { idSchema } from '@/shared/lib/id-schema';
 import {
   payments,
   paymentSurcharges,
@@ -48,8 +49,8 @@ export type PaymentStatus = (typeof PAYMENT_STATUS)[number];
 // ── Zod validators ────────────────────────────────────────────
 
 export const createInvoiceSchema = z.object({
-  organizationId:        z.string().uuid(),
-  appointmentId:         z.string().uuid(),
+  organizationId:        idSchema,
+  appointmentId:         idSchema,
   stripePaymentIntentId: z.string().min(1),
   amountCents:           z.number().int().positive(),
   currency:              z.string().length(3).optional().default('eur'),

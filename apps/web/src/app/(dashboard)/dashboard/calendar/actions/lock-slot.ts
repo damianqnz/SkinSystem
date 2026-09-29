@@ -1,21 +1,22 @@
 'use server';
 
 import { z } from 'zod';
+import { idSchema } from '@/shared/lib/id-schema';
 import { createSupabaseServerClient }  from '@/infrastructure/supabase/server';
 import { buildSlotKey, lockSlot, unlockSlot } from '@/shared/lib/redis-lock';
 
 // ── Schema ────────────────────────────────────────────────────
 
 const lockSlotInputSchema = z.object({
-  organizationId: z.string().uuid(),
-  serviceId:      z.string().uuid(),
+  organizationId: idSchema,
+  serviceId:      idSchema,
   date:           z.string().regex(/^\d{4}-\d{2}-\d{2}$/),  // "YYYY-MM-DD"
   startISO:       z.string().datetime(),
 });
 
 const unlockSlotInputSchema = z.object({
-  organizationId: z.string().uuid(),
-  serviceId:      z.string().uuid(),
+  organizationId: idSchema,
+  serviceId:      idSchema,
   date:           z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   startISO:       z.string().datetime(),
 });

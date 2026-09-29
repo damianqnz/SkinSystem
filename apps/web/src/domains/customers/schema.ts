@@ -9,6 +9,7 @@
  */
 
 import { z } from 'zod';
+import { idSchema } from '@/shared/lib/id-schema';
 import {
   customers,
   customerOnboarding,
@@ -37,7 +38,7 @@ export type InsertCustomer = NewCustomer;
 // ── Zod validators ────────────────────────────────────────────
 
 export const createCustomerSchema = z.object({
-  organizationId: z.string().uuid(),
+  organizationId: idSchema,
   fullName:       z.string().min(2).max(120),
   phone:          z.string().max(30).nullable().optional(),
   email:          z.string().email().nullable().optional(),

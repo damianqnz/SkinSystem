@@ -1,5 +1,6 @@
 'use server';
 import 'server-only';
+import { idSchema } from '@/shared/lib/id-schema';
 
 import { z }                  from 'zod';
 import { eq, and }            from 'drizzle-orm';
@@ -19,7 +20,7 @@ async function getActionTranslations() {
 }
 
 const schema = z.object({
-  id:          z.string().uuid(),
+  id:          idSchema,
   fullName:    z.string().min(2).max(120),
   email:       z.string().email().optional().nullable(),
   phone:       z.string().max(30).optional().nullable(),

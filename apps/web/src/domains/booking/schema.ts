@@ -12,6 +12,7 @@
  */
 
 import { z } from 'zod';
+import { idSchema } from '@/shared/lib/id-schema';
 import {
   appointments,
   temporarySlots,
@@ -61,17 +62,17 @@ export type AppointmentStatus = (typeof APPOINTMENT_STATUS)[number];
 // ── Zod validators ────────────────────────────────────────────
 
 export const createAppointmentSchema = z.object({
-  organizationId:   z.string().uuid(),
-  customerId:       z.string().uuid(),
-  serviceId:        z.string().uuid(),
-  staffProfileId:   z.string().uuid(),
+  organizationId:   idSchema,
+  customerId:       idSchema,
+  serviceId:        idSchema,
+  staffProfileId:   idSchema,
   startAt:          z.coerce.date(),
   endAt:            z.coerce.date(),
   priceCents:       z.number().int().nonnegative(),
   discountCents:    z.number().int().nonnegative().optional().default(0),
   surchargesCents:  z.number().int().nonnegative().optional().default(0),
   totalCents:       z.number().int().nonnegative(),
-  couponId:         z.string().uuid().nullable().optional(),
+  couponId:         idSchema.nullable().optional(),
   guestComment:     z.string().max(500).nullable().optional(),
 }).refine(
   (d) => d.endAt > d.startAt,
@@ -83,8 +84,8 @@ export const updateAppointmentStatusSchema = z.object({
 });
 
 export const lockSlotSchema = z.object({
-  organizationId:  z.string().uuid(),
-  serviceId:       z.string().uuid(),
+  organizationId:  idSchema,
+  serviceId:       idSchema,
   slotStart:       z.coerce.date(),
   slotEnd:         z.coerce.date(),
   lockedBySession: z.string().min(1),

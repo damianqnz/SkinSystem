@@ -1,6 +1,7 @@
 'use server';
 
 import { z }            from 'zod';
+import { idSchema } from '@/shared/lib/id-schema';
 import { headers }      from 'next/headers';
 import { randomUUID }   from 'crypto';
 import { eq, and, lte, or, isNull, gt, sql } from 'drizzle-orm';
@@ -162,7 +163,7 @@ export async function getAvailableSlotsAction(
 // ── createBookingAction ───────────────────────────────────────
 
 const createBookingSchema = z.object({
-  serviceId:    z.string().uuid(),
+  serviceId:    idSchema,
   slotStartISO: z.string().min(1),
   slotEndISO:   z.string().min(1),
   guestName:    z.string().min(2).max(100),
@@ -170,7 +171,7 @@ const createBookingSchema = z.object({
   guestPhone:   z.string().min(6).max(30),
   guestComment: z.string().max(500).optional(),
   /** Validated coupon ID (optional — re-validated server-side) */
-  couponId:     z.string().uuid().optional(),
+  couponId:     idSchema.optional(),
 });
 
 /**
