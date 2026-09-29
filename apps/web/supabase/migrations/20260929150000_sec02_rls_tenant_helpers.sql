@@ -20,9 +20,10 @@
 -- that never touch `profiles` were dead code. Breaking the recursion turns
 -- them ALL on at once, and several are holes:
 --
---   * `profiles_self_update` has no WITH CHECK: a staff member could set their
---     own `role` to 'super_admin' (privilege escalation) or move to another
---     organization.
+--   * `profiles_self_update` has no explicit WITH CHECK, so its USING
+--     (`id = auth.uid()`) doubles as the check and pins only the id: a staff
+--     member could set their own `role` to 'super_admin' (privilege
+--     escalation) or move to another organization.
 --   * `*_public_read` (11 policies) filter only on `is_active`/`is_visible`/
 --     `expires_at`, never on tenant: `anon` would list every tenant's active
 --     coupon codes, the reason/title of every professional's blocked time,
@@ -45,11 +46,15 @@
 --
 -- `private.current_org_id()` / `private.current_profile_role()` are SECURITY
 -- DEFINER, so they read `profiles` without re-entering its policies (that is
--- what breaks the recursion). They live in `private`, which PostgREST does not
--- expose, so they are not callable as RPC. Both require `is_active`: a
--- deactivated member (settings/team toggle) resolves to NULL and therefore
--- loses access through every policy at once, because every other org-scoped
--- policy reaches `profiles` through `profiles_org_read`.
+-- what breaks the recursion). They live in `private`, which is not among the
+-- Data API's exposed schemas (the default `public, graphql_public`), so they
+-- are not callable as RPC — keep it out of that list. Both require
+-- `is_active`: a deactivated member (settings/team toggle) resolves to NULL
+-- and loses access through every tenant-scoped policy at once — the ones that
+-- reach `profiles` through `profiles_org_read`, plus the self-scoped policies
+-- pinned in step 4. Verified before applying: no public table uses FORCE ROW
+-- LEVEL SECURITY, so the definer (table owner) reads `profiles` without
+-- re-entering its policies.
 --
 -- Callers wrap them as `(SELECT private.fn())` so PostgreSQL evaluates them
 -- once per statement (initplan) instead of once per row.
@@ -166,7 +171,10 @@ ALTER POLICY creator_or_owner_update_routines ON public.customer_routines
     organization_id = (SELECT private.current_org_id())
     AND (created_by_profile_id = (SELECT auth.uid()) OR (SELECT private.current_profile_role()) = 'owner')
   )
-  WITH CHECK (organization_id = (SELECT private.current_org_id()));
+  WITH CHECK (
+    organization_id = (SELECT private.current_org_id())
+    AND (created_by_profile_id = (SELECT auth.uid()) OR (SELECT private.current_profile_role()) = 'owner')
+  );
 
 -- 5. Invitee read without touching auth.users ------------------------------
 --
