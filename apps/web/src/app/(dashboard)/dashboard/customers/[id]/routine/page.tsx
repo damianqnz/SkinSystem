@@ -64,7 +64,6 @@ export default async function RoutinePage({ params }: Props) {
       {/* Generator */}
       <HomeCareGenerator
         customerId={id}
-        organizationId={org.id}
         customerName={customer.fullName}
         specialistName={specialistName}
         organizationName={org.name}

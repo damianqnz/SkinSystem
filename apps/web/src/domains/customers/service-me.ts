@@ -99,7 +99,10 @@ export async function getMyAppointments(
         durationMinutes: catalogServices.durationMinutes,
       })
       .from(appointments)
-      .innerJoin(catalogServices, eq(appointments.serviceId, catalogServices.id))
+      .innerJoin(catalogServices, and(
+        eq(appointments.serviceId, catalogServices.id),
+        eq(catalogServices.organizationId, appointments.organizationId),
+      ))
       .where(and(
         eq(appointments.organizationId, organizationId),
         eq(appointments.customerId, customerId),

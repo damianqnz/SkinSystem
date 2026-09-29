@@ -5,10 +5,7 @@ import { idSchema } from '@/shared/lib/id-schema';
 import { headers }                     from 'next/headers';
 import { getTranslations }             from 'next-intl/server';
 import { z }                           from 'zod';
-import { eq }                          from 'drizzle-orm';
-import { db }                          from '@/infrastructure/db';
-import { profiles }                    from '@/infrastructure/db/schema/organizations';
-import { createSupabaseServerClient }  from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId }          from '@/shared/lib/resolve-tenant-org-id';
 import { localeFromHeader }            from '@/i18n/detect-locale';
 import { createCategory, updateCategory } from '@/domains/catalog/category';
 import {
@@ -47,23 +44,15 @@ function errorMessage(error: { message: string; code?: string }, t: ActionTransl
 
 // ── Auth helper ───────────────────────────────────────────────
 
+/**
+ * The tenant comes from an active membership in the request's tenant, never
+ * from `user_metadata`: any signed-in user can rewrite their own metadata
+ * through the Auth API, so trusting it let any account act on any tenant.
+ */
 async function getOrgId(): Promise<{ orgId: string } | { error: string }> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const t = await getActionTranslations();
-  if (!user) return { error: t('notAuthorized') };
-
-  // organization_id is stored in user.user_metadata or we derive it from the session
-  // For multi-tenant: each user belongs to exactly one org via profiles table
-  // Fast path: JWT metadata
-  const metaOrgId = user.user_metadata?.organization_id as string | undefined;
-  if (metaOrgId) return { orgId: metaOrgId };
-  // Fallback: profiles table (profiles.id === auth.users.id)
-  const profileRows = await db.select({ organizationId: profiles.organizationId })
-    .from(profiles).where(eq(profiles.id, user.id)).limit(1);
-  const orgId = profileRows[0]?.organizationId;
-  if (!orgId) return { error: t('orgNotFound') };
-  return { orgId };
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) return { error: auth.error };
+  return { orgId: auth.orgId };
 }
 
 // ── Category actions ──────────────────────────────────────────

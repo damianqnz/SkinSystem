@@ -6,11 +6,10 @@ import { z } from 'zod';
 import { and, eq, gte, lt, not, inArray } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { db }              from '@/infrastructure/db';
-import { profiles } from '@/infrastructure/db/schema/organizations';
 import { appointments }    from '@/domains/booking/schema';
 import { catalogServices } from '@/infrastructure/db/schema/catalog';
 import { blockedIntervals } from '@/infrastructure/db/schema/calendar';
-import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
+import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 
 // ── Types ────────────────────────────────────────────────────
 
@@ -35,7 +34,7 @@ const blockDaysSchema = z.object({
 /**
  * Blocks a date range (inclusive) for the org.
  * Aborts if any non-cancelled appointment falls within the range.
- * orgId always derived from user.user_metadata (not spoofable).
+ * orgId always derived from the caller's active membership in the tenant.
  */
 export async function blockDaysAction(
   fromDate: string,
@@ -45,18 +44,11 @@ export async function blockDaysAction(
   const parsed = blockDaysSchema.safeParse({ fromDate, toDate, reason });
   if (!parsed.success) return { status: 'error', message: 'Datos inválidos' };
 
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { status: 'error', message: 'No autorizado' };
-
-  let orgId = user.user_metadata?.organization_id as string | undefined;
-  // Fallback: profiles table (profiles.id === auth.users.id)
-  if (!orgId) {
-    const profileRows = await db.select({ organizationId: profiles.organizationId })
-      .from(profiles).where(eq(profiles.id, user.id)).limit(1);
-    orgId = profileRows[0]?.organizationId;
-  }
-    if (!orgId) return { status: 'error', message: 'Organización no encontrada' };
+  // Tenant from an active membership in the request's tenant — never from
+  // user_metadata, which the signed-in user can rewrite via the Auth API.
+  const auth = await resolveTenantOrgId();
+  if ('error' in auth) return { status: 'error', message: auth.error };
+  const { orgId, userId } = auth;
 
   const { fromDate: from, toDate: to, reason: blockReason } = parsed.data;
   if (to < from) return { status: 'error', message: '"Hasta" debe ser posterior a "Desde"' };
@@ -69,7 +61,10 @@ export async function blockDaysAction(
     const conflicts = await db
       .select({ startAt: appointments.startAt, nameI18n: catalogServices.nameI18n })
       .from(appointments)
-      .innerJoin(catalogServices, eq(appointments.serviceId, catalogServices.id))
+      .innerJoin(catalogServices, and(
+        eq(appointments.serviceId, catalogServices.id),
+        eq(catalogServices.organizationId, appointments.organizationId),
+      ))
       .where(and(
         eq(appointments.organizationId, orgId),
         not(inArray(appointments.status, ['cancelled', 'no_show'])),
@@ -102,7 +97,7 @@ export async function blockDaysAction(
     await db.insert(blockedIntervals).values(
       days.map((d) => ({
         organizationId:   orgId,
-        profileId:        user.id,
+        profileId:        userId,
         startAt:          new Date(`${d}T00:00:00Z`),
         endAt:            new Date(`${d}T23:59:59.999Z`),
         reason:           blockReason,
