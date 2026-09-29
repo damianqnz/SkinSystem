@@ -61,7 +61,10 @@ export async function blockDaysAction(
     const conflicts = await db
       .select({ startAt: appointments.startAt, nameI18n: catalogServices.nameI18n })
       .from(appointments)
-      .innerJoin(catalogServices, eq(appointments.serviceId, catalogServices.id))
+      .innerJoin(catalogServices, and(
+        eq(appointments.serviceId, catalogServices.id),
+        eq(catalogServices.organizationId, appointments.organizationId),
+      ))
       .where(and(
         eq(appointments.organizationId, orgId),
         not(inArray(appointments.status, ['cancelled', 'no_show'])),

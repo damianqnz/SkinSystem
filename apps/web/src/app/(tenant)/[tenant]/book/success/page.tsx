@@ -60,7 +60,10 @@ export default async function BookSuccessPage({ searchParams }: SuccessPageProps
         nameI18n: catalogServices.nameI18n,
       })
       .from(appointments)
-      .innerJoin(catalogServices, eq(appointments.serviceId, catalogServices.id))
+      .innerJoin(catalogServices, and(
+        eq(appointments.serviceId, catalogServices.id),
+        eq(catalogServices.organizationId, appointments.organizationId),
+      ))
       .where(and(
         eq(appointments.id, appointmentId),
         eq(appointments.organizationId, org.id),

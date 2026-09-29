@@ -167,15 +167,6 @@ export async function createInternalAppointmentAction(
 
   if (!svc[0]) return { status: 'error', message: t('serviceNotFound') };
 
-  // The customer FK is single-column: it proves the customer exists in some
-  // tenant, not in this one.
-  const [customer] = await db
-    .select({ id: customers.id })
-    .from(customers)
-    .where(and(eq(customers.id, parsed.data.customerId), eq(customers.organizationId, auth.orgId)))
-    .limit(1);
-  if (!customer) return { status: 'error', message: t('customerNotFound') };
-
   const endAt = new Date(parsed.data.startAt.getTime() + svc[0].durationMinutes * 60_000);
 
   const result = await createAppointment({
@@ -192,7 +183,12 @@ export async function createInternalAppointmentAction(
     guestComment:   parsed.data.guestComment ?? null,
   });
 
-  if (result.error) return { status: 'error', message: result.error.message };
+  if (result.error) {
+    return {
+      status: 'error',
+      message: result.error.code === 'NOT_FOUND' ? t('customerNotFound') : result.error.message,
+    };
+  }
 
   // Internal appointments are created as 'pending' by default; promote to confirmed
   // since the staff is the source of truth (no payment gate needed).
