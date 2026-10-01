@@ -353,7 +353,10 @@
       "errors": {
         "generic": "Error connecting to Stripe:",
         "popupBlocked": "The browser blocked the popup. Allow popups and try again.",
-        "linkExpired": "The link expired. Start the process again."
+        "linkExpired": "The link expired. Start the process again.",
+        "orgNotFound": "Organization not found",
+        "accountSaveFailed": "The Stripe account could not be saved",
+        "noLinkedAccount": "No Stripe account is linked"
       },
       "newTabBanner": {
         "title": "Stripe opened in a new tab",
@@ -1019,7 +1022,15 @@
         "notFoundGeneric": "Not found",
         "alreadyCancelled": "This appointment is already cancelled",
         "couldNotCreateCustomer": "Could not create the client",
-        "errorCreatingCustomer": "Error creating the client"
+        "errorCreatingCustomer": "Error creating the client",
+        "invalidName": "The name is too short",
+        "invalidEmail": "Invalid email",
+        "invalidDate": "Invalid date",
+        "endDateBeforeStart": "The end date must be after the start date",
+        "endTimeBeforeStart": "The end time must be after the start time",
+        "blockDaysFailed": "The days could not be blocked",
+        "blockTimeFailed": "The time could not be blocked",
+        "conflictExists": "There is a booking: {time} — {name}"
       },
       "newAppointment": {
         "back": "Back",

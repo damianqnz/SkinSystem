@@ -2,7 +2,7 @@ import 'server-only';
 
 import { eq, and, desc } from 'drizzle-orm';
 import { db } from '@/infrastructure/db';
-import { customerRoutines } from '@/infrastructure/db/schema/routines';
+import { customerRoutines, type CustomerRoutine } from '@/infrastructure/db/schema/routines';
 import { customers } from '@/infrastructure/db/schema/customers';
 import type { Result } from '@/shared/types/result';
 import { z } from 'zod';
@@ -75,14 +75,42 @@ export async function saveCustomerRoutine(
   }
 }
 
-/** Latest routines for a customer — used in patient history. */
+/**
+ * Columns a routine view renders, listed explicitly: `select()` with no
+ * argument pulls the whole row, which the project's "Zero SELECT *" rule
+ * forbids. The tenant and author FKs are left out — the caller already knows
+ * the customer it asked for, and `updatedAt` is not displayed.
+ */
+const ROUTINE_COLS = {
+  id:              customerRoutines.id,
+  locale:          customerRoutines.locale,
+  title:           customerRoutines.title,
+  morningSteps:    customerRoutines.morningSteps,
+  afternoonSteps:  customerRoutines.afternoonSteps,
+  nightSteps:      customerRoutines.nightSteps,
+  specialistNotes: customerRoutines.specialistNotes,
+  pdfStoragePath:  customerRoutines.pdfStoragePath,
+  pdfVersion:      customerRoutines.pdfVersion,
+  sentAt:          customerRoutines.sentAt,
+  createdAt:       customerRoutines.createdAt,
+} as const;
+
+export type CustomerRoutineRow = Pick<CustomerRoutine, keyof typeof ROUTINE_COLS>;
+
+/**
+ * Latest routines for a customer.
+ *
+ * NOT consumed yet: the routine editor saves but no view reads them back, so
+ * treat this shape as the projection a history view will start from rather
+ * than as a settled contract.
+ */
 export async function getCustomerRoutines(
   customerId: string,
   organizationId: string,
-): Promise<Result<typeof customerRoutines.$inferSelect[]>> {
+): Promise<Result<CustomerRoutineRow[]>> {
   try {
     const data = await db
-      .select()
+      .select(ROUTINE_COLS)
       .from(customerRoutines)
       .where(and(
         eq(customerRoutines.customerId, customerId),

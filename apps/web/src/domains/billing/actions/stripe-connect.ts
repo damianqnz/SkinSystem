@@ -3,6 +3,9 @@
 import { eq } from 'drizzle-orm';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { OWNER_ROLES } from '@/shared/lib/resolve-tenant-types';
+import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
 import { getStripe }          from '@/shared/lib/stripe';
 import {
   setStripeAccountId,
@@ -20,6 +23,11 @@ export type StripeConnectState =
   | { status: 'error'; message: string };
 
 // Owner-only — Stripe configuration is fiscal data (WF-08): OWNER_ROLES.
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'integrations.stripe.errors' });
+}
 
 function callbackUrls(): { return_url: string; refresh_url: string } {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL ?? 'http://localhost:3000';
@@ -46,6 +54,7 @@ export async function createStripeConnectAccount(
 ): Promise<StripeConnectState> {
   const auth = await resolveTenantOrgId(OWNER_ROLES);
   if ('error' in auth) return { status: 'error', message: auth.error };
+  const t = await getActionTranslations();
 
   const stripe = getStripe();
 
@@ -57,7 +66,7 @@ export async function createStripeConnectAccount(
       .limit(1);
 
     const org = orgRows[0];
-    if (!org) return { status: 'error', message: 'Organización no encontrada' };
+    if (!org) return { status: 'error', message: t('orgNotFound') };
 
     let accountId = org.stripeAccountId;
 
@@ -70,7 +79,7 @@ export async function createStripeConnectAccount(
 
       const saveResult = await setStripeAccountId(auth.orgId, accountId);
       if (saveResult.error) {
-        return { status: 'error', message: 'No se pudo guardar la cuenta de Stripe' };
+        return { status: 'error', message: t('accountSaveFailed') };
       }
     }
 
@@ -82,7 +91,7 @@ export async function createStripeConnectAccount(
 
     return { status: 'redirect', url: accountLink.url };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error de Stripe';
+    const msg = err instanceof Error ? err.message : t('generic');
     return { status: 'error', message: msg };
   }
 }
@@ -97,6 +106,7 @@ export async function refreshStripeOnboardingLink(
 ): Promise<StripeConnectState> {
   const auth = await resolveTenantOrgId(OWNER_ROLES);
   if ('error' in auth) return { status: 'error', message: auth.error };
+  const t = await getActionTranslations();
 
   const stripe = getStripe();
 
@@ -108,7 +118,7 @@ export async function refreshStripeOnboardingLink(
       .limit(1);
 
     const accountId = orgRows[0]?.stripeAccountId;
-    if (!accountId) return { status: 'error', message: 'No hay cuenta de Stripe vinculada' };
+    if (!accountId) return { status: 'error', message: t('noLinkedAccount') };
 
     const link = await stripe.accountLinks.create({
       account: accountId,
@@ -118,7 +128,7 @@ export async function refreshStripeOnboardingLink(
 
     return { status: 'redirect', url: link.url };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Error de Stripe';
+    const msg = err instanceof Error ? err.message : t('generic');
     return { status: 'error', message: msg };
   }
 }

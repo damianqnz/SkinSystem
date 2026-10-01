@@ -8,14 +8,22 @@ import { db }                        from '@/infrastructure/db';
 import { availabilityRules }         from '@/infrastructure/db/schema/calendar';
 import { appointments }              from '@/domains/booking/schema';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
 import type { Result }               from '@/shared/types/result';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.calendar.actions' });
+}
 
 // ── Types ────────────────────────────────────────────────────
 
 const ACTIVE_STATUSES = ['pending', 'confirmed'] as const;
 
 const inputSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
 // ── Action ───────────────────────────────────────────────────
@@ -27,9 +35,11 @@ const inputSchema = z.object({
  * - orgId derived from the caller's active membership in the tenant.
  */
 export async function getAvailableTimesAction(dateStr: string): Promise<Result<string[]>> {
+  const t = await getActionTranslations();
+
   const parsed = inputSchema.safeParse({ date: dateStr });
   if (!parsed.success) {
-    return { data: null, error: { code: 'VALIDATION_ERROR', message: 'Fecha inválida' } };
+    return { data: null, error: { code: 'VALIDATION_ERROR', message: t('invalidDate') } };
   }
 
   // Tenant from an active membership in the request's tenant — never from

@@ -11,6 +11,14 @@ import { appointments } from '@/domains/booking/schema';
 import { customers }    from '@/infrastructure/db/schema/customers';
 import { blockedIntervals } from '@/infrastructure/db/schema/calendar';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.calendar.actions' });
+}
 
 // ── State ────────────────────────────────────────────────────
 
@@ -40,6 +48,7 @@ export async function blockTimeAction(
   _prev: BlockTimeState,
   formData: FormData,
 ): Promise<BlockTimeState> {
+  const t = await getActionTranslations();
 
   // Tenant from an active membership in the request's tenant — never from
   // user_metadata, which the signed-in user can rewrite via the Auth API.
@@ -55,7 +64,9 @@ export async function blockTimeAction(
     reason:    formData.get('reason'),
   });
   if (!parsed.success) {
-    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+    // Deliberately NOT `issues[0].message`: this schema carries no custom
+    // messages, so Zod's own text is English and would reach the toast.
+    return { status: 'error', message: t('invalidData') };
   }
 
   const { date, startTime, endTime, reason } = parsed.data;
@@ -63,7 +74,7 @@ export async function blockTimeAction(
   const endAt   = buildTs(date, endTime);
 
   if (endAt <= startAt) {
-    return { status: 'error', message: 'La hora final debe ser posterior a la inicial' };
+    return { status: 'error', message: t('endTimeBeforeStart') };
   }
 
   try {
@@ -82,10 +93,10 @@ export async function blockTimeAction(
       .limit(1);
 
     if (conflicts[0]) {
-      const hora = conflicts[0].startAt.toISOString().slice(11, 16);
+      const time = conflicts[0].startAt.toISOString().slice(11, 16);
       return {
         status: 'error',
-        message: `Existe una reserva: ${hora} — ${conflicts[0].customerName}`,
+        message: t('conflictExists', { time, name: conflicts[0].customerName }),
       };
     }
 
@@ -105,6 +116,6 @@ export async function blockTimeAction(
     return { status: 'success' };
 
   } catch {
-    return { status: 'error', message: 'Error al bloquear horario' };
+    return { status: 'error', message: t('blockTimeFailed') };
   }
 }

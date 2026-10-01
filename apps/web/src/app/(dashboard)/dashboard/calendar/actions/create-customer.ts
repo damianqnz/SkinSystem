@@ -4,8 +4,16 @@ import 'server-only';
 
 import { z } from 'zod';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
+import { localeFromHeader } from '@/i18n/detect-locale';
 import { db } from '@/infrastructure/db';
 import { customers } from '@/domains/customers/schema';
+
+async function getActionTranslations() {
+  const hdrs = await headers();
+  return getTranslations({ locale: localeFromHeader(hdrs.get('x-locale')), namespace: 'dashboard.calendar.actions' });
+}
 
 // ── Public types ──────────────────────────────────────────────
 export type CreatedCustomer = { id: string; fullName: string };
@@ -17,9 +25,11 @@ export type CreateCustomerState =
 
 // ── Schema ────────────────────────────────────────────────────
 const createSchema = z.object({
-  fullName: z.string().min(2, 'Nombre mínimo 2 caracteres').max(120),
+  // No user-facing text here: the action maps each issue to a translated key
+  // by `path`, so the schema stays free of copy (and of Zod's English text).
+  fullName: z.string().min(2).max(120),
   phone:    z.string().max(30).optional(),
-  email:    z.string().email('Email inválido').optional().or(z.literal('')),
+  email:    z.string().email().optional().or(z.literal('')),
 });
 
 // ── Action ────────────────────────────────────────────────────
@@ -32,6 +42,7 @@ export async function createCustomerAction(
   const auth = await resolveTenantOrgId();
   if ('error' in auth) return { status: 'error', message: auth.error };
   const { orgId } = auth;
+  const t = await getActionTranslations();
 
   const rawEmail = (formData.get('email') as string | null) ?? '';
   const parsed = createSchema.safeParse({
@@ -40,7 +51,11 @@ export async function createCustomerAction(
     email:    rawEmail               || undefined,
   });
   if (!parsed.success) {
-    return { status: 'error', message: parsed.error.issues[0]?.message ?? 'Datos inválidos' };
+    switch (parsed.error.issues[0]?.path[0]) {
+      case 'fullName': return { status: 'error', message: t('invalidName') };
+      case 'email':    return { status: 'error', message: t('invalidEmail') };
+      default:         return { status: 'error', message: t('invalidData') };
+    }
   }
 
   try {
@@ -58,6 +73,6 @@ export async function createCustomerAction(
     if (!row) throw new Error('Insert returned no rows');
     return { status: 'success', data: row };
   } catch {
-    return { status: 'error', message: 'Error al crear cliente' };
+    return { status: 'error', message: t('errorCreatingCustomer') };
   }
 }

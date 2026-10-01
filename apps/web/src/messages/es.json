@@ -353,7 +353,10 @@
       "errors": {
         "generic": "Error al conectar con Stripe:",
         "popupBlocked": "El navegador bloqueó la ventana emergente. Permite las ventanas emergentes e inténtalo de nuevo.",
-        "linkExpired": "El enlace expiró. Inicia el proceso de nuevo."
+        "linkExpired": "El enlace expiró. Inicia el proceso de nuevo.",
+        "orgNotFound": "Organización no encontrada",
+        "accountSaveFailed": "No se pudo guardar la cuenta de Stripe",
+        "noLinkedAccount": "No hay ninguna cuenta de Stripe vinculada"
       },
       "newTabBanner": {
         "title": "Stripe se abrió en una nueva pestaña",
@@ -1019,7 +1022,15 @@
         "notFoundGeneric": "No encontrada",
         "alreadyCancelled": "Esta cita ya está cancelada",
         "couldNotCreateCustomer": "No se pudo crear el cliente",
-        "errorCreatingCustomer": "Error al crear el cliente"
+        "errorCreatingCustomer": "Error al crear el cliente",
+        "invalidName": "El nombre es demasiado corto",
+        "invalidEmail": "E-mail inválido",
+        "invalidDate": "Fecha inválida",
+        "endDateBeforeStart": "La fecha final debe ser posterior a la inicial",
+        "endTimeBeforeStart": "La hora final debe ser posterior a la inicial",
+        "blockDaysFailed": "No se pudieron bloquear los días",
+        "blockTimeFailed": "No se pudo bloquear el horario",
+        "conflictExists": "Existe una reserva: {time} — {name}"
       },
       "newAppointment": {
         "back": "Volver",
