@@ -110,6 +110,9 @@ export async function getDayView(
           eq(blockedIntervals.isActive, true),
           lte(blockedIntervals.startAt, dayEnd),
           gte(blockedIntervals.endAt, dayStart),
+          // blocked_intervals.profile_id is NOT NULL: every block belongs to one
+          // professional, so there are no org-wide rows to keep (unlike the
+          // availability rules above, where NULL means org-level).
           ...(staffProfileId ? [eq(blockedIntervals.profileId, staffProfileId)] : []),
         )),
 
