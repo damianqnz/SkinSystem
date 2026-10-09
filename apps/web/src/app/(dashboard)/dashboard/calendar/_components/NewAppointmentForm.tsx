@@ -2,6 +2,7 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { useMemo, useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown, FileText, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
@@ -56,6 +57,7 @@ export function NewAppointmentForm({
   onSuccess,
 }: NewAppointmentFormProps) {
   const t = useTranslations('dashboard.calendar.newAppointment');
+  const staffProfileId = useSearchParams().get('staff') ?? null;
 
   // Form state
   const [serviceId, setServiceId] = useState<string | null>(services[0]?.id ?? null);
@@ -90,6 +92,7 @@ export function NewAppointmentForm({
         customerId,
         startAt,
         guestComment: notes.trim() || null,
+        staffProfileId,
       });
       if (res.status === 'success') {
         toast.success(res.message ?? t('toastCreated'));

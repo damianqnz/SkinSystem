@@ -9,7 +9,8 @@ import { db }              from '@/infrastructure/db';
 import { appointments }    from '@/domains/booking/schema';
 import { catalogServices } from '@/infrastructure/db/schema/catalog';
 import { blockedIntervals } from '@/infrastructure/db/schema/calendar';
-import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { resolveCalendarStaffForRequest } from '@/domains/organizations/calendar-staff-request';
+import { idSchema } from '@/shared/lib/id-schema';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { localeFromHeader } from '@/i18n/detect-locale';
@@ -35,30 +36,34 @@ const blockDaysSchema = z.object({
   fromDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   toDate:   z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   reason:   z.enum(['vacation', 'illness', 'training', 'other']),
+  staffProfileId: idSchema.nullable().optional(),
 });
 
 // ── Action ───────────────────────────────────────────────────
 
 /**
- * Blocks a date range (inclusive) for the org.
- * Aborts if any non-cancelled appointment falls within the range.
- * orgId always derived from the caller's active membership in the tenant.
+ * Blocks a date range (inclusive) for the resolved staff member.
+ * Aborts if any non-cancelled appointment for that member falls within the
+ * range. orgId always derived from the caller's active membership in the
+ * tenant; the member is the owner/super_admin-selected active member or self.
  */
 export async function blockDaysAction(
   fromDate: string,
   toDate:   string,
   reason:   string,
+  staffProfileId?: string | null,
 ): Promise<BlockDaysState> {
   const t = await getActionTranslations();
 
-  const parsed = blockDaysSchema.safeParse({ fromDate, toDate, reason });
+  const parsed = blockDaysSchema.safeParse({ fromDate, toDate, reason, staffProfileId });
   if (!parsed.success) return { status: 'error', message: t('invalidData') };
 
   // Tenant from an active membership in the request's tenant — never from
-  // user_metadata, which the signed-in user can rewrite via the Auth API.
-  const auth = await resolveTenantOrgId();
-  if ('error' in auth) return { status: 'error', message: auth.error };
-  const { orgId, userId } = auth;
+  // user_metadata. The requested staff id only wins for owner/super_admin
+  // and only when it names an active member; staff always resolve to self.
+  const auth = await resolveCalendarStaffForRequest(parsed.data.staffProfileId);
+  if (!auth.ok) return { status: 'error', message: auth.message };
+  const { orgId, staffProfileId: targetProfileId } = auth;
 
   const { fromDate: from, toDate: to, reason: blockReason } = parsed.data;
   if (to < from) return { status: 'error', message: t('endDateBeforeStart') };
@@ -77,6 +82,7 @@ export async function blockDaysAction(
       ))
       .where(and(
         eq(appointments.organizationId, orgId),
+        eq(appointments.staffProfileId, targetProfileId),
         not(inArray(appointments.status, ['cancelled', 'no_show'])),
         gte(appointments.startAt, rangeStart),
         lt(appointments.startAt, rangeEnd),
@@ -107,7 +113,7 @@ export async function blockDaysAction(
     await db.insert(blockedIntervals).values(
       days.map((d) => ({
         organizationId:   orgId,
-        profileId:        userId,
+        profileId:        targetProfileId,
         startAt:          new Date(`${d}T00:00:00Z`),
         endAt:            new Date(`${d}T23:59:59.999Z`),
         reason:           blockReason,

@@ -10,11 +10,14 @@ export type { DayViewData };
  * getWeekView — fetches DayViewData for 7 consecutive days (Mon → Sun).
  *
  * Accepts any date within the target week; normalises to Monday UTC.
+ * Optional `staffProfileId` filters each day's snapshot to one team member
+ * (availability, appointments, and blocked intervals).
  * Tenant isolation is guaranteed inside each getDayView call (orgId filter).
  */
 export async function getWeekView(
-  orgId:     string,
-  weekStart: Date,
+  orgId:           string,
+  weekStart:       Date,
+  staffProfileId?: string,
 ): Promise<Result<DayViewData[]>> {
   // Normalise to Monday (UTC)
   const monday = new Date(weekStart);
@@ -29,7 +32,7 @@ export async function getWeekView(
   });
 
   try {
-    const results = await Promise.all(days.map(d => getDayView(orgId, d)));
+    const results = await Promise.all(days.map(d => getDayView(orgId, d, staffProfileId)));
     const failing = results.find(r => r.error);
     if (failing) return { data: null, error: failing.error ?? { message: 'Failed to load day', code: 'DB_ERROR' } };
     return { data: results.map(r => r.data!), error: null };

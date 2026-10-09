@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { MonthView, type SerializedEvent }          from './MonthView';
 import { MonthActionModal }                          from './MonthActionModal';
 import { NewAppointmentFAB }                         from './NewAppointmentFAB';
@@ -38,10 +38,23 @@ export function AgendaInteractive({
   blockedIntervals,
   locale,
 }: AgendaInteractiveProps) {
-  const router = useRouter();
+  const router       = useRouter();
+  const pathname     = usePathname();
+  const searchParams = useSearchParams();
   const [active,     setActive]     = useState<Active>(null);
   const [fabOpen,    setFabOpen]    = useState(false);
   const [fabDateIso, setFabDateIso] = useState('');
+
+  // `?new=appointment` (from the calendar "+" menu) opens the FAB on load;
+  // dropping only `new` on close keeps refresh/back from reopening the modal.
+  const newAppointmentRequested = searchParams.get('new') === 'appointment';
+
+  const clearNewParam = () => {
+    const sp = new URLSearchParams(searchParams.toString());
+    sp.delete('new');
+    const qs = sp.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
 
   const close = () => setActive(null);
 
@@ -94,8 +107,12 @@ export function AgendaInteractive({
       <NewAppointmentFAB
         locale={locale}
         date={dateForFab}
-        externalOpen={fabOpen}
-        onExternalClose={() => { setFabOpen(false); router.refresh(); }}
+        externalOpen={fabOpen || newAppointmentRequested}
+        onExternalClose={() => {
+          setFabOpen(false);
+          if (newAppointmentRequested) clearNewParam();
+          router.refresh();
+        }}
       />
 
       {/* Appointment detail modal (centered) ────────────── */}

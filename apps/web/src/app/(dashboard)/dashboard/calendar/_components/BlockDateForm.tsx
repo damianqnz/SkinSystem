@@ -2,6 +2,7 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import { useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ArrowLeft, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslations } from 'next-intl';
@@ -36,6 +37,7 @@ export function BlockDateForm({
 }: BlockDateFormProps) {
   const t   = useTranslations('calendar.block');
   const tNa = useTranslations('dashboard.calendar.newAppointment');
+  const staffProfileId = useSearchParams().get('staff') ?? null;
 
   const [fromDate, setFromDate] = useState(defaultDateIso);
   const [fromTime, setFromTime] = useState('09:00');
@@ -54,7 +56,7 @@ export function BlockDateForm({
     }
 
     startTransition(async () => {
-      const res = await createBlockedIntervalAction({ startAt, endAt, reason });
+      const res = await createBlockedIntervalAction({ startAt, endAt, reason, staffProfileId });
       if (res.status === 'success') {
         toast.success(res.message ?? t('success'));
         onSuccess();

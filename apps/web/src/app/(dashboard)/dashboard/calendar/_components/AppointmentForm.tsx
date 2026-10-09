@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import * as Select from '@radix-ui/react-select';
 import { Scissors, Clock, Calendar, ChevronDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -24,6 +25,7 @@ interface AppointmentFormProps {
 type ServicesState = { status: 'loading' } | { status: 'ready'; data: ServiceOption[] } | { status: 'error' };
 
 export function AppointmentForm({ locale, date, initialTime, selectedCustomer, onCustomerChange, onAddClient, onClose }: AppointmentFormProps) {
+  const staffProfileId = useSearchParams().get('staff') ?? null;
   const [services,  setServices]  = useState<ServicesState>({ status: 'loading' });
   const [serviceId, setServiceId] = useState('');
   const [duration,  setDuration]  = useState('');
@@ -41,12 +43,12 @@ export function AppointmentForm({ locale, date, initialTime, selectedCustomer, o
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset stale times before an in-flight fetch for the new date/initialTime
     setTimes(null);
-    getAvailableTimesAction(date.toISOString().slice(0, 10)).then((res) => {
+    getAvailableTimesAction(date.toISOString().slice(0, 10), staffProfileId).then((res) => {
       const avail = res.data ?? [];
       setTimes(avail);
       if (initialTime && avail.includes(initialTime)) setTime(initialTime);
     });
-  }, [date, initialTime]);
+  }, [date, initialTime, staffProfileId]);
 
   const handleServiceChange = (id: string) => {
     setServiceId(id);
@@ -70,6 +72,7 @@ export function AppointmentForm({ locale, date, initialTime, selectedCustomer, o
         serviceId,
         startAt,
         guestComment: notes.trim() || null,
+        staffProfileId,
       });
       if (res.status === 'success') {
         toast.success(res.message ?? 'Cita creada');

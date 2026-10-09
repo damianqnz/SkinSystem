@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Plus, Search, ChevronDown } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
@@ -23,7 +23,13 @@ export function CatalogClient({ categories, orphans, organizationId }: CatalogCl
   const t      = useTranslations('dashboard.catalog');
   const intlLocale = useLocale();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const selectedCategoryId = searchParams.get('category');
+
+  // `?new=service` (deep-link from the calendar "+" menu) opens the service
+  // drawer in CREATE mode; the param is dropped when the drawer closes.
+  const newServiceRequested = searchParams.get('new') === 'service';
 
   const [catDrawerOpen, setCatDrawerOpen] = useState(false);
   const [editingCat, setEditingCat]       = useState<CategoryWithServices | null>(null);
@@ -62,6 +68,17 @@ export function CatalogClient({ categories, orphans, organizationId }: CatalogCl
   const totalServices = categories.reduce((n, c) => n + c.services.length, 0) + orphans.length;
   const isEmpty   = categories.length === 0 && orphans.length === 0;
   const noResults = !isEmpty && term.length > 0 && visibleCategories.length === 0 && visibleOrphans.length === 0;
+
+  const svcOpen = svcDrawerOpen || newServiceRequested;
+  const handleSvcClose = () => {
+    setSvcDrawerOpen(false);
+    if (newServiceRequested) {
+      const sp = new URLSearchParams(searchParams.toString());
+      sp.delete('new');
+      const qs = sp.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    }
+  };
 
   return (
     <div className="flex flex-col md:flex-row bg-white rounded-2xl border border-stone-100 shadow-sm overflow-hidden min-h-[70vh]">
@@ -170,10 +187,10 @@ export function CatalogClient({ categories, orphans, organizationId }: CatalogCl
       />
 
       <ServiceDrawer
-        key={svcDrawerOpen ? 'quick-add' : 'quick-add-closed'}
-        open={svcDrawerOpen}
-        onClose={() => setSvcDrawerOpen(false)}
-        onSuccess={() => setSvcDrawerOpen(false)}
+        key={svcOpen ? 'quick-add' : 'quick-add-closed'}
+        open={svcOpen}
+        onClose={handleSvcClose}
+        onSuccess={handleSvcClose}
         categories={catShapes}
         service={null}
         defaultCategoryId={selectedCategoryId && selectedCategoryId !== 'none' ? selectedCategoryId : null}

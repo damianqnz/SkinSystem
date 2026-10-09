@@ -957,6 +957,7 @@
     "calendar": {
       "comingSoon": "La vista «{label}» llega pronto.",
       "teamLabel":  "Equipo",
+      "loadError":  "No se pudo cargar el calendario.",
       "header": {
         "prevMonthAriaLabel": "Mes anterior",
         "nextMonthAriaLabel": "Próximo mes",
@@ -965,6 +966,15 @@
         "todayLabel":         "Hoy",
         "viewSwitcherLabel":  "Vista del calendario",
         "viewSwitcherAriaLabel":"Cambiar vista"
+      },
+      "actionsMenu": {
+        "triggerAria":     "Acciones rápidas",
+        "newAppointment":  "Nueva cita",
+        "addTeamMember":   "Añadir miembro del equipo",
+        "createService":   "Crear servicio",
+        "addClient":       "Añadir cliente",
+        "createClass":     "Crear clase",
+        "comingSoonBadge": "Próximamente"
       },
       "dayNav": {
         "prevAriaLabel": "Día anterior",
@@ -1066,7 +1076,12 @@
         "collapseAria": "Cerrar panel",
         "expandAria": "Abrir panel",
         "connectCta": "Conectar calendario",
-        "localFallback": "Estética"
+        "localFallback": "Estética",
+        "calendarOf": "Calendario de {name}",
+        "teamHeading": "Equipo",
+        "pendingInvitation": "Invitación pendiente",
+        "youBadge": "Tú",
+        "switchToMemberAria": "Ver el calendario de {name}"
       }
     },
     "integrations": {

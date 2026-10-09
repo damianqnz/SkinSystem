@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { eq, and, between, asc } from 'drizzle-orm';
+import { eq, and, between, gte, lt, asc } from 'drizzle-orm';
 import { db } from '@/infrastructure/db';
 import { appointments } from './schema';
 import { catalogServices } from '@/domains/catalog/schema';
@@ -44,6 +44,12 @@ export type CalendarMonth = {
   gridEnd:    Date;
   /** First day of the displayed month (UTC) */
   monthStart: Date;
+};
+
+export type CalendarMonthBlockedInterval = {
+  id:      string;
+  startAt: Date;
+  reason:  string;
 };
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -105,6 +111,7 @@ const dbErr = (m: string): Result<never> =>
 export async function getCalendarWeek(
   organizationId: string,
   anchorDate: Date,
+  staffProfileId?: string,
 ): Promise<Result<CalendarWeek>> {
   const weekStart = getWeekStart(anchorDate);
   const weekEnd   = getWeekEnd(weekStart);
@@ -132,6 +139,7 @@ export async function getCalendarWeek(
       .where(and(
         eq(appointments.organizationId, organizationId),
         between(appointments.startAt, weekStart, weekEnd),
+        ...(staffProfileId ? [eq(appointments.staffProfileId, staffProfileId)] : []),
       ))
       .orderBy(asc(appointments.startAt));
 
@@ -166,6 +174,7 @@ export async function getCalendarWeek(
 export async function getCalendarMonth(
   organizationId: string,
   anchorDate: Date,
+  staffProfileId?: string,
 ): Promise<Result<CalendarMonth>> {
   const monthStart = getMonthStart(anchorDate);
   const { gridStart, gridEnd } = getMonthGridBounds(anchorDate);
@@ -193,6 +202,7 @@ export async function getCalendarMonth(
       .where(and(
         eq(appointments.organizationId, organizationId),
         between(appointments.startAt, gridStart, gridEnd),
+        ...(staffProfileId ? [eq(appointments.staffProfileId, staffProfileId)] : []),
       ))
       .orderBy(asc(appointments.startAt));
 
@@ -219,6 +229,38 @@ export async function getCalendarMonth(
 }
 
 // ── Blocked intervals ─────────────────────────────────────────
+
+/**
+ * Blocked intervals whose start falls inside the visible month grid window.
+ * Tenant-isolated and optionally scoped to a single staff member (the same
+ * `staffProfileId` used by `getCalendarMonth`).
+ */
+export async function getCalendarMonthBlockedIntervals(
+  organizationId: string,
+  gridStart:      Date,
+  gridEnd:        Date,
+  staffProfileId?: string,
+): Promise<Result<CalendarMonthBlockedInterval[]>> {
+  try {
+    const rows = await db
+      .select({
+        id:      blockedIntervals.id,
+        startAt: blockedIntervals.startAt,
+        reason:  blockedIntervals.reason,
+      })
+      .from(blockedIntervals)
+      .where(and(
+        eq(blockedIntervals.organizationId, organizationId),
+        gte(blockedIntervals.startAt, gridStart),
+        lt(blockedIntervals.startAt, gridEnd),
+        ...(staffProfileId ? [eq(blockedIntervals.profileId, staffProfileId)] : []),
+      ));
+
+    return { data: rows, error: null };
+  } catch {
+    return dbErr('Failed to fetch blocked intervals');
+  }
+}
 
 export type CreateBlockedIntervalInput = {
   organizationId: string;

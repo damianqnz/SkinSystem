@@ -957,6 +957,7 @@
     "calendar": {
       "comingSoon": "The \"{label}\" view is coming soon.",
       "teamLabel":  "Team",
+      "loadError":  "Could not load the calendar.",
       "header": {
         "prevMonthAriaLabel": "Previous month",
         "nextMonthAriaLabel": "Next month",
@@ -965,6 +966,15 @@
         "todayLabel":         "Today",
         "viewSwitcherLabel":  "Calendar view",
         "viewSwitcherAriaLabel":"Change view"
+      },
+      "actionsMenu": {
+        "triggerAria":     "Quick actions",
+        "newAppointment":  "New appointment",
+        "addTeamMember":   "Add team member",
+        "createService":   "Create service",
+        "addClient":       "Add client",
+        "createClass":     "Create class",
+        "comingSoonBadge": "Coming soon"
       },
       "dayNav": {
         "prevAriaLabel": "Previous day",
@@ -1066,7 +1076,12 @@
         "collapseAria": "Collapse panel",
         "expandAria": "Expand panel",
         "connectCta": "Connect calendar",
-        "localFallback": "Studio"
+        "localFallback": "Studio",
+        "calendarOf": "{name}'s calendar",
+        "teamHeading": "Team",
+        "pendingInvitation": "Pending invitation",
+        "youBadge": "You",
+        "switchToMemberAria": "View {name}'s calendar"
       }
     },
     "integrations": {

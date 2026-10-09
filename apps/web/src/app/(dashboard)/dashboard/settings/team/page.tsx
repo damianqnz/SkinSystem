@@ -3,12 +3,9 @@ import { headers }                   from 'next/headers';
 import { notFound }                  from 'next/navigation';
 import { getTranslations }           from 'next-intl/server';
 import { DEFAULT_LOCALE }            from '@/i18n/config';
-import { eq, and, inArray }          from 'drizzle-orm';
 import { getOrganizationBySlug }     from '@/domains/organizations/service';
+import { listTeamMembers, listPendingInvitations } from '@/domains/organizations/team-service';
 import { createSupabaseServerClient } from '@/infrastructure/supabase/server';
-import { db }                        from '@/infrastructure/db';
-import { profiles }                  from '@/infrastructure/db/schema/organizations';
-import { organizationInvitations }   from '@/infrastructure/db/schema/calendar';
 import { resolveTenantOrgId }        from '@/shared/lib/resolve-tenant-org-id';
 import { OWNER_ROLES }               from '@/shared/lib/resolve-tenant-types';
 import { TeamSection }               from './_components/TeamSection';
@@ -41,33 +38,13 @@ async function TeamContent() {
   const { data: { user } } = await supabase.auth.getUser();
   const currentUserId = user?.id ?? '';
 
-  const [memberRows, inviteRows] = await Promise.all([
-    db.select({
-      id:        profiles.id,
-      fullName:  profiles.fullName,
-      avatarUrl: profiles.avatarUrl,
-      role:      profiles.role,
-      isActive:  profiles.isActive,
-    })
-    .from(profiles)
-    .where(and(
-      eq(profiles.organizationId, orgId),
-      inArray(profiles.role, ['owner', 'staff']),
-    )),
-
-    db.select({
-      id:        organizationInvitations.id,
-      email:     organizationInvitations.email,
-      role:      organizationInvitations.role,
-      expiresAt: organizationInvitations.expiresAt,
-      createdAt: organizationInvitations.createdAt,
-    })
-    .from(organizationInvitations)
-    .where(and(
-      eq(organizationInvitations.organizationId!, orgId),
-      eq(organizationInvitations.status, 'pending'),
-    )),
+  const [membersResult, invitesResult] = await Promise.all([
+    listTeamMembers(orgId),
+    listPendingInvitations(orgId),
   ]);
+
+  const memberRows = membersResult.data ?? [];
+  const inviteRows = invitesResult.data ?? [];
 
   return (
     <div className="space-y-8">
