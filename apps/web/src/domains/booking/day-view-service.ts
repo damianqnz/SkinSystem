@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { eq, and, gte, lte, between, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, between, inArray, or, isNull, asc } from 'drizzle-orm';
 import { db } from '@/infrastructure/db';
 import { appointments } from './schema';
 import { availabilityRules, blockedIntervals } from '@/infrastructure/db/schema/calendar';
@@ -52,24 +52,35 @@ const SHOW_STATUSES = ['pending', 'confirmed', 'completed'] as const;
  */
 export async function getDayView(
   orgId: string,
-  date:  Date,
+  date: Date,
+  staffProfileId?: string,
 ): Promise<Result<DayViewData>> {
   const dow      = date.getUTCDay();
   const dayStart = new Date(date); dayStart.setUTCHours(0, 0, 0, 0);
   const dayEnd   = new Date(date); dayEnd.setUTCHours(23, 59, 59, 999);
 
   try {
-    const [ruleRows, apptRows, blockRows] = await Promise.all([
-
-      db.select({
+    // Availability: a staff-specific rule (profile_id = staffProfileId) takes
+    // precedence over the org-level rule (profile_id IS NULL); both still apply.
+    const ruleQuery = db
+      .select({
         openTime:  availabilityRules.openTime,
         closeTime: availabilityRules.closeTime,
       }).from(availabilityRules)
-        .where(and(
-          eq(availabilityRules.organizationId, orgId),
-          eq(availabilityRules.dayOfWeek, dow),
-          eq(availabilityRules.isActive, true),
-        )).limit(1),
+      .where(and(
+        eq(availabilityRules.organizationId, orgId),
+        eq(availabilityRules.dayOfWeek, dow),
+        eq(availabilityRules.isActive, true),
+        ...(staffProfileId
+          ? [or(isNull(availabilityRules.profileId), eq(availabilityRules.profileId, staffProfileId))]
+          : []),
+      ))
+      .orderBy(...(staffProfileId ? [asc(availabilityRules.profileId)] : []))
+      .limit(1);
+
+    const [ruleRows, apptRows, blockRows] = await Promise.all([
+
+      ruleQuery,
 
       db.select({
         id:           appointments.id,
@@ -85,6 +96,7 @@ export async function getDayView(
           eq(appointments.organizationId, orgId),
           between(appointments.startAt, dayStart, dayEnd),
           inArray(appointments.status, [...SHOW_STATUSES]),
+          ...(staffProfileId ? [eq(appointments.staffProfileId, staffProfileId)] : []),
         )),
 
       db.select({
@@ -98,6 +110,7 @@ export async function getDayView(
           eq(blockedIntervals.isActive, true),
           lte(blockedIntervals.startAt, dayEnd),
           gte(blockedIntervals.endAt, dayStart),
+          ...(staffProfileId ? [eq(blockedIntervals.profileId, staffProfileId)] : []),
         )),
 
     ]);

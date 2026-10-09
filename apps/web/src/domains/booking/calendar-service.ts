@@ -105,6 +105,7 @@ const dbErr = (m: string): Result<never> =>
 export async function getCalendarWeek(
   organizationId: string,
   anchorDate: Date,
+  staffProfileId?: string,
 ): Promise<Result<CalendarWeek>> {
   const weekStart = getWeekStart(anchorDate);
   const weekEnd   = getWeekEnd(weekStart);
@@ -132,6 +133,7 @@ export async function getCalendarWeek(
       .where(and(
         eq(appointments.organizationId, organizationId),
         between(appointments.startAt, weekStart, weekEnd),
+        ...(staffProfileId ? [eq(appointments.staffProfileId, staffProfileId)] : []),
       ))
       .orderBy(asc(appointments.startAt));
 
@@ -166,6 +168,7 @@ export async function getCalendarWeek(
 export async function getCalendarMonth(
   organizationId: string,
   anchorDate: Date,
+  staffProfileId?: string,
 ): Promise<Result<CalendarMonth>> {
   const monthStart = getMonthStart(anchorDate);
   const { gridStart, gridEnd } = getMonthGridBounds(anchorDate);
@@ -193,6 +196,7 @@ export async function getCalendarMonth(
       .where(and(
         eq(appointments.organizationId, organizationId),
         between(appointments.startAt, gridStart, gridEnd),
+        ...(staffProfileId ? [eq(appointments.staffProfileId, staffProfileId)] : []),
       ))
       .orderBy(asc(appointments.startAt));
 
