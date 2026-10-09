@@ -967,6 +967,15 @@
         "viewSwitcherLabel":  "Visualização do calendário",
         "viewSwitcherAriaLabel":"Alterar vista"
       },
+      "actionsMenu": {
+        "triggerAria":     "Ações rápidas",
+        "newAppointment":  "Nova marcação",
+        "addTeamMember":   "Adicionar membro da equipa",
+        "createService":   "Criar serviço",
+        "addClient":       "Adicionar cliente",
+        "createClass":     "Criar aula",
+        "comingSoonBadge": "Em breve"
+      },
       "dayNav": {
         "prevAriaLabel": "Dia anterior",
         "nextAriaLabel": "Dia seguinte",
@@ -1067,7 +1076,12 @@
         "collapseAria": "Fechar painel",
         "expandAria": "Abrir painel",
         "connectCta": "Conectar calendário",
-        "localFallback": "Estética"
+        "localFallback": "Estética",
+        "calendarOf": "Calendário de {name}",
+        "teamHeading": "Equipa",
+        "pendingInvitation": "Convite pendente",
+        "youBadge": "Você",
+        "switchToMemberAria": "Ver o calendário de {name}"
       }
     },
     "integrations": {

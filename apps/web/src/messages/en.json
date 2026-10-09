@@ -967,6 +967,15 @@
         "viewSwitcherLabel":  "Calendar view",
         "viewSwitcherAriaLabel":"Change view"
       },
+      "actionsMenu": {
+        "triggerAria":     "Quick actions",
+        "newAppointment":  "New appointment",
+        "addTeamMember":   "Add team member",
+        "createService":   "Create service",
+        "addClient":       "Add client",
+        "createClass":     "Create class",
+        "comingSoonBadge": "Coming soon"
+      },
       "dayNav": {
         "prevAriaLabel": "Previous day",
         "nextAriaLabel": "Next day",
@@ -1067,7 +1076,12 @@
         "collapseAria": "Collapse panel",
         "expandAria": "Expand panel",
         "connectCta": "Connect calendar",
-        "localFallback": "Studio"
+        "localFallback": "Studio",
+        "calendarOf": "{name}'s calendar",
+        "teamHeading": "Team",
+        "pendingInvitation": "Pending invitation",
+        "youBadge": "You",
+        "switchToMemberAria": "View {name}'s calendar"
       }
     },
     "integrations": {
