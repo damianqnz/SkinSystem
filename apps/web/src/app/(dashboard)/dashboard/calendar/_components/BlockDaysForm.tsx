@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useSearchParams } from 'next/navigation';
 import * as Select from '@radix-ui/react-select';
 import { ChevronDown, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,6 +26,7 @@ function fmtConflictDate(iso: string): string {
 }
 
 export function BlockDaysForm({ selectedDate, onClose }: BlockDaysFormProps) {
+  const staffProfileId = useSearchParams().get('staff') ?? null;
   const t           = useTranslations('dashboard.calendar.blockDays');
   const tBlock      = useTranslations('calendar.block');
   const minDateIso  = toIso(selectedDate);
@@ -51,7 +53,7 @@ export function BlockDaysForm({ selectedDate, onClose }: BlockDaysFormProps) {
 
   function handleSubmit() {
     startTransition(async () => {
-      const result = await blockDaysAction(from, to, reason);
+      const result = await blockDaysAction(from, to, reason, staffProfileId);
       if (result.status === 'success') {
         toast.success(t('success'));
         onClose();

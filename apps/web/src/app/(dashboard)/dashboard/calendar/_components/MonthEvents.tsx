@@ -5,29 +5,31 @@
  * and hands off to the client orchestrator `<AgendaInteractive>`.
  */
 
-import { and, eq, gte, lt } from 'drizzle-orm';
-import { getCalendarMonth }  from '@/domains/booking/calendar-service';
-import { db }                from '@/infrastructure/db';
-import { blockedIntervals }  from '@/infrastructure/db/schema/calendar';
+import { getCalendarMonth, getCalendarMonthBlockedIntervals } from '@/domains/booking/calendar-service';
 import { AgendaInteractive, type SerializedBlock } from './AgendaInteractive';
 import type { SerializedEvent } from './MonthView';
 
 interface MonthEventsProps {
-  organizationId: string;
-  anchorDate:     Date;
-  locale:         string;
+  organizationId:  string;
+  anchorDate:      Date;
+  locale:          string;
+  staffProfileId?: string;
 }
 
-export async function MonthEvents({ organizationId, anchorDate, locale }: MonthEventsProps) {
-  const monthRes = await getCalendarMonth(organizationId, anchorDate);
+function CalendarErrorFallback() {
+  return (
+    <div className="flex-1 flex items-center justify-center text-sm text-spa-muted"
+         style={{ fontFamily: 'var(--font-sans)' }}>
+      Não foi possível carregar o calendário.
+    </div>
+  );
+}
+
+export async function MonthEvents({ organizationId, anchorDate, locale, staffProfileId }: MonthEventsProps) {
+  const monthRes = await getCalendarMonth(organizationId, anchorDate, staffProfileId);
 
   if (monthRes.error || !monthRes.data) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-sm text-spa-muted"
-           style={{ fontFamily: 'var(--font-sans)' }}>
-        Não foi possível carregar o calendário.
-      </div>
-    );
+    return <CalendarErrorFallback />;
   }
 
   const { events, gridStart, monthStart } = monthRes.data;
@@ -37,14 +39,10 @@ export async function MonthEvents({ organizationId, anchorDate, locale }: MonthE
   gridEnd.setUTCDate(gridEnd.getUTCDate() + 42);
 
   // Fetch blocked intervals for the visible grid window
-  const blockedRows = await db
-    .select({ id: blockedIntervals.id, startAt: blockedIntervals.startAt, reason: blockedIntervals.reason })
-    .from(blockedIntervals)
-    .where(and(
-      eq(blockedIntervals.organizationId, organizationId),
-      gte(blockedIntervals.startAt, gridStart),
-      lt(blockedIntervals.startAt, gridEnd),
-    ));
+  const blockedRes = await getCalendarMonthBlockedIntervals(organizationId, gridStart, gridEnd, staffProfileId);
+  if (blockedRes.error || !blockedRes.data) {
+    return <CalendarErrorFallback />;
+  }
 
   const serializedEvents: SerializedEvent[] = events.map((e) => ({
     id:           e.id,
@@ -55,7 +53,7 @@ export async function MonthEvents({ organizationId, anchorDate, locale }: MonthE
     startIso:     e.startAt.toISOString(),
   }));
 
-  const serializedBlocked: SerializedBlock[] = blockedRows.map((b) => ({
+  const serializedBlocked: SerializedBlock[] = blockedRes.data.map((b) => ({
     id:      b.id,
     dateIso: b.startAt.toISOString().slice(0, 10),
     reason:  b.reason,

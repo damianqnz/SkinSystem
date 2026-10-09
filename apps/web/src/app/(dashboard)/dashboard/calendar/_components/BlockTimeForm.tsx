@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useActionState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import * as Select from '@radix-ui/react-select';
 import { ChevronDown, Check } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,6 +24,7 @@ interface BlockTimeFormProps {
 }
 
 export function BlockTimeForm({ slot, t, onClose }: BlockTimeFormProps) {
+  const staffProfileId = useSearchParams().get('staff') ?? '';
   const [reason, setReason] = useState<string>('illness');
   const [endTime, setEndTime] = useState(() => {
     if (!slot || !slot.time) return '';
@@ -47,6 +49,7 @@ export function BlockTimeForm({ slot, t, onClose }: BlockTimeFormProps) {
     <form action={formAction} className="px-5 pb-5 space-y-4">
       <input type="hidden" name="date" value={slot?.date ?? ''} />
       <input type="hidden" name="reason" value={reason} />
+      <input type="hidden" name="staffProfileId" value={staffProfileId} />
 
       <div>
         <label className="block text-[11px] font-medium text-stone-500 uppercase tracking-wide mb-1.5">

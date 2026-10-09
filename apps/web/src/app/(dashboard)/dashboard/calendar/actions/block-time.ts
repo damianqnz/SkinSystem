@@ -10,7 +10,8 @@ import { db } from '@/infrastructure/db';
 import { appointments } from '@/domains/booking/schema';
 import { customers }    from '@/infrastructure/db/schema/customers';
 import { blockedIntervals } from '@/infrastructure/db/schema/calendar';
-import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { resolveCalendarStaffForRequest } from '@/domains/organizations/calendar-staff-request';
+import { idSchema } from '@/shared/lib/id-schema';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
 import { localeFromHeader } from '@/i18n/detect-locale';
@@ -34,6 +35,7 @@ const blockSchema = z.object({
   startTime: z.string().regex(/^\d{2}:\d{2}$/),
   endTime:   z.string().regex(/^\d{2}:\d{2}$/),
   reason:    z.enum(['illness', 'vacation', 'training', 'other']),
+  staffProfileId: idSchema.nullable().optional(),
 });
 
 const ACTIVE = ['pending', 'confirmed'] as const;
@@ -50,11 +52,7 @@ export async function blockTimeAction(
 ): Promise<BlockTimeState> {
   const t = await getActionTranslations();
 
-  // Tenant from an active membership in the request's tenant — never from
-  // user_metadata, which the signed-in user can rewrite via the Auth API.
-  const auth = await resolveTenantOrgId();
-  if ('error' in auth) return { status: 'error', message: auth.error };
-  const { orgId, userId } = auth;
+  const staffRaw = formData.get('staffProfileId');
 
   // Validate form fields
   const parsed = blockSchema.safeParse({
@@ -62,12 +60,20 @@ export async function blockTimeAction(
     startTime: formData.get('startTime'),
     endTime:   formData.get('endTime'),
     reason:    formData.get('reason'),
+    staffProfileId: typeof staffRaw === 'string' && staffRaw.length > 0 ? staffRaw : null,
   });
   if (!parsed.success) {
     // Deliberately NOT `issues[0].message`: this schema carries no custom
     // messages, so Zod's own text is English and would reach the toast.
     return { status: 'error', message: t('invalidData') };
   }
+
+  // Tenant from an active membership in the request's tenant — never from
+  // user_metadata. The requested staff id only wins for owner/super_admin
+  // and only when it names an active member; staff always resolve to self.
+  const auth = await resolveCalendarStaffForRequest(parsed.data.staffProfileId);
+  if (!auth.ok) return { status: 'error', message: auth.message };
+  const { orgId, staffProfileId } = auth;
 
   const { date, startTime, endTime, reason } = parsed.data;
   const startAt = buildTs(date, startTime);
@@ -86,6 +92,7 @@ export async function blockTimeAction(
       .innerJoin(customers, and(eq(appointments.customerId, customers.id), eq(customers.organizationId, appointments.organizationId)))
       .where(and(
         eq(appointments.organizationId, orgId),
+        eq(appointments.staffProfileId, staffProfileId),
         inArray(appointments.status, [...ACTIVE]),
         lt(appointments.startAt, endAt),    // appt starts before block ends
         gt(appointments.endAt,   startAt),  // appt ends after block starts
@@ -103,7 +110,7 @@ export async function blockTimeAction(
     // No conflict → insert blocked interval
     await db.insert(blockedIntervals).values({
       organizationId:   orgId,
-      profileId:        userId,
+      profileId:        staffProfileId,
       startAt,
       endAt,
       reason,

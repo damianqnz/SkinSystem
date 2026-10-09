@@ -3,9 +3,10 @@ import { CalendarDayView }   from './CalendarDayView';
 import type { DayViewSer }   from './DayTimeGrid';
 
 interface AvailabilityEngineProps {
-  organizationId: string;
-  date:           Date;
-  locale:         string;
+  organizationId:  string;
+  date:            Date;
+  locale:          string;
+  staffProfileId?: string;
 }
 
 /**
@@ -25,8 +26,9 @@ export async function AvailabilityEngine({
   organizationId,
   date,
   locale,
+  staffProfileId,
 }: AvailabilityEngineProps) {
-  const result = await getDayView(organizationId, date);
+  const result = await getDayView(organizationId, date, staffProfileId);
 
   if (result.error) {
     return (

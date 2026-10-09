@@ -23,6 +23,7 @@ import { customers } from '@/infrastructure/db/schema/customers';
 import { catalogServices } from '@/domains/catalog/schema';
 import { appointments } from '@/domains/booking/schema';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
+import { resolveCalendarStaffForRequest } from '@/domains/organizations/calendar-staff-request';
 import { localeFromHeader } from '@/i18n/detect-locale';
 
 import {
@@ -41,6 +42,8 @@ import { APPOINTMENT_STATUS, type AppointmentStatus } from '@/domains/booking/sc
 // ── Auth helper ───────────────────────────────────────────────
 
 type AuthOk = { orgId: string; userId: string };
+
+type StaffAuthOk = { orgId: string; userId: string; staffProfileId: string };
 
 /** Resolves the request locale for `getTranslations` — Server Actions have no
  *  `NextIntlClientProvider`, so each one reads `x-locale` directly. */
@@ -66,6 +69,23 @@ async function getAuth(): Promise<AuthOk | { error: string }> {
   const auth = await resolveTenantOrgId();
   if ('error' in auth) return { error: auth.error };
   return { orgId: auth.orgId, userId: auth.userId };
+}
+
+/**
+ * Auth + effective staff profile for actions that create entries on a member's
+ * calendar. `requestedStaffId` is only honoured for owner/super_admin (and
+ * only when it names an active member); staff always resolve to themselves.
+ */
+async function getStaffAuth(
+  requestedStaffId?: string | null,
+): Promise<StaffAuthOk | { error: string }> {
+  const res = await resolveCalendarStaffForRequest(requestedStaffId);
+  if (!res.ok) return { error: res.message };
+  return {
+    orgId:          res.orgId,
+    userId:         res.viewer.profileId,
+    staffProfileId: res.staffProfileId,
+  };
 }
 
 // ── Result types ──────────────────────────────────────────────
@@ -94,26 +114,31 @@ const blockSchema = z.object({
   endAt:   z.coerce.date(),
   reason:  z.enum(BLOCK_REASONS),
   title:   z.string().max(120).nullable().optional(),
+  staffProfileId: idSchema.nullable().optional(),
 });
 
 export async function createBlockedIntervalAction(
   raw: unknown,
 ): Promise<ActionState> {
-  const auth = await getAuth();
-  if ('error' in auth) return { status: 'error', message: auth.error };
-
   const t = await getActionTranslations();
   const parsed = blockSchema.safeParse(raw);
   if (!parsed.success) {
     return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
-  const profileId = auth.userId;
+  const auth = await getStaffAuth(parsed.data.staffProfileId);
+  if ('error' in auth) return { status: 'error', message: auth.error };
 
+  const profileId = auth.staffProfileId;
+
+  const { startAt, endAt, reason, title } = parsed.data;
   const result = await createBlockedInterval({
     organizationId: auth.orgId,
     profileId,
-    ...parsed.data,
+    startAt,
+    endAt,
+    reason,
+    title,
   });
 
   if (result.error) return { status: 'error', message: result.error.message };
@@ -135,21 +160,22 @@ const apptSchema = z.object({
   serviceId:  idSchema,
   startAt:    z.coerce.date(),
   guestComment: z.string().max(500).nullable().optional(),
+  staffProfileId: idSchema.nullable().optional(),
 });
 
 export async function createInternalAppointmentAction(
   raw: unknown,
 ): Promise<ActionState> {
-  const auth = await getAuth();
-  if ('error' in auth) return { status: 'error', message: auth.error };
-
   const t = await getActionTranslations();
   const parsed = apptSchema.safeParse(raw);
   if (!parsed.success) {
     return { status: 'error', message: parsed.error.issues[0]?.message ?? t('invalidData') };
   }
 
-  const profileId = auth.userId;
+  const auth = await getStaffAuth(parsed.data.staffProfileId);
+  if ('error' in auth) return { status: 'error', message: auth.error };
+
+  const profileId = auth.staffProfileId;
 
   // Resolve service to compute endAt + price
   const svc = await db

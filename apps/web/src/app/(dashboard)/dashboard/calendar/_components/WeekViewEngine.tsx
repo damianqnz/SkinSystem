@@ -15,9 +15,10 @@ function getMonday(d: Date): Date {
 // ── Props ─────────────────────────────────────────────────────
 
 interface WeekViewEngineProps {
-  organizationId: string;
-  date:           Date;
-  locale:         string;
+  organizationId:  string;
+  date:            Date;
+  locale:          string;
+  staffProfileId?: string;
 }
 
 // ── Server Component ──────────────────────────────────────────
@@ -25,34 +26,41 @@ interface WeekViewEngineProps {
 /**
  * WeekViewEngine — async Server Component.
  *
- * Fetches 7 × DayViewData in parallel, serialises Dates → ISO strings,
- * then hands off to the client orchestrator <WeekViewGrid>.
+ * Fetches 7 × DayViewData in parallel via getWeekView, serialises Dates → ISO
+ * strings, then hands off to the client orchestrator <WeekViewGrid>.
  *
- * Tenant isolation: getDayView filters by organizationId on every query.
+ * Tenant isolation: getDayView (inside getWeekView) filters by organizationId
+ * on every query.
  */
-export async function WeekViewEngine({ organizationId, date, locale }: WeekViewEngineProps) {
+export async function WeekViewEngine({ organizationId, date, locale, staffProfileId }: WeekViewEngineProps) {
   const monday = getMonday(date);
-  const result = await getWeekView(organizationId, monday);
 
-  if (result.error || !result.data) {
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setUTCDate(d.getUTCDate() + i);
+    return d;
+  });
+
+  const res = await getWeekView(organizationId, date, staffProfileId);
+
+  if (res.error || !res.data) {
     return (
       <div className="flex items-center justify-center py-16 px-4 text-center">
         <p className="text-sm text-red-400">
-          {result.error?.message ?? 'Error al cargar la semana'}
+          {res.error?.message ?? 'Error al cargar la semana'}
         </p>
       </div>
     );
   }
 
-  const weekDays: WeekDaySer[] = result.data.map((day, i) => {
-    const d = new Date(monday);
-    d.setUTCDate(d.getUTCDate() + i);
+  const weekDays: WeekDaySer[] = res.data.map((dv, i) => {
+    const d = days[i]!;
     return {
       dateIso:       d.toISOString().slice(0, 10),
-      businessStart: day.businessStart,
-      businessEnd:   day.businessEnd,
-      isOpen:        day.isOpen,
-      appointments:  day.appointments.map(a => ({
+      businessStart: dv.businessStart,
+      businessEnd:   dv.businessEnd,
+      isOpen:        dv.isOpen,
+      appointments:  dv.appointments.map(a => ({
         id:           a.id,
         startAt:      a.startAt.toISOString(),
         endAt:        a.endAt.toISOString(),
@@ -60,7 +68,7 @@ export async function WeekViewEngine({ organizationId, date, locale }: WeekViewE
         customerName: a.customerName,
         serviceName:  a.serviceName,
       })),
-      blockedIntervals: day.blockedIntervals.map(b => ({
+      blockedIntervals: dv.blockedIntervals.map(b => ({
         id:      b.id,
         startAt: b.startAt.toISOString(),
         endAt:   b.endAt.toISOString(),

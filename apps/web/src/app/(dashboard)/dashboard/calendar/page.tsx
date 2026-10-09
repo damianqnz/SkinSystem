@@ -3,8 +3,8 @@ import { headers }  from 'next/headers';
 import { notFound } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 
-import { getOrganizationBySlug } from '@/domains/organizations/service';
-import { getMonthStart }         from '@/domains/booking/calendar-service';
+import { resolveCalendarStaffForRequest } from '@/domains/organizations/calendar-staff-request';
+import { getMonthStart }                  from '@/domains/booking/calendar-service';
 
 import { CalendarHeader }     from './_components/CalendarHeader';
 import { MonthEvents }        from './_components/MonthEvents';
@@ -20,6 +20,7 @@ interface CalendarPageProps {
   searchParams: Promise<{
     date?:  string;
     view?:  string;
+    staff?: string;
   }>;
 }
 
@@ -30,15 +31,16 @@ const VALID_VIEWS: CalendarView[] = ['day', 'week', 'month', 'team'];
  */
 export default async function CalendarPage({ searchParams }: CalendarPageProps) {
   const hdrs   = await headers();
-  const slug   = hdrs.get('x-tenant-slug') ?? '';
   const locale = localeFromHeader(hdrs.get('x-locale'));
   const t      = await getTranslations({ locale, namespace: 'dashboard.calendar' });
 
-  const { date: dateParam, view: viewParam } = await searchParams;
+  const { date: dateParam, view: viewParam, staff: staffParam } = await searchParams;
 
-  const orgRes = await getOrganizationBySlug(slug);
-  if (orgRes.error || !orgRes.data) notFound();
-  const org = orgRes.data;
+  // Resolve the viewer + effective staff profile server-side. `?staff=` is
+  // only honoured for owner/super_admin; staff always see themselves.
+  const staffRes = await resolveCalendarStaffForRequest(staffParam ?? null);
+  if (!staffRes.ok) notFound();
+  const { orgId, staffProfileId } = staffRes;
 
   const view: CalendarView = (VALID_VIEWS as string[]).includes(viewParam ?? '')
     ? (viewParam as CalendarView)
@@ -58,10 +60,10 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
         <CalendarHeader monthStart={monthStart} locale={locale} view={view} />
         {view === 'month' ? (
           <Suspense
-            key={`${monthStart.toISOString()}-month`}
+            key={`${monthStart.toISOString()}-${staffProfileId}-month`}
             fallback={<AgendaSkeleton />}
           >
-            <MonthEvents organizationId={org.id} anchorDate={monthStart} locale={locale} />
+            <MonthEvents organizationId={orgId} anchorDate={monthStart} locale={locale} staffProfileId={staffProfileId} />
           </Suspense>
         ) : (
           <ComingSoon label={t('teamLabel')} copy={t('comingSoon', { label: t('teamLabel') })} />
@@ -76,11 +78,11 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   return (
     <div className="flex flex-col h-full min-h-0">
       <CalendarDayNav date={anchorDate} locale={locale} view={view} />
-      <Suspense key={`${anchorDate.toISOString()}-${view}`} fallback={<CalendarSkeleton />}>
+      <Suspense key={`${anchorDate.toISOString()}-${view}-${staffProfileId}`} fallback={<CalendarSkeleton />}>
         {view === 'week' ? (
-          <WeekViewEngine organizationId={org.id} date={anchorDate} locale={locale} />
+          <WeekViewEngine organizationId={orgId} date={anchorDate} locale={locale} staffProfileId={staffProfileId} />
         ) : (
-          <AvailabilityEngine organizationId={org.id} date={anchorDate} locale={locale} />
+          <AvailabilityEngine organizationId={orgId} date={anchorDate} locale={locale} staffProfileId={staffProfileId} />
         )}
       </Suspense>
     </div>
