@@ -43,12 +43,12 @@ export function AppointmentForm({ locale, date, initialTime, selectedCustomer, o
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset stale times before an in-flight fetch for the new date/initialTime
     setTimes(null);
-    getAvailableTimesAction(date.toISOString().slice(0, 10)).then((res) => {
+    getAvailableTimesAction(date.toISOString().slice(0, 10), staffProfileId).then((res) => {
       const avail = res.data ?? [];
       setTimes(avail);
       if (initialTime && avail.includes(initialTime)) setTime(initialTime);
     });
-  }, [date, initialTime]);
+  }, [date, initialTime, staffProfileId]);
 
   const handleServiceChange = (id: string) => {
     setServiceId(id);

@@ -149,7 +149,6 @@ export async function createBlockedIntervalAction(
   // with a hardcoded Portuguese string (see I18N-08's disclosed non-goal).
   const tBlock = await getTranslations({ locale: await getActionLocale(), namespace: 'calendar.block' });
   revalidatePath('/dashboard/calendar');
-  revalidatePath('/dashboard/calendar');
   return { status: 'success', id: result.data.id, message: tBlock('success') };
 }
 
@@ -228,7 +227,6 @@ export async function createInternalAppointmentAction(
 
   // Reuses NewAppointmentForm's own `dashboard.calendar.newAppointment.toastCreated`.
   const tNa = await getTranslations({ locale: await getActionLocale(), namespace: 'dashboard.calendar.newAppointment' });
-  revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard/calendar');
   revalidatePath('/dashboard');
   return { status: 'success', id: result.data.id, message: tNa('toastCreated') };

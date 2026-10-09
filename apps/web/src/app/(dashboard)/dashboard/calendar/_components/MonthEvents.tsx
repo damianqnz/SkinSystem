@@ -6,6 +6,7 @@
  */
 
 import { getCalendarMonth, getCalendarMonthBlockedIntervals } from '@/domains/booking/calendar-service';
+import { getTranslations } from 'next-intl/server';
 import { AgendaInteractive, type SerializedBlock } from './AgendaInteractive';
 import type { SerializedEvent } from './MonthView';
 
@@ -16,20 +17,22 @@ interface MonthEventsProps {
   staffProfileId?: string;
 }
 
-function CalendarErrorFallback() {
+function CalendarErrorFallback({ message }: { message: string }) {
   return (
     <div className="flex-1 flex items-center justify-center text-sm text-spa-muted"
          style={{ fontFamily: 'var(--font-sans)' }}>
-      Não foi possível carregar o calendário.
+      {message}
     </div>
   );
 }
 
 export async function MonthEvents({ organizationId, anchorDate, locale, staffProfileId }: MonthEventsProps) {
+  const t = await getTranslations({ locale, namespace: 'dashboard.calendar' });
+
   const monthRes = await getCalendarMonth(organizationId, anchorDate, staffProfileId);
 
   if (monthRes.error || !monthRes.data) {
-    return <CalendarErrorFallback />;
+    return <CalendarErrorFallback message={t('loadError')} />;
   }
 
   const { events, gridStart, monthStart } = monthRes.data;
@@ -41,7 +44,7 @@ export async function MonthEvents({ organizationId, anchorDate, locale, staffPro
   // Fetch blocked intervals for the visible grid window
   const blockedRes = await getCalendarMonthBlockedIntervals(organizationId, gridStart, gridEnd, staffProfileId);
   if (blockedRes.error || !blockedRes.data) {
-    return <CalendarErrorFallback />;
+    return <CalendarErrorFallback message={t('loadError')} />;
   }
 
   const serializedEvents: SerializedEvent[] = events.map((e) => ({

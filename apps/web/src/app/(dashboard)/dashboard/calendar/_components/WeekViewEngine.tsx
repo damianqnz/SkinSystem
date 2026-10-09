@@ -1,4 +1,5 @@
 import { getWeekView } from '@/domains/booking/week-view-service';
+import { getTranslations } from 'next-intl/server';
 import { WeekViewGrid } from './WeekViewGrid';
 import type { WeekDaySer } from './week-utils';
 
@@ -44,10 +45,11 @@ export async function WeekViewEngine({ organizationId, date, locale, staffProfil
   const res = await getWeekView(organizationId, date, staffProfileId);
 
   if (res.error || !res.data) {
+    const t = await getTranslations({ locale, namespace: 'dashboard.calendar' });
     return (
       <div className="flex items-center justify-center py-16 px-4 text-center">
         <p className="text-sm text-red-400">
-          {res.error?.message ?? 'Error al cargar la semana'}
+          {res.error?.message ?? t('loadError')}
         </p>
       </div>
     );

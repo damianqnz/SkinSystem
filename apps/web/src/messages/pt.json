@@ -957,6 +957,7 @@
     "calendar": {
       "comingSoon": "A vista «{label}» chega em breve.",
       "teamLabel":  "Equipa",
+      "loadError":  "Não foi possível carregar o calendário.",
       "header": {
         "prevMonthAriaLabel": "Mês anterior",
         "nextMonthAriaLabel": "Próximo mês",
