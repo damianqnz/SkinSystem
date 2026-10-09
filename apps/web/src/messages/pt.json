@@ -1067,7 +1067,12 @@
         "collapseAria": "Fechar painel",
         "expandAria": "Abrir painel",
         "connectCta": "Conectar calendário",
-        "localFallback": "Estética"
+        "localFallback": "Estética",
+        "calendarOf": "Calendário de {name}",
+        "teamHeading": "Equipa",
+        "pendingInvitation": "Convite pendente",
+        "youBadge": "Você",
+        "switchToMemberAria": "Ver o calendário de {name}"
       }
     },
     "integrations": {

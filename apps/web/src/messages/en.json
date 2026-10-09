@@ -1067,7 +1067,12 @@
         "collapseAria": "Collapse panel",
         "expandAria": "Expand panel",
         "connectCta": "Connect calendar",
-        "localFallback": "Studio"
+        "localFallback": "Studio",
+        "calendarOf": "{name}'s calendar",
+        "teamHeading": "Team",
+        "pendingInvitation": "Pending invitation",
+        "youBadge": "You",
+        "switchToMemberAria": "View {name}'s calendar"
       }
     },
     "integrations": {
