@@ -5,6 +5,7 @@ import { getTranslations } from 'next-intl/server';
 
 import { resolveCalendarStaffForRequest } from '@/domains/organizations/calendar-staff-request';
 import { getMonthStart }                  from '@/domains/booking/calendar-service';
+import { OWNER_ROLES }                    from '@/shared/lib/resolve-tenant-types';
 
 import { CalendarHeader }     from './_components/CalendarHeader';
 import { MonthEvents }        from './_components/MonthEvents';
@@ -40,7 +41,8 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
   // only honoured for owner/super_admin; staff always see themselves.
   const staffRes = await resolveCalendarStaffForRequest(staffParam ?? null);
   if (!staffRes.ok) notFound();
-  const { orgId, staffProfileId } = staffRes;
+  const { orgId, staffProfileId, viewer } = staffRes;
+  const canManageTeam = OWNER_ROLES.includes(viewer.role);
 
   const view: CalendarView = (VALID_VIEWS as string[]).includes(viewParam ?? '')
     ? (viewParam as CalendarView)
@@ -57,7 +59,7 @@ export default async function CalendarPage({ searchParams }: CalendarPageProps) 
 
     return (
       <>
-        <CalendarHeader monthStart={monthStart} locale={locale} view={view} />
+        <CalendarHeader monthStart={monthStart} locale={locale} view={view} canManageTeam={canManageTeam} />
         {view === 'month' ? (
           <Suspense
             key={`${monthStart.toISOString()}-${staffProfileId}-month`}

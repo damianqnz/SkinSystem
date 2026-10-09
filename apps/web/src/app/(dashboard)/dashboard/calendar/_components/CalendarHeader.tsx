@@ -2,15 +2,17 @@
 
 import Link from 'next/link';
 import { useSearchParams, usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight, MoreHorizontal, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ViewSwitcher, type CalendarView } from './ViewSwitcher';
+import { CalendarActionsMenu } from './CalendarActionsMenu';
 import { MONTH_KEYS } from '@/i18n/calendar-keys';
 
 interface CalendarHeaderProps {
-  monthStart: Date;
-  locale:     string;
-  view:       CalendarView;
+  monthStart:   Date;
+  locale:       string;
+  view:         CalendarView;
+  canManageTeam: boolean;
 }
 
 function shiftMonthIso(monthStart: Date, delta: number): string {
@@ -19,7 +21,7 @@ function shiftMonthIso(monthStart: Date, delta: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps) {
+export function CalendarHeader({ monthStart, locale, view, canManageTeam }: CalendarHeaderProps) {
   const t          = useTranslations('dashboard.calendar.header');
   const tCal       = useTranslations('calendar');
   const pathname   = usePathname();
@@ -83,13 +85,7 @@ export function CalendarHeader({ monthStart, locale, view }: CalendarHeaderProps
 
       {/* Right — quick actions */}
       <div className="flex items-center gap-1">
-        <button
-          type="button"
-          aria-label={t('newApptAriaLabel')}
-          className="p-1.5 rounded-md text-spa-muted hover:text-[#D4AF37] hover:bg-stone-50 transition-colors"
-        >
-          <Plus size={14} strokeWidth={1.5} />
-        </button>
+        <CalendarActionsMenu canManageTeam={canManageTeam} />
         <button
           type="button"
           aria-label={t('moreAriaLabel')}
