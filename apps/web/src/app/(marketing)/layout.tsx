@@ -11,19 +11,12 @@
  */
 
 import type { ReactNode } from 'react';
-import { Outfit }         from 'next/font/google';
+import { outfit }         from '@/shared/fonts';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getMessages } from 'next-intl/server';
 import { pickMessages }   from '@/i18n/pick-messages';
 import { MARKETING_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
 import '../globals.css';
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  weight: ['300', '400', '500'],
-  variable: '--font-sans',
-  display: 'swap',
-});
 
 export default async function MarketingLayout({ children }: { children: ReactNode }) {
   const [locale, messages] = await Promise.all([getLocale(), getMessages()]);

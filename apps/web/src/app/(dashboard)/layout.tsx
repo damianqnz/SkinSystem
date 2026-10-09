@@ -1,7 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { headers, cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { Cormorant_Garamond, Outfit } from 'next/font/google';
+import { cormorant, outfit } from '@/shared/fonts';
 import { Toaster } from 'sonner';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -14,22 +14,6 @@ import { DashboardHeader } from '@/shared/components/dashboard/DashboardHeader';
 import { resolveTenantOrgId } from '@/shared/lib/resolve-tenant-org-id';
 import { localeFromHeader, resolveDashboardFallbackLocale } from '@/i18n/detect-locale';
 import '../globals.css';
-
-// ── Fonts (self-hosted by Next.js, zero CLS) ──────────────────────────────
-const cormorant = Cormorant_Garamond({
-  subsets:  ['latin'],
-  weight:   ['400', '600', '700'],
-  style:    ['normal', 'italic'],
-  variable: '--font-serif',
-  display:  'swap',
-});
-
-const outfit = Outfit({
-  subsets:  ['latin'],
-  weight:   ['300', '400', '500'],
-  variable: '--font-sans',
-  display:  'swap',
-});
 
 // ── Dynamic shell ─────────────────────────────────────────────────────────
 // Reads request headers (set by middleware). MUST live inside <Suspense>
