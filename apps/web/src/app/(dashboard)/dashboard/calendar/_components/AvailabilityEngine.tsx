@@ -1,3 +1,4 @@
+import { getTranslations }    from 'next-intl/server';
 import { getDayView }        from '@/domains/booking/day-view-service';
 import { CalendarDayView }   from './CalendarDayView';
 import type { DayViewSer }   from './DayTimeGrid';
@@ -31,9 +32,10 @@ export async function AvailabilityEngine({
   const result = await getDayView(organizationId, date, staffProfileId);
 
   if (result.error) {
+    const t = await getTranslations({ locale, namespace: 'dashboard.calendar' });
     return (
       <div className="flex items-center justify-center py-16 px-4">
-        <p className="text-sm text-red-400">{result.error.message}</p>
+        <p className="text-sm text-red-400">{t('loadError')}</p>
       </div>
     );
   }

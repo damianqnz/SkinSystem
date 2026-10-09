@@ -48,9 +48,7 @@ export async function WeekViewEngine({ organizationId, date, locale, staffProfil
     const t = await getTranslations({ locale, namespace: 'dashboard.calendar' });
     return (
       <div className="flex items-center justify-center py-16 px-4 text-center">
-        <p className="text-sm text-red-400">
-          {res.error?.message ?? t('loadError')}
-        </p>
+        <p className="text-sm text-red-400">{t('loadError')}</p>
       </div>
     );
   }
