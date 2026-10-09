@@ -19,7 +19,7 @@
  */
 
 import type { ReactNode } from 'react';
-import { Cormorant_Garamond, Outfit } from 'next/font/google';
+import { cormorant, outfit } from '@/shared/fonts';
 import { Toaster }        from 'sonner';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages }    from 'next-intl/server';
@@ -27,21 +27,6 @@ import { pickMessages }   from '@/i18n/pick-messages';
 import { CONSUMER_CLIENT_NAMESPACES } from '@/i18n/client-namespaces';
 import type { BrandTheme } from '@/shared/lib/brand-theme';
 import type { SupportedLocale } from '@/i18n/config';
-
-const cormorant = Cormorant_Garamond({
-  subsets: ['latin'],
-  weight: ['400', '600', '700'],
-  style: ['normal', 'italic'],
-  variable: '--font-serif',
-  display: 'swap',
-});
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  weight: ['300', '400', '500'],
-  variable: '--font-sans',
-  display: 'swap',
-});
 
 interface Props {
   theme:    BrandTheme;

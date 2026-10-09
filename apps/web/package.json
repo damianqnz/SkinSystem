@@ -14,8 +14,6 @@
     "reset-password": "tsx --env-file .env.local scripts/reset-user-password.ts"
   },
   "dependencies": {
-    "@fontsource/cormorant-garamond": "^5.3.0",
-    "@fontsource/outfit": "^5.3.0",
     "@gsap/react": "^2.1.2",
     "@radix-ui/react-alert-dialog": "^1.1.23",
     "@radix-ui/react-dialog": "^1.1.23",
