@@ -72,11 +72,23 @@ const nextConfig = {
       bodySizeLimit: '5mb',
     },
   },
-  // Allow subdomains to receive HMR in local development
+  // Allow subdomains to receive HMR in local development.
+  //
+  // Extra origins come from ALLOWED_DEV_ORIGINS (comma-separated), set per
+  // machine in `.env.local` — which is gitignored. That keeps machine-specific
+  // hostnames (a phone, another laptop, a private-network name) out of this
+  // public repo instead of hardcoding them here.
+  //
+  // Deliberately NOT prefixed with NEXT_PUBLIC_: that prefix inlines a value
+  // into the client bundle, which would publish it to every visitor. This is
+  // read only when `next dev` starts.
   allowedDevOrigins: [
     'lourdes.lvh.me',
     'gloria.lvh.me',
     'auth.lvh.me',
+    ...(process.env.ALLOWED_DEV_ORIGINS?.split(',') ?? [])
+      .map((origin) => origin.trim())
+      .filter(Boolean),
   ],
   images: {
     remotePatterns: [
